@@ -72,14 +72,14 @@ float get_desired_pH() {
 }
 
 float get_pH() {
-    const uint8_t samples = 10;
+    const uint8_t samples = 20;
     int measurings = 0;
     for (int i = 0; i < samples; i++) {
         measurings += analogRead(PH_PIN);
-        delay(10);
+        delay(50);
     }
-    float voltage = 5 / 1024.0 * measurings / samples;
-    return 7 + ((2.5 - voltage) / 0.18);
+    const float x = measurings / samples;
+    return -0.0257 * x + 21.1;
 }
 
 void pH_up() {
