@@ -1,19 +1,24 @@
-//#include "TM1637.h"
+#include "TM1637.h"
 
 #define M1 9
 #define M2 10
 #define M1_SPEED 130
 #define M2_SPEED 170
-#define DEFAULT_SPEED 0
+#define ZERO_SPEED 0
 
 #define PH_PIN A7
+#define POT_PIN A6
 
-#define SEG7_CLK 6
-#define SEG7_DIO 7
+#define SEG7_CPH_CLK 6
+#define SEG7_CPH_DIO 7
 
-#define WATER_DROP_TIME 100
+#define SEG7_DPH_CLK 4
+#define SEG7_DPH_DIO 5
 
-//TM1637 tm1637(SEG7_CLK, SEG7_DIO);
+#define DROP_TIME 100
+
+TM1637 current_ph_display(SEG7_CPH_CLK, SEG7_CPH_DIO);
+TM1637 desired_ph_display(SEG7_DPH_CLK, SEG7_DPH_DIO);
 
 void setup() {
     pinMode(M1, OUTPUT);
@@ -21,27 +26,49 @@ void setup() {
     
     Serial.begin(115200);
 
-    // tm1637.init();
-    // tm1637.set(BRIGHT_TYPICAL);
+    current_ph_display.init();
+    desired_ph_display.init();
+
+    current_ph_display.set(BRIGHT_TYPICAL);
+    desired_ph_display.set(BRIGHT_TYPICAL);
+
+    // Example of displays use
     // float num = 12.8;
-    // Serial.println(num);
-    // tm1637.displayNum(num, 2, false);
+    // current_ph_display.displayNum(num, 2, false);
 }
 
 void loop() {
+    /*
+        pH control v1.0, highly blocking flow:
+        - measure error
+        - if error > ERR_MARGIN
+            - while error > STABILIZATION_MARGIN
+                - supply dosage -- may it be computed?
+                - wait STABILIZATION_TIME -- may it be computed?
+                - measure error
+            - wait POST_CONTROL_TIME
+        - wait SLEEPING_TIME
+    */
+    float error = get_pH() - get_desired_pH();
+    // TODO: jose :D
+    // TODO 2: make it non-blocking for good displays visualization
+
+    // For testing, remove
     pH_up();
-    calm_down();
     delay(5000);
     
     pH_down();
-    calm_down();
     delay(5000);
-    
+
     Serial.print("Pot: ");
-    Serial.print(analogRead(A0));
+    Serial.print(analogRead(POT_PIN));
     Serial.print("\tpH: ");
     Serial.print(get_pH());
     Serial.print("\n");
+}
+
+float get_desired_pH() {
+    return map(analogRead(POT_PIN), 0, 1023, 0, 14);
 }
 
 float get_pH() {
@@ -56,18 +83,13 @@ float get_pH() {
 }
 
 void pH_up() {
-    analogWrite(M2, DEFAULT_SPEED);
     analogWrite(M1, M1_SPEED);
-    delay(WATER_DROP_TIME);
+    delay(DROP_TIME);
+    analogWrite(M1, ZERO_SPEED);
 }
 
 void pH_down() {
-    analogWrite(M1, DEFAULT_SPEED);
     analogWrite(M2, M2_SPEED);
-    delay(WATER_DROP_TIME);
-}
-
-void calm_down() {
-    analogWrite(M1, DEFAULT_SPEED);
-    analogWrite(M2, DEFAULT_SPEED);
+    delay(DROP_TIME);
+    analogWrite(M2, ZERO_SPEED);
 }
