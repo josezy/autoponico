@@ -17,13 +17,26 @@
 
 #define DROP_TIME 100
 
+// Controller constants
+#define ERR_MARGIN 0.4
+#define STABILIZATION_MARGIN 0.2
+
+#define MINUTE 1000L * 60
+
+#define STABILIZATION_TIME 2 * MINUTE
+#define POST_CONTROL_TIME 5 * MINUTE
+#define SLEEPING_TIME 30 * MINUTE
+
+float error;
+
 TM1637 current_ph_display(SEG7_CPH_CLK, SEG7_CPH_DIO);
 TM1637 desired_ph_display(SEG7_DPH_CLK, SEG7_DPH_DIO);
 
 void setup() {
     pinMode(M1, OUTPUT);
     pinMode(M2, OUTPUT);
-    
+    pinMode(POT_PIN, INPUT);
+
     Serial.begin(115200);
 
     current_ph_display.init();
@@ -42,29 +55,30 @@ void loop() {
         pH control v1.0, highly blocking flow:
         - measure error
         - if error > ERR_MARGIN
-            - while error > STABILIZATION_MARGIN
+            - do while error > STABILIZATION_MARGIN
                 - supply dosage -- may it be computed?
                 - wait STABILIZATION_TIME -- may it be computed?
                 - measure error
             - wait POST_CONTROL_TIME
         - wait SLEEPING_TIME
     */
-    float error = get_pH() - get_desired_pH();
-    // TODO: jose :D
-    // TODO 2: make it non-blocking for good displays visualization
+    // TODO: make it non-blocking for good displays visualization
+    error = get_pH() - get_desired_pH();
 
-    // For testing, remove
-    pH_up();
-    delay(5000);
-    
-    pH_down();
-    delay(5000);
+    if (abs(error) > ERR_MARGIN) {
+        do {
+            if (error > 0) {
+                pH_down();
+            } else {
+                pH_up();
+            }
+            delay(STABILIZATION_TIME);
+            error = get_pH() - get_desired_pH();
+        } while (abs(error) > STABILIZATION_MARGIN);
+        delay(POST_CONTROL_TIME);
+    }
+    delay(SLEEPING_TIME);
 
-    Serial.print("Pot: ");
-    Serial.print(analogRead(POT_PIN));
-    Serial.print("\tpH: ");
-    Serial.print(get_pH());
-    Serial.print("\n");
 }
 
 float get_desired_pH() {
