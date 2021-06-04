@@ -4,9 +4,10 @@
 #define M2 10
 #define M1_SPEED 130
 #define M2_SPEED 170
-#define DEFAULT_SPEED 0
+#define ZERO_SPEED 0
 
 #define PH_PIN A7
+#define POT_PIN A6
 
 #define DISPLAYS_QUANTITY 2
 
@@ -14,7 +15,17 @@
 #define SEG7_LATCH 6
 #define SEG7_CLOCK 7
 
-#define WATER_DROP_TIME 100
+#define DROP_TIME 100
+
+// Controller constants
+#define ERR_MARGIN 0.4
+#define STABILIZATION_MARGIN 0.2
+
+#define MINUTE 1000L * 60
+
+#define STABILIZATION_TIME 2 * MINUTE
+#define POST_CONTROL_TIME 5 * MINUTE
+#define SLEEPING_TIME 30 * MINUTE
 
 ShiftRegister74HC595<DISPLAYS_QUANTITY> sr (SEG7_DATA, SEG7_CLOCK, SEG7_LATCH);
 
@@ -44,25 +55,61 @@ uint8_t secondDisplay[] = {
     B10011000  //9
 };
 
+float error;
+
 void setup() {
     pinMode(M1, OUTPUT);
     pinMode(M2, OUTPUT);
-    
+    pinMode(POT_PIN, INPUT);
+
     Serial.begin(115200);
 }
 
 void loop() {
-    float pH = getPh();
-    showInDisplay(pH);
+    float pH = get_pH();
+    show_in_display(pH);
+    /*
+        pH control v1.0, highly blocking flow:
+        - measure error
+        - if error > ERR_MARGIN
+            - do while error > STABILIZATION_MARGIN
+                - supply dosage -- may it be computed?
+                - wait STABILIZATION_TIME -- may it be computed?
+                - measure error
+            - wait POST_CONTROL_TIME
+        - wait SLEEPING_TIME
+    */
+    // TODO: make it non-blocking for good displays visualization
+    /*
+    error = get_pH() - get_desired_pH();
+
+    if (abs(error) > ERR_MARGIN) {
+        do {
+            if (error > 0) {
+                pH_down();
+            } else {
+                pH_up();
+            }
+            delay(STABILIZATION_TIME);
+            error = get_pH() - get_desired_pH();
+        } while (abs(error) > STABILIZATION_MARGIN);
+        delay(POST_CONTROL_TIME);
+    }
+    delay(SLEEPING_TIME);
+    */
 }
 
-float getPh() {
-    const uint8_t samples = 10;
+float get_desired_pH() {
+    return map(analogRead(POT_PIN), 0, 1023, 0, 14);
+}
+
+float get_pH() {
+    const uint8_t samples = 20;
     int measurings = 0;
     
     for (int i = 0; i < samples; i++) {
         measurings += analogRead(PH_PIN);
-        delay(10);
+        delay(50);
     }
     
     float voltage = measurings / samples;
@@ -72,24 +119,26 @@ float getPh() {
     return yAxisIntercept - slope*voltage;
 }
 
-void phUp() {
-    analogWrite(M2, DEFAULT_SPEED);
+void pH_up() {
+    analogWrite(M2, ZERO_SPEED);
     analogWrite(M1, M1_SPEED);
-    delay(WATER_DROP_TIME);
+    delay(DROP_TIME);
+    analogWrite(M1, ZERO_SPEED);
 }
 
-void phDown() {
-    analogWrite(M1, DEFAULT_SPEED);
+void pH_down() {
+    analogWrite(M1, ZERO_SPEED);
     analogWrite(M2, M2_SPEED);
-    delay(WATER_DROP_TIME);
+    delay(DROP_TIME);
+    analogWrite(M2, ZERO_SPEED);
 }
 
-void calmDown() {
-    analogWrite(M1, DEFAULT_SPEED);
-    analogWrite(M2, DEFAULT_SPEED);
+void calm_down() {
+    analogWrite(M1, ZERO_SPEED);
+    analogWrite(M2, ZERO_SPEED);
 }
 
-void showInDisplay(float ph) {
+void show_in_display(float ph) {
   int phWithoutDecimals = ph*10;
 
   int firstDigit = phWithoutDecimals / 10;
