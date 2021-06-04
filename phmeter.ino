@@ -1,19 +1,23 @@
 #include <ShiftRegister74HC595.h>
 
-#define M1 9
-#define M2 10
-#define M1_SPEED 130
-#define M2_SPEED 170
+#define M_PH_UP 9
+#define M_PH_DN 10
+#define M_PH_UP_SPEED 130
+#define M_PH_DN_SPEED 170
 #define ZERO_SPEED 0
 
 #define PH_PIN A7
-#define POT_PIN A6
+#define POT_PIN A0
 
-#define DISPLAYS_QUANTITY 2
+#define NUM_DIGITS 2
 
-#define SEG7_DATA 5
-#define SEG7_LATCH 6
-#define SEG7_CLOCK 7
+#define DESIRED_SEG7_DATA 5
+#define DESIRED_SEG7_LATCH 6
+#define DESIRED_SEG7_CLOCK 7
+
+#define CURRENT_SEG7_DATA 8
+#define CURRENT_SEG7_LATCH 12
+#define CURRENT_SEG7_CLOCK 11
 
 #define DROP_TIME 100
 
@@ -22,12 +26,12 @@
 #define STABILIZATION_MARGIN 0.2
 
 #define MINUTE 1000L * 60
+#define STABILIZATION_TIME 1 * MINUTE
 
-#define STABILIZATION_TIME 2 * MINUTE
-#define POST_CONTROL_TIME 5 * MINUTE
-#define SLEEPING_TIME 30 * MINUTE
+#define SLEEPING_TIME 100
 
-ShiftRegister74HC595<DISPLAYS_QUANTITY> sr (SEG7_DATA, SEG7_CLOCK, SEG7_LATCH);
+ShiftRegister74HC595<NUM_DIGITS> desired_display (DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH);
+ShiftRegister74HC595<NUM_DIGITS> current_display (CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH);
 
 uint8_t firstDisplay[] = { 
     B01000000, //0.
@@ -55,101 +59,112 @@ uint8_t secondDisplay[] = {
     B10011000  //9
 };
 
+float pH;
+float desired_pH;
 float error;
 
 void setup() {
-    pinMode(M1, OUTPUT);
-    pinMode(M2, OUTPUT);
+    pinMode(M_PH_UP, OUTPUT);
+    pinMode(M_PH_DN, OUTPUT);
     pinMode(POT_PIN, INPUT);
+    pinMode(PH_PIN, INPUT);
 
     Serial.begin(115200);
 }
 
 void loop() {
-    float pH = get_pH();
-    show_in_display(pH);
-    /*
-        pH control v1.0, highly blocking flow:
-        - measure error
-        - if error > ERR_MARGIN
-            - do while error > STABILIZATION_MARGIN
-                - supply dosage -- may it be computed?
-                - wait STABILIZATION_TIME -- may it be computed?
-                - measure error
-            - wait POST_CONTROL_TIME
-        - wait SLEEPING_TIME
-    */
-    // TODO: make it non-blocking for good displays visualization
-    /*
-    error = get_pH() - get_desired_pH();
+    pH = get_pH();
+    show_in_current_display(pH);
+    desired_pH = get_desired_pH();
+    show_in_desired_display(desired_pH);
+
+    error = pH - desired_pH;
+    Serial.print("Error: ");
+    Serial.println(error);
 
     if (abs(error) > ERR_MARGIN) {
         do {
             if (error > 0) {
                 pH_down();
+                Serial.println("Going down down");
             } else {
                 pH_up();
+                Serial.println("Going up up");
             }
-            delay(STABILIZATION_TIME);
-            error = get_pH() - get_desired_pH();
+
+            long start = millis();
+            while (millis() - start < STABILIZATION_TIME) {
+                delay(10);
+
+                pH = get_pH();
+                show_in_current_display(pH);
+                desired_pH = get_desired_pH();
+                show_in_desired_display(desired_pH);
+                Serial.print("pH: ");
+                Serial.print(pH);
+                Serial.print("\t\tdesired_pH: ");
+                Serial.print(desired_pH);
+
+                error = pH - desired_pH;
+                Serial.print("\t\tLoop error: ");
+                Serial.println(error);
+            }
         } while (abs(error) > STABILIZATION_MARGIN);
-        delay(POST_CONTROL_TIME);
     }
     delay(SLEEPING_TIME);
-    */
 }
+ 
 
 float get_desired_pH() {
-    return map(analogRead(POT_PIN), 0, 1023, 0, 14);
+    return map(analogRead(POT_PIN), 0, 1023, 50, 70) / 10.0;
 }
 
 float get_pH() {
-    const uint8_t samples = 20;
+    const uint8_t samples = 30;
     int measurings = 0;
-    
+
     for (int i = 0; i < samples; i++) {
         measurings += analogRead(PH_PIN);
         delay(50);
     }
-    
-    float voltage = measurings / samples;
-    float slope = 0.0257;
-    float yAxisIntercept = 21.1;
-    
-    return yAxisIntercept - slope*voltage;
+
+    float reading = measurings / samples;
+    float m = -0.0257;
+    float b = 21.1;
+
+    return m * reading + b;
 }
 
 void pH_up() {
-    analogWrite(M2, ZERO_SPEED);
-    analogWrite(M1, M1_SPEED);
+    analogWrite(M_PH_DN, ZERO_SPEED);
+    analogWrite(M_PH_UP, M_PH_UP_SPEED);
     delay(DROP_TIME);
-    analogWrite(M1, ZERO_SPEED);
+    analogWrite(M_PH_UP, ZERO_SPEED);
 }
 
 void pH_down() {
-    analogWrite(M1, ZERO_SPEED);
-    analogWrite(M2, M2_SPEED);
+    analogWrite(M_PH_UP, ZERO_SPEED);
+    analogWrite(M_PH_DN, M_PH_DN_SPEED);
     delay(DROP_TIME);
-    analogWrite(M2, ZERO_SPEED);
+    analogWrite(M_PH_DN, ZERO_SPEED);
 }
 
-void calm_down() {
-    analogWrite(M1, ZERO_SPEED);
-    analogWrite(M2, ZERO_SPEED);
+void show_in_desired_display(float ph) {
+    int phWithoutDecimals = ph * 10;
+
+    int firstDigit = phWithoutDecimals / 10;
+    int secondDigit = phWithoutDecimals % 10;
+
+    uint8_t numberToPrint[] = { firstDisplay[firstDigit], secondDisplay[secondDigit] };
+    desired_display.setAll(numberToPrint); 
 }
 
-void show_in_display(float ph) {
-  int phWithoutDecimals = ph*10;
+void show_in_current_display(float ph) {
+    int phWithoutDecimals = ph * 10;
 
-  int firstDigit = phWithoutDecimals / 10;
-  int secondDigit = phWithoutDecimals % 10;
+    int firstDigit = phWithoutDecimals / 10;
+    int secondDigit = phWithoutDecimals % 10;
 
-  show(firstDigit, secondDigit);
-}
-
-void show(int firstDigit, int secondDigit) {
-  uint8_t numberToPrint[]= { firstDisplay[firstDigit], secondDisplay[secondDigit] };
-  sr.setAll(numberToPrint); 
-  
-  delay(1000);
+    uint8_t numberToPrint[] = { firstDisplay[firstDigit], secondDisplay[secondDigit] };
+    current_display.setAll(numberToPrint); 
 }
