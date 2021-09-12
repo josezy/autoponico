@@ -1,7 +1,7 @@
 #include <ShiftRegister74HC595.h>
 
-#define M_PH_UP 9
-#define M_PH_DN 10
+#define M_PH_UP 8
+#define M_PH_DN 9
 #define M_PH_UP_SPEED 130
 #define M_PH_DN_SPEED 170
 #define ZERO_SPEED 0
@@ -11,13 +11,12 @@
 
 #define NUM_DIGITS 2
 
+#define CURRENT_SEG7_DATA 2
+#define CURRENT_SEG7_CLOCK 3
+#define CURRENT_SEG7_LATCH 4
 #define DESIRED_SEG7_DATA 5
-#define DESIRED_SEG7_LATCH 6
-#define DESIRED_SEG7_CLOCK 7
-
-#define CURRENT_SEG7_DATA 8
-#define CURRENT_SEG7_LATCH 12
-#define CURRENT_SEG7_CLOCK 11
+#define DESIRED_SEG7_CLOCK 6
+#define DESIRED_SEG7_LATCH 7
 
 #define DROP_TIME 100
 
@@ -63,6 +62,21 @@ float pH;
 float desired_pH;
 float error;
 
+
+void test_system() {
+    // test displays
+    Serial.println("Testing CURRENT display");
+    for (float i = 0.0; i < 10.0; i += 1.1) { show_in_current_display(i); delay(100); }
+    Serial.println("Testing DESIRED display");
+    for (float i = 0.0; i < 10.0; i += 1.1) { show_in_desired_display(i); delay(100); }
+
+    // test pumps
+    Serial.println("Testing ph UP");
+    for (int i = 1; i <= 10; i++) { pH_up(); delay(50); }
+    Serial.println("Testing ph DOWN");
+    for (int i = 1; i <= 10; i++) { pH_down(); delay(50); }
+}
+
 void setup() {
     pinMode(M_PH_UP, OUTPUT);
     pinMode(M_PH_DN, OUTPUT);
@@ -70,16 +84,17 @@ void setup() {
     pinMode(PH_PIN, INPUT);
 
     Serial.begin(115200);
+    // test_system();
 }
 
 void loop() {
     pH = get_pH();
-    show_in_current_display(pH);
     desired_pH = get_desired_pH();
+    show_in_current_display(pH);
     show_in_desired_display(desired_pH);
 
     error = pH - desired_pH;
-    Serial.print("Error: ");
+    Serial.print("Initial error: ");
     Serial.println(error);
 
     if (abs(error) > ERR_MARGIN) {
@@ -97,8 +112,8 @@ void loop() {
                 delay(10);
 
                 pH = get_pH();
-                show_in_current_display(pH);
                 desired_pH = get_desired_pH();
+                show_in_current_display(pH);
                 show_in_desired_display(desired_pH);
                 Serial.print("pH: ");
                 Serial.print(pH);
