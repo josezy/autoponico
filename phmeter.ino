@@ -1,4 +1,6 @@
 #include <ShiftRegister74HC595.h>
+#include <SoftwareSerial.h>
+
 
 #define M_PH_UP 8
 #define M_PH_DN 9
@@ -6,7 +8,6 @@
 #define M_PH_DN_SPEED 170
 #define ZERO_SPEED 0
 
-#define PH_PIN A7
 #define POT_PIN A0
 
 #define NUM_DIGITS 2
@@ -17,6 +18,9 @@
 #define DESIRED_SEG7_DATA 5
 #define DESIRED_SEG7_CLOCK 6
 #define DESIRED_SEG7_LATCH 7
+
+#define PH_RX 10
+#define PH_TX 11
 
 #define DROP_TIME 100
 
@@ -63,6 +67,17 @@ float desired_pH;
 float error;
 
 
+String sensorstring = "";
+boolean sensor_string_complete = false;
+
+float ph_total = 0;
+float ph_current = 0;
+float ph_counter = 0;
+const uint8_t max_samples = 1;
+
+SoftwareSerial pH_Serial(PH_RX, PH_TX); 
+
+
 void test_system() {
     // test displays
     Serial.println("Testing CURRENT display");
@@ -81,9 +96,10 @@ void setup() {
     pinMode(M_PH_UP, OUTPUT);
     pinMode(M_PH_DN, OUTPUT);
     pinMode(POT_PIN, INPUT);
-    pinMode(PH_PIN, INPUT);
 
     Serial.begin(115200);
+    pH_Serial.begin(9600);
+
     // test_system();
 }
 
@@ -135,19 +151,24 @@ float get_desired_pH() {
 }
 
 float get_pH() {
-    const uint8_t samples = 30;
-    int measurings = 0;
+  if (pH_Serial.available() > 0) {
+    char inchar = (char)pH_Serial.read();
+    sensorstring += inchar;
 
-    for (int i = 0; i < samples; i++) {
-        measurings += analogRead(PH_PIN);
-        delay(50);
+    if (inchar == '\r') {
+        ph_total = ph_total + sensorstring.toFloat();
+        ph_counter++;
+        sensorstring = "";
     }
+  }
 
-    float reading = measurings / samples;
-    float m = -0.0257;
-    float b = 21.1;
+  if (ph_counter >= max_samples) {
+    ph_current = ph_total / ph_counter;
+    ph_total = 0;
+    ph_counter = 0;
+  }
 
-    return m * reading + b;
+  return ph_current;
 }
 
 void pH_up() {
