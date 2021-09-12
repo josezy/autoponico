@@ -25,8 +25,8 @@
 #define DROP_TIME 100
 
 // Controller constants
-#define ERR_MARGIN 0.4
-#define STABILIZATION_MARGIN 0.2
+#define ERR_MARGIN 0.3
+#define STABILIZATION_MARGIN 0.1
 
 #define MINUTE 1000L * 60
 #define STABILIZATION_TIME 1 * MINUTE
@@ -110,10 +110,8 @@ void loop() {
     show_in_desired_display(desired_pH);
 
     error = pH - desired_pH;
-    Serial.print("Initial error: ");
-    Serial.println(error);
 
-    if (abs(error) > ERR_MARGIN) {
+    if (abs(error) >= ERR_MARGIN) {
         do {
             if (error > 0) {
                 pH_down();
@@ -137,8 +135,6 @@ void loop() {
                 Serial.print(desired_pH);
 
                 error = pH - desired_pH;
-                Serial.print("\t\tLoop error: ");
-                Serial.println(error);
             }
         } while (abs(error) > STABILIZATION_MARGIN);
     }
