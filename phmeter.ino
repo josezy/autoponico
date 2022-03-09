@@ -1,6 +1,14 @@
+
+
 #include <ShiftRegister74HC595.h>
 #include <SoftwareSerial.h>
 
+
+#define MANUAL_MODE false
+
+#if MANUAL_MODE
+  #include <Arduino_JSON.h>
+#endif
 
 #define M_PH_UP 8
 #define M_PH_DN 9
@@ -31,7 +39,7 @@
 #define MINUTE 1000L * 60
 #define STABILIZATION_TIME 1 * MINUTE
 
-#define SLEEPING_TIME 100
+#define SLEEPING_TIME 1000
 
 ShiftRegister74HC595<NUM_DIGITS> desired_display (DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH);
 ShiftRegister74HC595<NUM_DIGITS> current_display (CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH);
@@ -77,6 +85,9 @@ const uint8_t max_samples = 1;
 
 SoftwareSerial pH_Serial(PH_RX, PH_TX); 
 
+#if MANUAL_MODE
+  JSONVar Data;
+#endif
 
 void test_system() {
     // test displays
@@ -108,39 +119,74 @@ void loop() {
     desired_pH = get_desired_pH();
     show_in_current_display(pH);
     show_in_desired_display(desired_pH);
-
-    error = pH - desired_pH;
-
-    if (abs(error) >= ERR_MARGIN) {
-        do {
-            if (error > 0) {
-                pH_down();
-                Serial.println("Going down down");
-            } else {
-                pH_up();
-                Serial.println("Going up up");
-            }
-
-            long start = millis();
-            while (millis() - start < STABILIZATION_TIME) {
-                delay(10);
-
-                pH = get_pH();
-                desired_pH = get_desired_pH();
-                show_in_current_display(pH);
-                show_in_desired_display(desired_pH);
-                Serial.print("pH: ");
-                Serial.print(pH);
-                Serial.print("\t\tdesired_pH: ");
-                Serial.print(desired_pH);
-
-                error = pH - desired_pH;
-            }
-        } while (abs(error) > STABILIZATION_MARGIN);
-    }
+    
+      
+    #if MANUAL_MODE   
+      wait_for_command();         
+    #else
+      error = pH - desired_pH;  
+      if (abs(error) >= ERR_MARGIN) {
+          do {
+              if (error > 0) {
+                  pH_down();
+                  Serial.println("Going down down");
+              } else {
+                  pH_up();
+                  Serial.println("Going up up");
+              }
+  
+              long start = millis();
+              while (millis() - start < STABILIZATION_TIME) {
+                  delay(10);
+  
+                  pH = get_pH();
+                  desired_pH = get_desired_pH();
+                  show_in_current_display(pH);
+                  show_in_desired_display(desired_pH);
+                  Serial.print("pH: ");
+                  Serial.print(pH);
+                  Serial.print("\t\tdesired_pH: ");
+                  Serial.print(desired_pH);
+  
+                  error = pH - desired_pH;
+              }
+          } while (abs(error) > STABILIZATION_MARGIN);
+      }  
+    #endif
+    
+      
     delay(SLEEPING_TIME);
 }
- 
+
+
+#if MANUAL_MODE
+  void wait_for_command(){
+    if (Serial.available() > 0)
+    {
+      
+      String command = Serial.readString(); 
+      JSONVar myObject = JSON.parse(command);
+      command = myObject["COMMAND"];
+      if(command.equals("PHREAD")){
+        
+          Data["PH"] = pH;
+          Data["ACK"] = "DONE";
+          Serial.println(JSON.stringify(Data));   
+      }else if(command.equals("PHUP")){
+          pH_up();   
+          Data["ACK"] = "DONE";
+          Serial.println(JSON.stringify(Data));   
+      
+      }else if(command.equals("PHDOWN")){
+          pH_down();   
+          Data["ACK"] = "DONE";
+          Serial.println(JSON.stringify(Data));   
+      
+      }    
+      
+    }
+  }
+#endif
 
 float get_desired_pH() {
     return map(analogRead(POT_PIN), 0, 1023, 50, 70) / 10.0;
