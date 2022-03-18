@@ -36,11 +36,11 @@
 ShiftRegister74HC595<NUM_DIGITS> desired_display (DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH);
 ShiftRegister74HC595<NUM_DIGITS> current_display (CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH);
 
-uint8_t firstDisplay[] = { 
+uint8_t firstDisplay[] = {
     B01000000, //0.
-    B01111001, //1. 
+    B01111001, //1.
     B00100100, //2.
-    B00110000, //3. 
+    B00110000, //3.
     B00011001, //4.
     B00010010, //5.
     B00000011, //6.
@@ -49,11 +49,11 @@ uint8_t firstDisplay[] = {
     B00011000  //9.
 };
 
-uint8_t secondDisplay[] = { 
+uint8_t secondDisplay[] = {
     B11000000, //0
-    B11111001, //1 
+    B11111001, //1
     B10100100, //2
-    B10110000, //3 
+    B10110000, //3
     B10011001, //4
     B10010010, //5
     B10000011, //6
@@ -75,7 +75,7 @@ float ph_current = 0;
 float ph_counter = 0;
 const uint8_t max_samples = 1;
 
-SoftwareSerial pH_Serial(PH_RX, PH_TX); 
+SoftwareSerial pH_Serial(PH_RX, PH_TX);
 
 
 void test_system() {
@@ -132,7 +132,7 @@ void loop() {
                 Serial.print("pH: ");
                 Serial.print(pH);
                 Serial.print("\t\tdesired_pH: ");
-                Serial.print(desired_pH);
+                Serial.println(desired_pH);
 
                 error = pH - desired_pH;
             }
@@ -140,7 +140,6 @@ void loop() {
     }
     delay(SLEEPING_TIME);
 }
- 
 
 float get_desired_pH() {
     return map(analogRead(POT_PIN), 0, 1023, 50, 70) / 10.0;
@@ -188,7 +187,7 @@ void show_in_desired_display(float ph) {
     int secondDigit = phWithoutDecimals % 10;
 
     uint8_t numberToPrint[] = { firstDisplay[firstDigit], secondDisplay[secondDigit] };
-    desired_display.setAll(numberToPrint); 
+    desired_display.setAll(numberToPrint);
 }
 
 void show_in_current_display(float ph) {
@@ -198,5 +197,5 @@ void show_in_current_display(float ph) {
     int secondDigit = phWithoutDecimals % 10;
 
     uint8_t numberToPrint[] = { firstDisplay[firstDigit], secondDisplay[secondDigit] };
-    current_display.setAll(numberToPrint); 
+    current_display.setAll(numberToPrint);
 }
