@@ -95,12 +95,12 @@ void test_system() {
     // test pumps
     Serial.println("Testing ph UP");
     for (int i = 1; i <= 10; i++) {
-        pH_up();
+        pH_up(DROP_TIME);
         delay(50);
     }
     Serial.println("Testing ph DOWN");
     for (int i = 1; i <= 10; i++) {
-        pH_down();
+        pH_down(DROP_TIME);
         delay(50);
     }
 }
@@ -121,18 +121,18 @@ void loop() {
     desired_pH = get_desired_pH();
     show_in_current_display(pH);
     show_in_desired_display(desired_pH);
-    if (manualMode) {
-        wait_for_command();
-    } else {
+    check_for_command();
+
+    if (!manualMode) {
         error = pH - desired_pH;
 
         if (abs(error) >= ERR_MARGIN) {
             do {
                 if (error > 0) {
-                    pH_down();
+                    pH_down(DROP_TIME);
                     Serial.println("Going down down");
                 } else {
-                    pH_up();
+                    pH_up(DROP_TIME);
                     Serial.println("Going up up");
                 }
 
@@ -150,6 +150,7 @@ void loop() {
                     Serial.println(desired_pH);
 
                     error = pH - desired_pH;
+                    check_for_command();
                 }
             } while (abs(error) > STABILIZATION_MARGIN);
         }
@@ -157,7 +158,7 @@ void loop() {
     delay(SLEEPING_TIME);
 }
 
-void wait_for_command() {
+void check_for_command() {
     if (Serial.available() > 0) {
         String msg = Serial.readString();
         JSONVar myObject = JSON.parse(msg);
@@ -169,11 +170,13 @@ void wait_for_command() {
             Data["ACK"] = "DONE";
             Data["MSG"] = msg;
         } else if (command.equals("PHUP")) {
-            pH_up();
+            int dropTime = myObject["DROP_TIME"];
+            pH_up(dropTime);
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("PHDOWN")) {
-            pH_down();
+            int dropTime = myObject["DROP_TIME"];
+            pH_down(dropTime);
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("AUTO")) {
@@ -218,17 +221,17 @@ float get_pH() {
     return ph_current;
 }
 
-void pH_up() {
+void pH_up(int dropTime) {
     analogWrite(M_PH_DN, ZERO_SPEED);
     analogWrite(M_PH_UP, M_PH_UP_SPEED);
-    delay(DROP_TIME);
+    delay(dropTime);
     analogWrite(M_PH_UP, ZERO_SPEED);
 }
 
-void pH_down() {
+void pH_down(int dropTime) {
     analogWrite(M_PH_UP, ZERO_SPEED);
     analogWrite(M_PH_DN, M_PH_DN_SPEED);
-    delay(DROP_TIME);
+    delay(dropTime);
     analogWrite(M_PH_DN, ZERO_SPEED);
 }
 
