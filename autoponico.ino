@@ -176,10 +176,12 @@ void get_measure_error_and_show(){
 }
 
 void print_measure_and_setpoint(){
+  if(!manualMode){    
     Serial.print("pH: ");
     Serial.print(pH);
     Serial.print("\t\tdesired_pH: ");
     Serial.println(desired_pH);
+  }
 }
 
 void check_for_command() {
