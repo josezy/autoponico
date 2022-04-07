@@ -215,13 +215,18 @@ void check_for_command() {
         } else if (command.equals("SET_PH")) {            
             desired_pH_cmd = (double) myObject["VALUE"];
             desired_pH_to_eeprom(desired_pH_cmd);
+            EEPROM.write(DESIRED_PH_FLAG_ADDRESS,1);
             desired_pH_from_cmd = true;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
-        } else if (command.equals("DESIRED_SOURCE")) {                    
+        } else if (command.equals("DESIRED_SOURCE")) {               
             String cmd_or_pot ="";
             cmd_or_pot = myObject["VALUE"];
             desired_pH_from_cmd = cmd_or_pot.equals("CMD");
+            if(desired_pH_from_cmd)
+              EEPROM.write(DESIRED_PH_FLAG_ADDRESS,1);    
+            else
+              EEPROM.write(DESIRED_PH_FLAG_ADDRESS,0);    
             Data["FROM_CMD"] = desired_pH_from_cmd;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
