@@ -222,11 +222,12 @@ void check_for_command() {
         } else if (command.equals("DESIRED_SOURCE")) {               
             String cmd_or_pot ="";
             cmd_or_pot = myObject["VALUE"];
-            desired_pH_from_cmd = cmd_or_pot.equals("CMD");
-            if(desired_pH_from_cmd)
+            if(cmd_or_pot.equals("CMD") && !desired_pH_from_cmd)
               EEPROM.write(DESIRED_PH_FLAG_ADDRESS,1);    
-            else
-              EEPROM.write(DESIRED_PH_FLAG_ADDRESS,0);    
+            else if(!cmd_or_pot.equals("CMD") && desired_pH_from_cmd)
+              EEPROM.write(DESIRED_PH_FLAG_ADDRESS,0);  
+                
+            desired_pH_from_cmd = cmd_or_pot.equals("CMD");
             Data["FROM_CMD"] = desired_pH_from_cmd;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
