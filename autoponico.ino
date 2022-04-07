@@ -5,8 +5,8 @@
 
 #define M_PH_UP 8
 #define M_PH_DN 9
-#define M_PH_UP_SPEED 130
-#define M_PH_DN_SPEED 170
+#define M_PH_UP_SPEED 200
+#define M_PH_DN_SPEED 200
 #define ZERO_SPEED 0
 //pH 5.0 => 9.0
 //pHeeprom  0 => 255
@@ -28,14 +28,14 @@
 #define PH_RX 10
 #define PH_TX 11
 
-#define DROP_TIME 100
+#define DROP_TIME 1000
 
 // Controller constants
 #define ERR_MARGIN 0.3
 #define STABILIZATION_MARGIN 0.1
 
 #define MINUTE 1000L * 60
-#define STABILIZATION_TIME 1 * MINUTE
+#define STABILIZATION_TIME 10 * MINUTE
 
 #define SLEEPING_TIME 100
 
