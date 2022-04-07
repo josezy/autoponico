@@ -13,6 +13,7 @@
 #define MAX_DESIRED_PH 9.0
 #define MIN_DESIRED_PH 5.0
 #define DESIRED_PH_ADDRESS 0
+#define DESIRED_PH_FLAG_ADDRESS 1
 
 #define POT_PIN A0
 
@@ -73,7 +74,7 @@ boolean manualMode = true;
 float pH;
 float desired_pH;
 float desired_pH_cmd  ;
-bool desired_pH_from_cmd = false;
+bool desired_pH_from_cmd ;
 
 float error;
 
@@ -118,9 +119,6 @@ void desired_pH_to_eeprom(float cmd_pH) {
     EEPROM.write(DESIRED_PH_ADDRESS, map((int)(cmd_pH*10), MIN_DESIRED_PH*10, MAX_DESIRED_PH*10, 0, 255));
 }
 
-float desired_pH_from_eeprom(){
-    return map(EEPROM.read(DESIRED_PH_ADDRESS), 0, 255, MIN_DESIRED_PH*10, MAX_DESIRED_PH*10)/10.0;
-}
 //----------------------//
 
 //---- MAIN  ---------//
@@ -131,7 +129,8 @@ void setup() {
 
     Serial.begin(9600);
     pH_Serial.begin(9600);
-    desired_pH_cmd = desired_pH_from_eeprom();
+    desired_pH_cmd = map(EEPROM.read(DESIRED_PH_ADDRESS), 0, 255, MIN_DESIRED_PH*10, MAX_DESIRED_PH*10)/10.0;
+    desired_pH_from_cmd = EEPROM.read(DESIRED_PH_FLAG_ADDRESS)==1;
     // test_system();
 }
 
@@ -222,7 +221,7 @@ void check_for_command() {
         } else if (command.equals("DESIRED_SOURCE")) {                    
             String cmd_or_pot ="";
             cmd_or_pot = myObject["VALUE"];
-            desired_pH_from_cmd =  cmd_or_pot.equals("CMD");
+            desired_pH_from_cmd = cmd_or_pot.equals("CMD");
             Data["FROM_CMD"] = desired_pH_from_cmd;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
