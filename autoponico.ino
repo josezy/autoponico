@@ -119,7 +119,7 @@ void desired_pH_to_eeprom(float cmd_pH) {
 }
 
 float desired_pH_from_eeprom(){
-    return map(EEPROM.read(DESIRED_PH_ADDRESS), 0, 255, MIN_DESIRED_PH*10, MAX_DESIRED_PH*10)/10.0
+    return map(EEPROM.read(DESIRED_PH_ADDRESS), 0, 255, MIN_DESIRED_PH*10, MAX_DESIRED_PH*10)/10.0;
 }
 //----------------------//
 
@@ -214,14 +214,15 @@ void check_for_command() {
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("SET_PH")) {            
-            desired_pH_cmd = command.equals("VALUE");
+            desired_pH_cmd = (double) myObject["VALUE"];
             desired_pH_to_eeprom(desired_pH_cmd);
             desired_pH_from_cmd = true;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("DESIRED_SOURCE")) {                    
-            
-            desired_pH_from_cmd = command.equals("VALUE").equals("CMD");
+            String cmd_or_pot ="";
+            cmd_or_pot = myObject["VALUE"];
+            desired_pH_from_cmd =  cmd_or_pot.equals("CMD");
             Data["FROM_CMD"] = desired_pH_from_cmd;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
