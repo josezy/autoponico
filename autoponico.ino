@@ -3,6 +3,8 @@
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
 
+#define WHOAMI "PH"
+
 #define M_PH_UP 8
 #define M_PH_DN 9
 #define M_PH_UP_SPEED 200
@@ -36,9 +38,9 @@
 #define STABILIZATION_MARGIN 0.1
 
 #define MINUTE 1000L * 60
-#define STABILIZATION_TIME 10 * MINUTE
+#define STABILIZATION_TIME 2 * MINUTE
 
-#define SLEEPING_TIME 100
+#define SLEEPING_TIME 1000
 
 ShiftRegister74HC595<NUM_DIGITS> desired_display(DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH);
 ShiftRegister74HC595<NUM_DIGITS> current_display(CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH);
@@ -69,7 +71,7 @@ uint8_t secondDisplay[] = {
     B10011000   // 9
 };
 
-boolean manualMode = true;
+boolean manualMode = false;
 
 float pH;
 float desired_pH;
@@ -146,10 +148,8 @@ void loop() {
             do {
                 if (error > 0) {
                     pH_down(DROP_TIME);
-                    Serial.println("Going down down");
                 } else {
                     pH_up(DROP_TIME);
-                    Serial.println("Going up up");
                 }
 
                 long start = millis();
@@ -176,12 +176,14 @@ void get_measure_error_and_show(){
 }
 
 void print_measure_and_setpoint(){
-  if(!manualMode){    
-    Serial.print("pH: ");
-    Serial.print(pH);
-    Serial.print("\t\tdesired_pH: ");
-    Serial.println(desired_pH);
-  }
+  
+  JSONVar Data;
+  Data["WHOAMI"]=WHOAMI;
+  Data["TASK"]="READ";
+  Data["VALUE"]=pH;
+  Data["DESIRED"]=desired_pH;
+  Serial.println(Data);
+  
 }
 
 void check_for_command() {
@@ -234,6 +236,11 @@ void check_for_command() {
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         }
+        else if (command.equals("WHOAMI")) {               
+            Data["WHOAMI"] = "PH";
+            Data["MSG"] = msg;
+            Data["ACK"] = "DONE";
+        }
         else {
             Data["ACK"] = "ERROR";
             Data["MSG"] = msg;
@@ -276,6 +283,11 @@ float get_pH() {
 }
 
 void pH_up(int dropTime) {
+    JSONVar Data;
+    Data["WHOAMI"]=WHOAMI;
+    Data["TASK"]="CONTROL";
+    Data["GOING"]="UP";
+    Serial.println(JSON.stringify(Data));
     analogWrite(M_PH_DN, ZERO_SPEED);
     analogWrite(M_PH_UP, M_PH_UP_SPEED);
     delay(dropTime);
@@ -283,6 +295,11 @@ void pH_up(int dropTime) {
 }
 
 void pH_down(int dropTime) {
+    JSONVar Data;
+    Data["WHOAMI"]=WHOAMI;
+    Data["TASK"]="CONTROL";
+    Data["GOING"]="DOWN";
+    Serial.println(JSON.stringify(Data));
     analogWrite(M_PH_UP, ZERO_SPEED);
     analogWrite(M_PH_DN, M_PH_DN_SPEED);
     delay(dropTime);
