@@ -182,7 +182,7 @@ void print_measure_and_setpoint(){
   Data["TASK"]="READ";
   Data["VALUE"]=pH;
   Data["DESIRED"]=desired_pH;
-  Serial.println(Data);
+  Serial.println(JSON.stringify(Data));
   
 }
 
