@@ -38,7 +38,7 @@
 #define STABILIZATION_MARGIN 0.1
 
 #define MINUTE 1000L * 60
-#define STABILIZATION_TIME 2 * MINUTE
+#define STABILIZATION_TIME 1 * MINUTE
 
 #define SLEEPING_TIME 1000
 
@@ -237,7 +237,7 @@ void check_for_command() {
             Data["ACK"] = "DONE";
         }
         else if (command.equals("WHOAMI")) {               
-            Data["WHOAMI"] = "PH";
+            Data["WHOAMI"] = WHOAMI;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         }
