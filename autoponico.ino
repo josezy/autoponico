@@ -41,6 +41,10 @@
 #define STABILIZATION_TIME 1 * MINUTE
 
 #define SLEEPING_TIME 1000
+#define SERIAL_WRITE_TIME 1 * MINUTE
+
+
+float serialWriteTimer;
 
 ShiftRegister74HC595<NUM_DIGITS> desired_display(DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH);
 ShiftRegister74HC595<NUM_DIGITS> current_display(CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH);
@@ -74,6 +78,7 @@ uint8_t secondDisplay[] = {
 boolean manualMode = false;
 
 float pH;
+
 float desired_pH;
 float desired_pH_cmd  ;
 bool desired_pH_from_cmd ;
@@ -134,6 +139,7 @@ void setup() {
     desired_pH_cmd = map(EEPROM.read(DESIRED_PH_ADDRESS), 0, 255, MIN_DESIRED_PH*10, MAX_DESIRED_PH*10)/10.0;
     desired_pH_from_cmd = EEPROM.read(DESIRED_PH_FLAG_ADDRESS)==1;
     // test_system();
+    serialWriteTimer = millis();
 }
 
 void loop() {
@@ -144,20 +150,20 @@ void loop() {
 
     if (!manualMode) {
 
-        if (abs(error) >= ERR_MARGIN) {
+        if (abs(error) && pH != 0) >= ERR_MARGIN) {
             do {
-                if (error > 0) {
+                if (error > 0 && pH != 0) {
                     pH_down(DROP_TIME);
-                } else {
+                } else if( pH != 0)
                     pH_up(DROP_TIME);
                 }
 
                 long start = millis();
-                while (millis() - start < STABILIZATION_TIME) {           
-                    delay(SLEEPING_TIME);
+                while (millis() - start < STABILIZATION_TIME) {          
                     get_measure_error_and_show();
                     print_measure_and_setpoint();
-                    check_for_command();         
+                    check_for_command();     
+                    delay(100);     
 
                   
                 }
@@ -176,13 +182,15 @@ void get_measure_error_and_show(){
 }
 
 void print_measure_and_setpoint(){
-  
-  JSONVar Data;
-  Data["WHOAMI"]=WHOAMI;
-  Data["TASK"]="READ";
-  Data["VALUE"]=pH;
-  Data["DESIRED"]=desired_pH;
-  Serial.println(JSON.stringify(Data));
+  if(millis()-serialWriteTimer > SERIAL_WRITE_TIME){
+    serialWriteTimer = millis();
+    JSONVar Data;
+    Data["WHOAMI"]=WHOAMI;
+    Data["TASK"]="READ";
+    Data["VALUE"]=pH;
+    Data["DESIRED"]=desired_pH;
+    Serial.println(JSON.stringify(Data));
+  }
   
 }
 
