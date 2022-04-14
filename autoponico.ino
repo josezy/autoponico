@@ -154,7 +154,7 @@ void loop() {
             do {
                 if (error > 0 && pH != 0) {
                     pH_down(DROP_TIME);
-                } else if( pH != 0)
+                } else if( pH != 0) {
                     pH_up(DROP_TIME);
                 }
 
