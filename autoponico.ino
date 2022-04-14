@@ -1,3 +1,4 @@
+
 #include <Arduino_JSON.h>
 #include <ShiftRegister74HC595.h>
 #include <SoftwareSerial.h>
@@ -150,7 +151,7 @@ void loop() {
 
     if (!manualMode) {
 
-        if (abs(error) && pH != 0) >= ERR_MARGIN) {
+        if (abs(error) >= ERR_MARGIN && pH != 0) {
             do {
                 if (error > 0 && pH != 0) {
                     pH_down(DROP_TIME);
