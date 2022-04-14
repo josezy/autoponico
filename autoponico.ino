@@ -296,6 +296,8 @@ void pH_up(int dropTime) {
     Data["WHOAMI"]=WHOAMI;
     Data["TASK"]="CONTROL";
     Data["GOING"]="UP";
+    Data["VALUE"]=pH;
+    Data["DESIRED"]=desired_pH;
     Serial.println(JSON.stringify(Data));
     analogWrite(M_PH_DN, ZERO_SPEED);
     analogWrite(M_PH_UP, M_PH_UP_SPEED);
@@ -308,6 +310,8 @@ void pH_down(int dropTime) {
     Data["WHOAMI"]=WHOAMI;
     Data["TASK"]="CONTROL";
     Data["GOING"]="DOWN";
+    Data["VALUE"]=pH;
+    Data["DESIRED"]=desired_pH;
     Serial.println(JSON.stringify(Data));
     analogWrite(M_PH_UP, ZERO_SPEED);
     analogWrite(M_PH_DN, M_PH_DN_SPEED);
