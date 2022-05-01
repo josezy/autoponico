@@ -6,7 +6,9 @@
 #define MINUTE 1000L * 60
 #define SERIAL_WRITE_TIME 1 * MINUTE
 
+
 #include "Control.h"
+#include "DisplaysTM1637.h"
 #include "SensorEEPROM.h"
 class SerialCom {
     const char* WHOAMI;
