@@ -3,7 +3,36 @@
 #include "DisplaysTM1637.h"
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
+#include "PhGravSensor.h"
 
+#define WHOAMI "PH"
+SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
+
+#define MINUTE 1000L * 60
+#define POT_PIN A0
+#define M_UP 8
+#define M_DN 9
+#define M_UP_SPEED 200
+#define M_DN_SPEED 200
+#define ZERO_SPEED 0
+#define STABILIZATION_MARGIN 0.1
+#define ERR_MARGIN 0.3
+#define STABILIZATION_TIME 1 * MINUTE
+#define DROP_TIME 1000
+
+ControlConfig configuration = {
+  POT_PIN,
+  M_UP,
+  M_DN,  
+  M_UP_SPEED,
+  M_DN_SPEED,
+  ZERO_SPEED,  
+  DROP_TIME,
+  ERR_MARGIN,
+  STABILIZATION_TIME,
+  STABILIZATION_MARGIN
+};
+Control control = Control(&configuration);
 
 #define CURRENT_CLOCK 2
 #define CURRENT_DIO 3
@@ -17,27 +46,31 @@ DisplaysTM1637 displays = DisplaysTM1637(
     DESIRED_DIO
 );
 
+#define PH_ANALOG_PIN A0
+PhGravSensor phSensor = PhGravSensor(PH_ANALOG_PIN);
+
+SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control);
+
 
 void setup() {
     displays.initDisplays();
-    phSensor.init();
     serialCom.init();
     control.setSetPoint(sensorEEPROM.getPh());
-    control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());
-  
+    control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());  
 }
 
 
-void loop() {
-   
-    get_measure_error_and_show();
-  
-    delay(SLEEPING_TIME);
+void loop() {   
+    get_measure_error_and_show();  
+    delay(1000);
 }
 
 void get_measure_error_and_show(){
-    displays.display(phSensor.getPh()*10);
-    displays.display(control.getSetPoint()*10,"asd");     
-    serialCom.checkForCommand();
+    control.setCurrent(phSensor.getPh());
     control.calculateError();
+    
+    displays.display(control.getCurrent());
+    displays.display(control.getSetPoint()*10,"asd");     
+
+    serialCom.checkForCommand();
 }
