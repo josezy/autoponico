@@ -1,16 +1,18 @@
 #include "PhSensor.h"
-#include "SensorEEPROM.h"
 #include <SoftwareSerial.h>
 
-SoftwareSerial sensorSerial(PH_RX, PH_TX);
+
+PhSensor::PhSensor(int phTx, int phRx){
+    this->sensorSerial  = new SoftwareSerial(phTx,phRx);
+}
 
 void PhSensor::init(int baudrate){
-    sensorSerial.begin(baudrate);
+    this->sensorSerial->begin(baudrate);
 }
 
 float PhSensor::getPh(){
-    if (sensorSerial.available() > 0) {
-        char inchar = (char)sensorSerial.read();
+    if (this->sensorSerial->available() > 0) {
+        char inchar = (char) this->sensorSerial->read();
         this->sensorString += inchar;
 
         if (inchar == '\r') {
@@ -18,6 +20,5 @@ float PhSensor::getPh(){
             this->sensorString = "";
         }
     }
-
     return this->pH;
 }
