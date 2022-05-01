@@ -3,10 +3,9 @@
 #include <Arduino_JSON.h>
 #include <Arduino.h> //needed for Serial.println
 
-SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* phControl, PhSensor* phSensor){
+SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* phControl){
     this->sensorEEPROM = sensorEEPROM;
     this->phControl = phControl;
-    this->phSensor = phSensor;
     this->WHOAMI = WHOAMI;
 }
 
@@ -36,8 +35,8 @@ void SerialCom::checkForCommand(){
         String command = "NONE";
         command = myObject["COMMAND"];
         if (command.equals("PHREAD")) {
-            Data["VALUE"] = "Ph";
-            Data["DESIRED_PH"] = "sasd";
+            Data["VALUE"] = this->phControl->getCurrent();
+            Data["DESIRED_PH"] = this->phControl->getSetPoint();
             Data["ACK"] = "DONE";
             Data["MSG"] = msg;
         } else if (command.equals("PHUP")) {
