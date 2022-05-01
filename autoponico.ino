@@ -1,18 +1,21 @@
 
 #include "Control.h"
-#include "Displays.h"
-#include "PhSensor.h"
+#include "DisplaysTM1637.h"
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
 
 
-#define WHOAMI "PH"
+#define CURRENT_CLOCK 2
+#define CURRENT_DIO 3
+#define DESIRED_CLOCK 4
+#define DESIRED_DIO 5
 
-SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
-Control control = Control(WHOAMI);
-Displays displays = Displays();
-PhSensor phSensor = PhSensor();
-SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, &phSensor);
+DisplaysTM1637 displays = DisplaysTM1637(
+    CURRENT_CLOCK,
+    CURRENT_DIO,
+    DESIRED_CLOCK,
+    DESIRED_DIO
+);
 
 
 void setup() {
