@@ -1,5 +1,5 @@
-#ifndef PH_SENSOR_H
-#define PH_SENSOR_H
+#ifndef PH_SERIAL_SENSOR_H
+#define PH_SERIAL_SENSOR_H
 
 #define PH_RX 10
 #define PH_TX 11
@@ -8,7 +8,7 @@
 #include <SoftwareSerial.h>
 
 
-class PhSensor {
+class PhSerialSensor {
     
     
     SoftwareSerial* sensorSerial;
@@ -18,7 +18,7 @@ class PhSensor {
     float pH;
 
     public:  
-        PhSensor(int phTx, int phRx);
+        PhSerialSensor(int phTx, int phRx);
         void init(int baudrate = 9600);
         float getPh();	
 
