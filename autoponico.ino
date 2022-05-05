@@ -1,6 +1,6 @@
 
 #include "Control.h"
-#include "DisplaysTM1637.h"
+#include "Displays74HC595.h"
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
 #include "PhGravSensor.h"
@@ -39,12 +39,18 @@ Control control = Control(&configuration);
 #define DESIRED_CLOCK 4
 #define DESIRED_DIO 5
 
-DisplaysTM1637 displays = DisplaysTM1637(
-    CURRENT_CLOCK,
-    CURRENT_DIO,
-    DESIRED_CLOCK,
-    DESIRED_DIO
-);
+
+#define CURRENT_SEG7_DATA 2
+#define CURRENT_SEG7_CLOCK 3
+#define CURRENT_SEG7_LATCH 4
+#define DESIRED_SEG7_DATA 5
+#define DESIRED_SEG7_CLOCK 6
+#define DESIRED_SEG7_LATCH 7
+
+Displays74HC595 displays =  Displays74HC595(
+    CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH,
+    DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH
+);    
 
 #define PH_ANALOG_PIN A0
 PhGravSensor phSensor = PhGravSensor(PH_ANALOG_PIN);
@@ -61,16 +67,14 @@ void setup() {
 
 
 void loop() {   
-    get_measure_error_and_show();  
-    delay(1000);
-}
-
-void get_measure_error_and_show(){
     control.setCurrent(phSensor.getPh());
     control.calculateError();
     
     displays.display(control.getCurrent());
-    displays.display(control.getSetPoint()*10,"asd");     
-
+    displays.display(control.getSetPoint()*10,"asd");   
     serialCom.checkForCommand();
+
+    control.doControl();
+    delay(1000);
 }
+

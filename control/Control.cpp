@@ -37,9 +37,9 @@ void Control::setCurrent(float current){
 }
 
 void Control::doControl(){
-    if(millis() - this->stabilizationTimer < this->configuration->STABILIZATION_TIME ||
-        !this->stabilizationTimer){
-        if (!this->manualMode) {
+    if (!this->manualMode) {
+        if(millis() - this->stabilizationTimer < this->configuration->STABILIZATION_TIME ||
+            !this->stabilizationTimer){
 
             if (abs(this->error) >= this->configuration->ERR_MARGIN && this->current != 0) {
                 if(abs(this->error) <= this->configuration->STABILIZATION_MARGIN){
@@ -53,7 +53,6 @@ void Control::doControl(){
                 }
             }
         }
-
     }
    
 }
