@@ -54,7 +54,7 @@ SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control);
 
 
 void setup() {
-    phSensor.init()
+    phSensor.init();
     serialCom.init();
     control.setSetPoint(sensorEEPROM.getPh());
     control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());  
