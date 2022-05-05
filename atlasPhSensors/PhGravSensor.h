@@ -2,7 +2,7 @@
 #define PH_GRAV_SENSOR_H
 
 
-#include "atlas_gravity/ph_grav.h"       
+#include "ph_grav.h"       
 
 class PhGravSensor {    
     Gravity_pH* pH;   
