@@ -3,7 +3,7 @@
 #include "Displays74HC595.h"
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
-#include "PhSensorSerial.h"
+#include "PhSerialSensor.h"
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
@@ -48,7 +48,7 @@ Displays74HC595 displays =  Displays74HC595(
 
 #define PH_RX 10
 #define PH_TX 11
-PhSensorSerial phSensor = PhSensorSerial(PH_TX,PH_RX);
+PhSerialSensor phSensor = PhSerialSensor(PH_TX,PH_RX);
 
 SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control);
 
