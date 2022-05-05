@@ -3,7 +3,7 @@
 #include "Displays74HC595.h"
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
-#include "PhGravSensor.h"
+#include "PhSensorSerial.h"
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
@@ -46,13 +46,15 @@ Displays74HC595 displays =  Displays74HC595(
     DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH
 );    
 
-#define PH_ANALOG_PIN A0
-PhGravSensor phSensor = PhGravSensor(PH_ANALOG_PIN);
+#define PH_RX 10
+#define PH_TX 11
+PhSensorSerial phSensor = PhSensorSerial(PH_TX,PH_RX);
 
 SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control);
 
 
 void setup() {
+    phSensor.init()
     serialCom.init();
     control.setSetPoint(sensorEEPROM.getPh());
     control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());  
