@@ -34,12 +34,6 @@ ControlConfig configuration = {
 };
 Control control = Control(&configuration);
 
-#define CURRENT_CLOCK 2
-#define CURRENT_DIO 3
-#define DESIRED_CLOCK 4
-#define DESIRED_DIO 5
-
-
 #define CURRENT_SEG7_DATA 2
 #define CURRENT_SEG7_CLOCK 3
 #define CURRENT_SEG7_LATCH 4
