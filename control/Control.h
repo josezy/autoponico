@@ -4,6 +4,10 @@
 #define GOING_UP 1
 #define GOING_DOWN 0
 #define GOING_NONE -1
+
+#define STABILIZING 2
+#define CONTROLING 1
+#define STABLE 0
 #include <stdint.h> 
 struct ControlConfig {    
     
@@ -32,6 +36,7 @@ class Control {
     float counter = 0;
     const uint8_t samples = 1;
 
+    int state = STABLE;    
     float error;    
     float current = 0;
     float setPoint;

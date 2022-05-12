@@ -4,6 +4,7 @@
 
 Control::Control(ControlConfig* configuration){
     this->configuration = configuration;
+    this->stabilizationTimer = millis();
 }
 
 const char* Control::getControlText(int control_type){
@@ -50,11 +51,20 @@ void Control::setCurrent(float current){
 int Control::doControl(){
     int going = GOING_NONE;
     if (!this->manualMode) {
-        if(millis() - this->stabilizationTimer < this->configuration->STABILIZATION_TIME ||
-            !this->stabilizationTimer){
 
-            if (abs(this->error) >= this->configuration->ERR_MARGIN && this->current != 0) {
-                if(abs(this->error) <= this->configuration->STABILIZATION_MARGIN){
+        switch(this->state){
+            case STABLE:
+                if (
+                    abs(this->error) >= this->configuration->ERR_MARGIN && 
+                    this->current != 0
+                ) {
+                    this->state = CONTROLING;
+                }
+                break;
+            case CONTROLING:
+                if(
+                    abs(this->error) >= this->configuration->STABILIZATION_MARGIN
+                ){
                     if (this->error > 0 && this->current != 0) {
                         this->down(this->configuration->DROP_TIME);
                         going = GOING_DOWN;
@@ -62,11 +72,29 @@ int Control::doControl(){
                         this->up(this->configuration->DROP_TIME);
                         going = GOING_UP;
                     }
+                    this->state = STABILIZING;
                     this->stabilizationTimer = millis();
 
                 }
-            }
+                else{
+                    this->state = STABLE;
+                }
+                break;
+            case STABILIZING:
+                if(
+                    millis() - this->stabilizationTimer > this->configuration->STABILIZATION_TIME 
+                ){
+                    this->state = CONTROLING;
+                }
+                break;
+            default:
+                break;
         }
+        
+        
+        
+    } else {
+        this->state = STABLE;        
     }
     return going;
 }
