@@ -80,5 +80,4 @@ void loop() {
             true
         );
     
-    delay(1000);
 }
