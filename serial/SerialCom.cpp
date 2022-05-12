@@ -3,7 +3,7 @@
 #include <Arduino_JSON.h>
 #include <Arduino.h> //needed for Serial.println
 
-SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* control, float millisBetweenPrint){
+SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* control){
     this->sensorEEPROM = sensorEEPROM;
     this->control = control;
     this->WHOAMI = WHOAMI;
