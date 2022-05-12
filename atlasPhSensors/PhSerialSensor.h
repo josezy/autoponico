@@ -13,7 +13,7 @@ class PhSerialSensor {
     
     SoftwareSerial* sensorSerial;
     //SERIAL
-    String sensorString;
+    String sensorString="";
     bool sensorStringComplete = false;
     float pH;
 
