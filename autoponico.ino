@@ -60,16 +60,25 @@ void setup() {
     control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());  
 }
 
-
 void loop() {   
+    serialCom.printTask("READ", phSensor.getPh(),control.getCurrent());
+
     control.setCurrent(phSensor.getPh());
     control.calculateError();
     
     displays.display(control.getCurrent());
-    displays.display(control.getSetPoint()*10,"asd");   
+    displays.display(control.getSetPoint(),"asd");   
     serialCom.checkForCommand();
 
-    control.doControl();
+    int going = control.doControl();
+    if(going != GOING_NONE)
+        serialCom.printTask(
+            "CONTROL",
+            phSensor.getPh(),
+            control.getCurrent(),
+            control.getControlText(going),
+            true
+        );
+    
     delay(1000);
 }
-

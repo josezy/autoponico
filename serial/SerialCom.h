@@ -13,13 +13,19 @@
 class SerialCom {
     const char* WHOAMI;
     float serialWriteTimer;
+    float millisBetweenPrint;
     
     SensorEEPROM* sensorEEPROM;
-    Control* phControl;
+    Control* control;
     public:  
-        SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* phControl);
+        SerialCom(
+            const char* WHOAMI, 
+            SensorEEPROM* sensorEEPROM, 
+            Control* control, 
+            float millisBetweenPrint = SERIAL_WRITE_TIME
+        );
         void init(int baudrate = 9600);
-        void printTask(char* task, float value, float desiredValue, const char* going ="NA", bool now = false);	
+        void printTask(const char* task, float value, float desiredValue, const char* going ="NA", bool now = false);	
         void checkForCommand();
 
 };

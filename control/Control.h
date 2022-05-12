@@ -1,6 +1,9 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
+#define GOING_UP 1
+#define GOING_DOWN 0
+#define GOING_NONE -1
 #include <stdint.h> 
 struct ControlConfig {    
     
@@ -43,7 +46,8 @@ class Control {
         Control(ControlConfig* configuration);
         void up(int dropTime);	
         void down(int dropTime);	
-        void doControl();
+        int doControl();
+        const char* getControlText(int control_type);
         void setManualMode(bool manualMode);
 
         void setCurrent(float current);

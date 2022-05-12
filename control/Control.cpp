@@ -6,6 +6,17 @@ Control::Control(ControlConfig* configuration){
     this->configuration = configuration;
 }
 
+const char* Control::getControlText(int control_type){
+    switch(control_type){
+        case GOING_UP:
+            return "UP";
+        case GOING_DOWN:
+            return "DOWN";
+        default:
+            return "NONE";
+    }
+
+}
 void Control::calculateError(){
     this->error =  this->current- this->setPoint;     
 }
@@ -36,7 +47,8 @@ void Control::setCurrent(float current){
     this->current = current;
 }
 
-void Control::doControl(){
+int Control::doControl(){
+    int going = GOING_NONE;
     if (!this->manualMode) {
         if(millis() - this->stabilizationTimer < this->configuration->STABILIZATION_TIME ||
             !this->stabilizationTimer){
@@ -45,8 +57,10 @@ void Control::doControl(){
                 if(abs(this->error) <= this->configuration->STABILIZATION_MARGIN){
                     if (this->error > 0 && this->current != 0) {
                         this->down(this->configuration->DROP_TIME);
+                        going = GOING_DOWN;
                     } else if( this->error < 0 && this->current != 0) {   
                         this->up(this->configuration->DROP_TIME);
+                        going = GOING_UP;
                     }
                     this->stabilizationTimer = millis();
 
@@ -54,7 +68,7 @@ void Control::doControl(){
             }
         }
     }
-   
+    return going;
 }
 
 

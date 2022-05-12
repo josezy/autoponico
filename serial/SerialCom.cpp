@@ -3,9 +3,9 @@
 #include <Arduino_JSON.h>
 #include <Arduino.h> //needed for Serial.println
 
-SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* phControl){
+SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* control, float millisBetweenPrint){
     this->sensorEEPROM = sensorEEPROM;
-    this->phControl = phControl;
+    this->control = control;
     this->WHOAMI = WHOAMI;
 }
 
@@ -14,8 +14,8 @@ void SerialCom::init(int baudrate){
     Serial.begin(baudrate);    
 }
 
-void SerialCom::printTask( char* task, float value, float desiredValue, const char* going, bool now){
-  if(millis()-this->serialWriteTimer > SERIAL_WRITE_TIME || now){
+void SerialCom::printTask( const char* task, float value, float desiredValue, const char* going, bool now){
+  if(millis()-this->serialWriteTimer > this->millisBetweenPrint || now){
     this->serialWriteTimer = millis();
     JSONVar Data;
     Data["WHOAMI"]=this->WHOAMI;
@@ -35,41 +35,41 @@ void SerialCom::checkForCommand(){
         String command = "NONE";
         command = myObject["COMMAND"];
         if (command.equals("PHREAD")) {
-            Data["VALUE"] = this->phControl->getCurrent();
-            Data["DESIRED_PH"] = this->phControl->getSetPoint();
+            Data["VALUE"] = this->control->getCurrent();
+            Data["DESIRED_PH"] = this->control->getSetPoint();
             Data["ACK"] = "DONE";
             Data["MSG"] = msg;
         } else if (command.equals("PHUP")) {
             int dropTime = myObject["DROP_TIME"];
-            this->phControl->up(dropTime);
+            this->control->up(dropTime);
 
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("PHDOWN")) {
             int dropTime = myObject["DROP_TIME"];
-            this->phControl->down(dropTime);
+            this->control->down(dropTime);
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("AUTO")) {
 
-            this->phControl->setManualMode(false);
+            this->control->setManualMode(false);
 
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("MANUAL")) {
 
-            this->phControl->setManualMode(true);
+            this->control->setManualMode(true);
 
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("SET_PH")) {        
-            this->phControl->setReadSetPointFromCMD(true);
-            this->phControl->setSetPoint(
+            this->control->setReadSetPointFromCMD(true);
+            this->control->setSetPoint(
               (double) myObject["VALUE"]
             );
             
             this->sensorEEPROM->desiredPhToEEPROM(
-              this->phControl->getSetPoint()
+              this->control->getSetPoint()
             );            
 
             Data["MSG"] = msg;
@@ -77,8 +77,8 @@ void SerialCom::checkForCommand(){
         } else if (command.equals("DESIRED_SOURCE")) {               
             String cmd_or_pot ="";
             cmd_or_pot = myObject["VALUE"];                     
-            this->phControl->setReadSetPointFromCMD(cmd_or_pot.equals("CMD"));    
-            Data["FROM_CMD"] = this->phControl->getReadSetPointFromCMD();            
+            this->control->setReadSetPointFromCMD(cmd_or_pot.equals("CMD"));    
+            Data["FROM_CMD"] = this->control->getReadSetPointFromCMD();            
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         }
