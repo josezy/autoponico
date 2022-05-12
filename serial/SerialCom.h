@@ -13,7 +13,7 @@
 class SerialCom {
     const char* WHOAMI;
     float serialWriteTimer;
-    float millisBetweenPrint;
+    float millisBetweenPrint = SERIAL_WRITE_TIME;
     
     SensorEEPROM* sensorEEPROM;
     Control* control;
@@ -22,7 +22,7 @@ class SerialCom {
             const char* WHOAMI, 
             SensorEEPROM* sensorEEPROM, 
             Control* control, 
-            float millisBetweenPrint = SERIAL_WRITE_TIME
+            float millisBetweenPrint 
         );
         void init(int baudrate = 9600);
         void printTask(const char* task, float value, float desiredValue, const char* going ="NA", bool now = false);	
