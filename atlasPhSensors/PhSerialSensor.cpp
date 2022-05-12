@@ -2,10 +2,12 @@
 #include <SoftwareSerial.h>
 
 
-PhSerialSensor::PhSerialSensor(int phTx, int phRx){
-    this->sensorSerial  = new SoftwareSerial(phTx,phRx);
+PhSerialSensor::PhSerialSensor(int phRx, int phTx){
+    this->sensorSerial  = new SoftwareSerial(phRx, phTx);
 }
-
+String PhSerialSensor::getSensorString(){
+    return this->sensorString;
+}
 void PhSerialSensor::init(int baudrate){
     this->sensorSerial->begin(baudrate);
 }

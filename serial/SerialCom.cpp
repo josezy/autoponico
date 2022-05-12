@@ -36,7 +36,7 @@ void SerialCom::checkForCommand(){
         command = myObject["COMMAND"];
         if (command.equals("PHREAD")) {
             Data["VALUE"] = this->control->getCurrent();
-            Data["DESIRED_PH"] = this->control->getSetPoint();
+            Data["DESIRED"] = this->control->getSetPoint();
             Data["ACK"] = "DONE";
             Data["MSG"] = msg;
         } else if (command.equals("PHUP")) {

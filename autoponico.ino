@@ -48,7 +48,7 @@ Displays74HC595 displays =  Displays74HC595(
 
 #define PH_RX 10
 #define PH_TX 11
-PhSerialSensor phSensor = PhSerialSensor(PH_TX,PH_RX);
+PhSerialSensor phSensor = PhSerialSensor(PH_RX,PH_TX);
 
 SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control);
 
@@ -61,7 +61,7 @@ void setup() {
 }
 
 void loop() {   
-    serialCom.printTask("READ", phSensor.getPh(),control.getCurrent());
+    serialCom.printTask("READ", phSensor.getPh(), control.getSetPoint());
 
     control.setCurrent(phSensor.getPh());
     control.calculateError();
@@ -75,7 +75,7 @@ void loop() {
         serialCom.printTask(
             "CONTROL",
             phSensor.getPh(),
-            control.getCurrent(),
+            control.getSetPoint(),
             control.getControlText(going),
             true
         );
