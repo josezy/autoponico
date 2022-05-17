@@ -50,7 +50,7 @@ Displays74HC595 displays =  Displays74HC595(
 #define PH_TX 11
 PhSerialSensor phSensor = PhSerialSensor(PH_RX,PH_TX);
 
-SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control);
+SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, 0.1 * MINUTE );
 
 
 void setup() {
