@@ -17,7 +17,7 @@ SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
 #define ZERO_SPEED 0
 #define STABILIZATION_MARGIN 0.1
 #define ERR_MARGIN 0.3
-#define STABILIZATION_TIME 1 * MINUTE
+#define STABILIZATION_TIME 10 * MINUTE
 #define DROP_TIME 1000
 
 ControlConfig configuration = {
@@ -56,6 +56,7 @@ SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, 1 * MINUTE );
 void setup() {
     phSensor.init();
     serialCom.init();
+    control.setManualControl(true);
     control.setSetPoint(sensorEEPROM.getPh());
     control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());  
 }
