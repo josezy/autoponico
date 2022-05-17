@@ -25,6 +25,8 @@ class SerialCom {
             float millisBetweenPrint = SERIAL_WRITE_TIME
         );
         void init(int baudrate = 9600);
+        void print(const char* data );
+        void print(float data );
         void printTask(const char* task, float value, float desiredValue, const char* going ="NA", bool now = false);	
         void checkForCommand();
 

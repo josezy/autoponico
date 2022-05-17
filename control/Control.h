@@ -34,7 +34,12 @@ class Control {
 
     float total = 0;
     float counter = 0;
-    const uint8_t samples = 1;
+    const uint8_t samples = 10;
+    float* samplesArray;
+    uint8_t samplesIndex = 0;
+
+    float takeSampleTimer;
+    float takeSamplePeriod = 5000;
 
     int state = STABLE;    
     float error;    
@@ -56,7 +61,10 @@ class Control {
         void setManualMode(bool manualMode);
 
         void setCurrent(float current);
+        float* getSamplesArray();
+        const uint8_t getSamples();
         float getCurrent();
+        float getMeasureFromSamples();
 
         void setSetPoint(float setPoint);
         float getSetPoint();

@@ -15,6 +15,13 @@ void SerialCom::init(int baudrate){
     Serial.begin(baudrate);    
 }
 
+void SerialCom::print(float data ){
+    Serial.print(data);
+}
+void SerialCom::print(const char* data ){
+    Serial.print(data);
+}
+
 void SerialCom::printTask( const char* task, float value, float desiredValue, const char* going, bool now){
   if(millis()-this->serialWriteTimer > this->millisBetweenPrint || now){
     this->serialWriteTimer = millis();
