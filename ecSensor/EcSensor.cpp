@@ -28,7 +28,6 @@ void EcSensor::init(){
     delay(100); // gives sensor time to settle
     this->sensors->begin();
     delay(100);
-    Serial.println("=??");
     //** Adding Digital Pin Resistance to [25 ohm] to the static Resistor *********//
     // Consule Read-Me for Why, or just accept it as true
     this->R1 = (this->R1 + this->Ra); // Taking into acount Powering Pin Resitance
