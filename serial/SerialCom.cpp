@@ -22,7 +22,7 @@ void SerialCom::print(const char* data ){
     Serial.print(data);
 }
 
-void SerialCom::printTask( const char* task, float value, float desiredValue, const char* going, bool now){
+void SerialCom::printTask( const char* task, float value, float desiredValue, float temp, const char* going, bool now){
   if(millis()-this->serialWriteTimer > this->millisBetweenPrint || now){
     this->serialWriteTimer = millis();
     JSONVar Data;
@@ -31,6 +31,7 @@ void SerialCom::printTask( const char* task, float value, float desiredValue, co
     Data["GOING"]=going;
     Data["VALUE"]=value;
     Data["DESIRED"]=desiredValue;
+    Data["TEMP"]=temp;
     Serial.println(JSON.stringify(Data));
   }  
 }

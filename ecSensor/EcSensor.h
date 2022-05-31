@@ -49,6 +49,7 @@ class EcSensor {
         EcSensor(ECSensorConfig*);
         void init();
         float getEc();	
+        float getTemperature();
 
 };
 #endif

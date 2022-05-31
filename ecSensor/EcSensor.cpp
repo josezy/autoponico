@@ -32,6 +32,9 @@ void EcSensor::init(){
     // Consule Read-Me for Why, or just accept it as true
     this->R1 = (this->R1 + this->Ra); // Taking into acount Powering Pin Resitance
 }
+float EcSensor::getTemperature(){
+    return this->Temperature;
+}
 float EcSensor::getEc()
 {
     //Calls Code to Go into GetEC() Loop [Below Main Loop] dont call this more that 1/5 hhz [once every five seconds] or you will polarise the water

@@ -88,7 +88,7 @@ void setup() {
 void loop() {   
     
     control.setCurrent(ecSensor.getEc());
-    serialCom.printTask("READ", control.getCurrent(), control.getSetPoint());
+    serialCom.printTask("READ", control.getCurrent(), control.getSetPoint(), ecSensor.getTemperature());
 
     control.calculateError();
     
@@ -102,6 +102,7 @@ void loop() {
             "CONTROL",
             control.getCurrent(),
             control.getSetPoint(),
+            0,
             control.getControlText(going),
             true
         );
