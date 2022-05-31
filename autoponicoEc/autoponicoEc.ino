@@ -88,6 +88,7 @@ void loop() {
     displays.display(control.getSetPoint(),"asd");   
     serialCom.checkForCommand();
 
+    serialCom.print("wadafa");
     int going = control.doControl();
     if(going != GOING_NONE)
         serialCom.printTask(
