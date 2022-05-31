@@ -19,6 +19,8 @@ SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
 #define ERR_MARGIN 0.3
 #define STABILIZATION_TIME 10 * MINUTE
 #define DROP_TIME 1000
+#define MAX_DESIRED_MEASURE 5 * 10
+#define MIN_DESIRED_MEASURE 7 * 10
 
 ControlConfig configuration = {
   POT_PIN,
@@ -30,7 +32,9 @@ ControlConfig configuration = {
   DROP_TIME,
   ERR_MARGIN,
   STABILIZATION_TIME,
-  STABILIZATION_MARGIN
+  STABILIZATION_MARGIN,
+  MAX_DESIRED_MEASURE,
+  MIN_DESIRED_MEASURE
 };
 Control control = Control(&configuration);
 
