@@ -8,12 +8,14 @@
 DisplaysTM1637::DisplaysTM1637(uint8_t CurrentCLK, uint8_t CurrentDIO, uint8_t setPointCLK, uint8_t setPointDIO){  
   this->currentDisplay = new TM1637(CurrentCLK, CurrentDIO);
   this->setPointDisplay = new TM1637(setPointCLK, setPointDIO);
+}
 
-  this->currentDisplay->init();
-  this->currentDisplay->set(2);
+void DisplaysTM1637::init(){
+    this->currentDisplay->init();
+    this->currentDisplay->set(2);
 
-  this->setPointDisplay->init();
-  this->setPointDisplay->set(2);
+    this->setPointDisplay->init();
+    this->setPointDisplay->set(2);
 }
 
 void DisplaysTM1637::display(int num, String type)
