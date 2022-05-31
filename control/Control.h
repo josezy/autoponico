@@ -23,7 +23,10 @@ struct ControlConfig {
     float ERR_MARGIN;
     long int STABILIZATION_TIME;
     float STABILIZATION_MARGIN;
+
     
+    float MAX_DESIRED_MEASURE;
+    float MIN_DESIRED_MEASURE;    
 };
 
 
