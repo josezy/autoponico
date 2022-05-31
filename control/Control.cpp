@@ -7,6 +7,10 @@ Control::Control(ControlConfig* configuration){
     this->configuration = configuration;
     this->stabilizationTimer = millis();
     this->takeSampleTimer = millis();
+    if(configuration->M_UP>0)
+        pinMode(configuration->M_UP, OUTPUT);
+    if(configuration->M_DN>0)
+        pinMode(configuration->M_DN, OUTPUT);
 }
 
 const char* Control::getControlText(int control_type){
@@ -92,10 +96,10 @@ int Control::doControl(){
                 if(
                     abs(this->error) >= this->configuration->STABILIZATION_MARGIN
                 ){
-                    if (this->error > 0 && this->current != 0) {
+                    if (this->error > 0 && this->current != 0 && this->configuration->M_DN>0) {
                         this->down(this->configuration->DROP_TIME);
                         going = GOING_DOWN;
-                    } else if( this->error < 0 && this->current != 0) {   
+                    } else if( this->error < 0 && this->current != 0 && this->configuration->M_UP>0) {   
                         this->up(this->configuration->DROP_TIME);
                         going = GOING_UP;
                     }
@@ -131,19 +135,18 @@ void Control::setManualMode(bool manualMode){
   this->manualMode = manualMode;
 }
 void Control::down(int dropTime) {
-
-    //serialCom.printTask("READ",this->ph, this->desiredPh,"DOWN", true)   
-    analogWrite(this->configuration->M_UP, this->configuration->ZERO_SPEED);
-    analogWrite(this->configuration->M_DN, this->configuration->M_DN_SPEED);
-    delay(dropTime);
-    analogWrite(this->configuration->M_DN, this->configuration->ZERO_SPEED);
+    if(this->configuration->M_DN>0){
+        analogWrite(this->configuration->M_DN, this->configuration->M_DN_SPEED);
+        delay(dropTime);
+        analogWrite(this->configuration->M_DN, this->configuration->ZERO_SPEED);
+    }
 }
 
 void Control::up(int dropTime) {
     
-    //serialCom.printTask("READ",this->ph, this->desiredPh, "UP", true)
-    analogWrite(this->configuration->M_DN, this->configuration->ZERO_SPEED);
-    analogWrite(this->configuration->M_UP, this->configuration->M_UP_SPEED);
-    delay(dropTime);
-    analogWrite(this->configuration->M_UP, this->configuration->ZERO_SPEED);
+    if(this->configuration->M_UP>0){
+        analogWrite(this->configuration->M_UP, this->configuration->M_UP_SPEED);
+        delay(dropTime);
+        analogWrite(this->configuration->M_UP, this->configuration->ZERO_SPEED);
+    }
 }

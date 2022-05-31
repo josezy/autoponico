@@ -8,9 +8,7 @@ class DisplaysTM1637{
     TM1637* currentDisplay;
     TM1637* setPointDisplay;
     public:  
-        void initDisplays();
-        DisplaysTM1637(uint8_t CurrentCLK, uint8_t CurrentDIO, uint8_t setPointCLK, uint8_t setPointDIO);
-        
+        DisplaysTM1637(uint8_t CurrentCLK, uint8_t CurrentDIO, uint8_t setPointCLK, uint8_t setPointDIO);        
         void display(int num, String type="sense");
 
 };
