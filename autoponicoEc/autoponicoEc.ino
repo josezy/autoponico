@@ -19,6 +19,8 @@ SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
 #define ERR_MARGIN 0.3
 #define STABILIZATION_TIME 10 * MINUTE
 #define DROP_TIME 1000
+#define MAX_DESIRED_MEASURE 1500 * 10
+#define MIN_DESIRED_MEASURE 900 * 10
 
 ControlConfig configuration = {
   POT_PIN,
@@ -30,7 +32,9 @@ ControlConfig configuration = {
   DROP_TIME,
   ERR_MARGIN,
   STABILIZATION_TIME,
-  STABILIZATION_MARGIN
+  STABILIZATION_MARGIN,
+  MAX_DESIRED_MEASURE,
+  MIN_DESIRED_MEASURE
 };
 Control control = Control(&configuration);
 
@@ -43,6 +47,9 @@ DisplaysTM1637 displays =  DisplaysTM1637(
     CURRENT_CLK, CURRENT_DIO, 
     DESIRED_CLK, DESIRED_DIO 
 );    
+
+
+SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, 1 * MINUTE );
 
 #define EC_PIN A0
 #define EC_GND A1
@@ -66,13 +73,14 @@ ECSensorConfig sensorConfiguration = {
     K
 };
 
-EcSensor ecSensor = EcSensor(&sensorConfiguration);
-
-SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, 1 * MINUTE );
+EcSensor ecSensor= EcSensor(&sensorConfiguration) ;
 
 
 void setup() {
     serialCom.init();
+    ecSensor.init();
+    displays.init();
+    
     control.setManualMode(false);
     control.setReadSetPointFromCMD(false);  
 }
@@ -88,7 +96,6 @@ void loop() {
     displays.display(control.getSetPoint(),"asd");   
     serialCom.checkForCommand();
 
-    serialCom.print("wadafa");
     int going = control.doControl();
     if(going != GOING_NONE)
         serialCom.printTask(

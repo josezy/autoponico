@@ -46,7 +46,8 @@ class EcSensor {
     float measureTimer;
 
     public:  
-        EcSensor(ECSensorConfig* );
+        EcSensor(ECSensorConfig*);
+        void init();
         float getEc();	
 
 };

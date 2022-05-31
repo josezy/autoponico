@@ -3,6 +3,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <Arduino.h> //needed for Serial.println
+#include "SerialCom.h"
 
 EcSensor::EcSensor(ECSensorConfig* configuration)
 {
@@ -10,25 +11,28 @@ EcSensor::EcSensor(ECSensorConfig* configuration)
     this->oneWire = new OneWire(configuration->ONE_WIRE_PIN);
     this->sensors = new DallasTemperature(oneWire);
     this->measureTimer = millis();
-    pinMode(configuration->TEMP_PROBE_NEGATIVE, OUTPUT);   //seting ground pin as output for tmp probe
-    digitalWrite(configuration->TEMP_PROBE_NEGATIVE, LOW); //Seting it to ground so it can sink current
-    pinMode(configuration->TEMP_PROBE_POSSITIVE, OUTPUT);  //ditto but for positive
-    digitalWrite(configuration->TEMP_PROBE_POSSITIVE, HIGH);
 
-    pinMode(configuration->EC_PIN, INPUT);
-    pinMode(configuration->EC_POWER, OUTPUT); //Setting pin for sourcing current
-    pinMode(configuration->EC_GND, OUTPUT);   //setting pin for sinking current
-    digitalWrite(configuration->EC_GND, LOW); //We can leave the ground connected permanantly
+}
+
+void EcSensor::init(){
+    pinMode(this->configuration->TEMP_PROBE_NEGATIVE, OUTPUT);   //seting ground pin as output for tmp probe
+    digitalWrite(this->configuration->TEMP_PROBE_NEGATIVE, LOW); //Seting it to ground so it can sink current
+    pinMode(this->configuration->TEMP_PROBE_POSSITIVE, OUTPUT);  //ditto but for positive
+    digitalWrite(this->configuration->TEMP_PROBE_POSSITIVE, HIGH);
+
+    pinMode(this->configuration->EC_PIN, INPUT);
+    pinMode(this->configuration->EC_POWER, OUTPUT); //Setting pin for sourcing current
+    pinMode(this->configuration->EC_GND, OUTPUT);   //setting pin for sinking current
+    digitalWrite(this->configuration->EC_GND, LOW); //We can leave the ground connected permanantly
 
     delay(100); // gives sensor time to settle
     this->sensors->begin();
     delay(100);
+    Serial.println("=??");
     //** Adding Digital Pin Resistance to [25 ohm] to the static Resistor *********//
     // Consule Read-Me for Why, or just accept it as true
     this->R1 = (this->R1 + this->Ra); // Taking into acount Powering Pin Resitance
-
 }
-
 float EcSensor::getEc()
 {
     //Calls Code to Go into GetEC() Loop [Below Main Loop] dont call this more that 1/5 hhz [once every five seconds] or you will polarise the water
