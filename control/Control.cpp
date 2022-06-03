@@ -1,16 +1,15 @@
 #include "Control.h"
-#include <Arduino_JSON.h>
-#include <Arduino.h> //needed for Serial.println
+#include <Arduino.h>
 
 Control::Control(ControlConfig* configuration){
-    this->samplesArray = new float[this->samples]();
     this->configuration = configuration;
     this->stabilizationTimer = millis();
-    this->takeSampleTimer = millis();
+
     if(configuration->M_UP>0)
         pinMode(configuration->M_UP, OUTPUT);
     if(configuration->M_DN>0)
         pinMode(configuration->M_DN, OUTPUT);
+        
 }
 
 const char* Control::getControlText(int control_type){
@@ -56,33 +55,8 @@ float Control::getCurrent(){
     return this->current;
 }
 
-float Control::getMeasureFromSamples(){
-    this->current = 0;
-    for(int i = 0; i<this->samples ; i++){
-        this->current += this->samplesArray[i];
-    }
-    this->current = this->current/this->samples;
-}
-
-float* Control::getSamplesArray(){
-
-  return this->samplesArray;
-}
-
-const uint8_t Control::getSamples(){
-
-  return this->samples;
-}
-
 void Control::setCurrent(float current){
-    if(millis()-this->takeSampleTimer>this->takeSamplePeriod){
-        this->takeSampleTimer = millis();
-        (*(this->samplesArray+this->samplesIndex)) = current;     
-        this->samplesIndex++;
-        if(this->samplesIndex>=this->samples)
-            this->samplesIndex = 0;
-        this->getMeasureFromSamples();   
-    }
+    this->current = current;
 }
 
 int Control::doControl(){
