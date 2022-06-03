@@ -4,6 +4,7 @@
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
 #include "PhGravSensor.h"
+#include <SimpleKalmanFilter.h>
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
@@ -53,6 +54,12 @@ PhGravSensor phSensor = PhGravSensor(PH_ANALOG_PIN);
 
 SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, 1 * MINUTE);
 
+#define MEASUREMENT_UNCERTAINTY 1
+#define ESTIMATION_UNCERTAINTY 1
+#define PROCESS_NOISE 0.01
+SimpleKalmanFilter pressureKalmanFilter(MEASUREMENT_UNCERTAINTY, ESTIMATION_UNCERTAINTY, PROCESS_NOISE);
+
+
 void setup()
 {
 
@@ -69,8 +76,8 @@ void setup()
 
 void loop()
 {
-
-    control.setCurrent(phSensor.getPh());
+    float stimatedMeasure = pressureKalmanFilter.updateEstimate(phSensor.getPh());
+    control.setCurrent(stimatedMeasure);
     serialCom.printTask("READ", control.getCurrent(), control.getSetPoint());
 
     control.calculateError();
