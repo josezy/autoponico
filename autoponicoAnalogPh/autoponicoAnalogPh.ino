@@ -78,7 +78,7 @@ void loop()
 {
     
     //float stimatedMeasure = pressureKalmanFilter.updateEstimate(phSensor.getPh());
-    float stimatedMeasure = phSensor.getPh()
+    float stimatedMeasure = phSensor.getPh();
     control.setCurrent(stimatedMeasure);
     serialCom.printTask("READ", control.getCurrent(), control.getSetPoint());
 
