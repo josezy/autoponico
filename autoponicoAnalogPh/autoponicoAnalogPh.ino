@@ -18,7 +18,7 @@ SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
 #define ZERO_SPEED 0
 #define STABILIZATION_MARGIN 0.1
 #define ERR_MARGIN 0.3
-#define STABILIZATION_TIME 10 * MINUTE
+#define STABILIZATION_TIME 3 * MINUTE
 #define DROP_TIME 1000
 #define MAX_DESIRED_MEASURE 5 * 10
 #define MIN_DESIRED_MEASURE 7 * 10
@@ -69,14 +69,16 @@ void setup()
         serialCom.print("EEPROM LOADED");
     }
 
-    control.setManualMode(true);
+    control.setManualMode(false);
     control.setSetPoint(sensorEEPROM.getPh());
     control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());
 }
 
 void loop()
 {
-    float stimatedMeasure = pressureKalmanFilter.updateEstimate(phSensor.getPh());
+    
+    //float stimatedMeasure = pressureKalmanFilter.updateEstimate(phSensor.getPh());
+    float stimatedMeasure = phSensor.getPh()
     control.setCurrent(stimatedMeasure);
     serialCom.printTask("READ", control.getCurrent(), control.getSetPoint());
 
