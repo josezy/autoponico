@@ -90,7 +90,7 @@ void loop()
     if (going != GOING_NONE)
         serialCom.printTask(
             "CONTROL",
-            phSensor.getPh(),
+            DROP_TIME,
             control.getSetPoint(),
             0,
             control.getControlText(going),
