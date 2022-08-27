@@ -1,42 +1,43 @@
 
 #include "SerialCom.h"
-#include <Arduino_JSON.h>
-#include <Arduino.h> //needed for Serial.println
 
-SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* control, float millisBetweenPrint){
+#include <Arduino.h>  //needed for Serial.println
+#include <Arduino_JSON.h>
+
+SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* control, float millisBetweenPrint) {
     this->sensorEEPROM = sensorEEPROM;
     this->control = control;
     this->WHOAMI = WHOAMI;
     this->millisBetweenPrint = millisBetweenPrint;
 }
 
-void SerialCom::init(int baudrate){
+void SerialCom::init(int baudrate) {
     this->serialWriteTimer = millis();
-    Serial.begin(baudrate);    
+    Serial.begin(baudrate);
 }
 
-void SerialCom::print(float data ){
+void SerialCom::print(float data) {
     Serial.print(data);
 }
-void SerialCom::print(const char* data ){
+void SerialCom::print(const char* data) {
     Serial.print(data);
 }
 
-void SerialCom::printTask( const char* task, float value, float desiredValue, float temp, const char* going, bool now){
-  if(millis()-this->serialWriteTimer > this->millisBetweenPrint || now){
-    this->serialWriteTimer = millis();
-    JSONVar Data;
-    Data["WHOAMI"]=this->WHOAMI;
-    Data["TASK"]=task;
-    Data["GOING"]=going;
-    Data["VALUE"]=value;
-    Data["DESIRED"]=desiredValue;
-    Data["TEMP"]=temp;
-    Serial.println(JSON.stringify(Data));
-  }  
+void SerialCom::printTask(const char* task, float value, float desiredValue, float temp, const char* going, bool now) {
+    if (millis() - this->serialWriteTimer > this->millisBetweenPrint || now) {
+        this->serialWriteTimer = millis();
+        JSONVar Data;
+        Data["WHOAMI"] = this->WHOAMI;
+        Data["TASK"] = task;
+        Data["GOING"] = going;
+        Data["VALUE"] = value;
+        Data["DESIRED"] = desiredValue;
+        Data["TEMP"] = temp;
+        Serial.println(JSON.stringify(Data));
+    }
 }
 
-void SerialCom::checkForCommand(){
+void SerialCom::checkForCommand() {
     if (Serial.available() > 0) {
         String msg = Serial.readString();
         JSONVar myObject = JSON.parse(msg);
@@ -60,43 +61,33 @@ void SerialCom::checkForCommand(){
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("AUTO")) {
-
             this->control->setManualMode(false);
-
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("MANUAL")) {
-
             this->control->setManualMode(true);
-
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
-        } else if (command.equals("SET_PH")) {        
+        } else if (command.equals("SET_PH")) {
             this->control->setReadSetPointFromCMD(true);
             this->control->setSetPoint(
-              (double) myObject["VALUE"]
-            );
-            
+                (double)myObject["VALUE"]);
             this->sensorEEPROM->desiredPhToEEPROM(
-              this->control->getSetPoint()
-            );            
-
+                this->control->getSetPoint());
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
-        } else if (command.equals("DESIRED_SOURCE")) {               
-            String cmd_or_pot ="";
-            cmd_or_pot = myObject["VALUE"];                     
-            this->control->setReadSetPointFromCMD(cmd_or_pot.equals("CMD"));    
-            Data["FROM_CMD"] = this->control->getReadSetPointFromCMD();            
+        } else if (command.equals("DESIRED_SOURCE")) {
+            String cmd_or_pot = "";
+            cmd_or_pot = myObject["VALUE"];
+            this->control->setReadSetPointFromCMD(cmd_or_pot.equals("CMD"));
+            Data["FROM_CMD"] = this->control->getReadSetPointFromCMD();
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
-        }
-        else if (command.equals("WHOAMI")) {               
+        } else if (command.equals("WHOAMI")) {
             Data["WHOAMI"] = this->WHOAMI;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
-        }
-        else {
+        } else {
             Data["ACK"] = "ERROR";
             Data["MSG"] = msg;
         }
