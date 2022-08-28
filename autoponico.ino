@@ -1,9 +1,9 @@
 
 #include "Control.h"
 #include "Displays74HC595.h"
+#include "PhSerialSensor.h"
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
-#include "PhSerialSensor.h"
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
@@ -23,19 +23,18 @@ SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
 #define MIN_DESIRED_MEASURE 7 * 10
 
 ControlConfig configuration = {
-  POT_PIN,
-  M_UP,
-  M_DN,  
-  M_UP_SPEED,
-  M_DN_SPEED,
-  ZERO_SPEED,  
-  DROP_TIME,
-  ERR_MARGIN,
-  STABILIZATION_TIME,
-  STABILIZATION_MARGIN,
-  MAX_DESIRED_MEASURE,
-  MIN_DESIRED_MEASURE
-};
+    POT_PIN,
+    M_UP,
+    M_DN,
+    M_UP_SPEED,
+    M_DN_SPEED,
+    ZERO_SPEED,
+    DROP_TIME,
+    ERR_MARGIN,
+    STABILIZATION_TIME,
+    STABILIZATION_MARGIN,
+    MAX_DESIRED_MEASURE,
+    MIN_DESIRED_MEASURE};
 Control control = Control(&configuration);
 
 #define CURRENT_SEG7_DATA 2
@@ -45,46 +44,41 @@ Control control = Control(&configuration);
 #define DESIRED_SEG7_CLOCK 6
 #define DESIRED_SEG7_LATCH 7
 
-Displays74HC595 displays =  Displays74HC595(
+Displays74HC595 displays = Displays74HC595(
     CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH,
-    DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH
-);    
+    DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH);
 
 #define PH_RX 10
 #define PH_TX 11
-PhSerialSensor phSensor = PhSerialSensor(PH_RX,PH_TX);
+PhSerialSensor phSensor = PhSerialSensor(PH_RX, PH_TX);
 
-SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, 1 * MINUTE );
-
+SerialCom serialCom = SerialCom(WHOAMI, &sensorEEPROM, &control, 1 * MINUTE);
 
 void setup() {
     phSensor.init();
     serialCom.init();
     control.setManualMode(true);
     control.setSetPoint(sensorEEPROM.getPh());
-    control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());  
+    control.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());
 }
 
-void loop() {   
-    
+void loop() {
     control.setCurrent(phSensor.getPh());
     serialCom.printTask("READ", control.getCurrent(), control.getSetPoint());
 
     control.calculateError();
-    
+
     displays.display(control.getCurrent());
-    displays.display(control.getSetPoint(),"asd");   
+    displays.display(control.getSetPoint(), "asd");
     serialCom.checkForCommand();
 
     int going = control.doControl();
-    if(going != GOING_NONE)
+    if (going != GOING_NONE)
         serialCom.printTask(
             "CONTROL",
             phSensor.getPh(),
             control.getSetPoint(),
             0,
             control.getControlText(going),
-            true
-        );
-    
+            true);
 }
