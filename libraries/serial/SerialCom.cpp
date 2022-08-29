@@ -4,10 +4,9 @@
 #include <Arduino.h>  //needed for Serial.println
 #include <Arduino_JSON.h>
 
-SerialCom::SerialCom(const char* WHOAMI, SensorEEPROM* sensorEEPROM, Control* control, float millisBetweenPrint) {
+SerialCom::SerialCom(SensorEEPROM* sensorEEPROM, Control* control, float millisBetweenPrint) {
     this->sensorEEPROM = sensorEEPROM;
     this->control = control;
-    this->WHOAMI = WHOAMI;
     this->millisBetweenPrint = millisBetweenPrint;
 }
 
@@ -23,11 +22,18 @@ void SerialCom::print(const char* data) {
     Serial.print(data);
 }
 
-void SerialCom::printTask(const char* task, float value, float desiredValue, float temp, const char* going, bool now) {
+void SerialCom::printTask(
+    const char* whoami,
+    const char* task,
+    float value,
+    float desiredValue,
+    float temp,
+    const char* going,
+    bool now) {
     if (millis() - this->serialWriteTimer > this->millisBetweenPrint || now) {
         this->serialWriteTimer = millis();
         JSONVar Data;
-        Data["WHOAMI"] = this->WHOAMI;
+        Data["WHOAMI"] = whoami;
         Data["TASK"] = task;
         Data["GOING"] = going;
         Data["VALUE"] = value;
@@ -41,9 +47,9 @@ void SerialCom::checkForCommand() {
     if (Serial.available() > 0) {
         String msg = Serial.readString();
         JSONVar myObject = JSON.parse(msg);
+        String command = myObject["COMMAND"];
         JSONVar Data;
-        String command = "NONE";
-        command = myObject["COMMAND"];
+
         if (command.equals("PHREAD")) {
             Data["VALUE"] = this->control->getCurrent();
             Data["DESIRED"] = this->control->getSetPoint();
@@ -52,7 +58,6 @@ void SerialCom::checkForCommand() {
         } else if (command.equals("PHUP")) {
             int dropTime = myObject["DROP_TIME"];
             this->control->up(dropTime);
-
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else if (command.equals("PHDOWN")) {
@@ -81,10 +86,6 @@ void SerialCom::checkForCommand() {
             cmd_or_pot = myObject["VALUE"];
             this->control->setReadSetPointFromCMD(cmd_or_pot.equals("CMD"));
             Data["FROM_CMD"] = this->control->getReadSetPointFromCMD();
-            Data["MSG"] = msg;
-            Data["ACK"] = "DONE";
-        } else if (command.equals("WHOAMI")) {
-            Data["WHOAMI"] = this->WHOAMI;
             Data["MSG"] = msg;
             Data["ACK"] = "DONE";
         } else {
