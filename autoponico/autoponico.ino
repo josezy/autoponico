@@ -94,8 +94,8 @@ void loop() {
         serialCom.printTask(
             "PH",
             "CONTROL",
-            phReading,
-            phSetpoint,
+            DROP_TIME,
+            0,
             phControl.getControlText(going)
         );
     }
