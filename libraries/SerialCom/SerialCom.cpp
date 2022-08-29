@@ -47,8 +47,9 @@ void SerialCom::checkForCommand() {
     if (Serial.available() > 0) {
         String msg = Serial.readString();
         JSONVar myObject = JSON.parse(msg);
-        String command = myObject["COMMAND"];
         JSONVar Data;
+        String command = "";
+        command = myObject["COMMAND"];
 
         if (command.equals("PHREAD")) {
             Data["VALUE"] = this->control->getCurrent();
