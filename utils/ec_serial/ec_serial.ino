@@ -56,7 +56,7 @@ void loop() {                                         //here we go...
 
 
   if (sensor_string_complete == true) {               //if a string from the Atlas Scientific product has been received in its entirety
-    if (isdigit(sensorstring[0]) == false) {          //if the first character in the string is a digit
+    if (isDigit(sensorstring[0]) == false) {          //if the first character in the string is a digit
       Serial.println(sensorstring);                   //send that string to the PC's serial monitor
     }
     else                                              //if the first character in the string is NOT a digit
