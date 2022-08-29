@@ -1,4 +1,6 @@
-
+/* 
+    WARNING: This is deprecated
+ */
 #include "Control.h"
 #include "DisplaysTM1637.h"
 #include "SensorEEPROM.h"
