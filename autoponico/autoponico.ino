@@ -70,7 +70,7 @@ void loop() {
     float ecReading = ecSensor.getReading();
     serialCom.printTask("EC", "READ", ecReading, 0);
 
-    float phReading = phSensor.read_ph()
+    float phReading = phSensor.read_ph();
     phControl.setCurrent(phReading);
 
     float phSetpoint = phControl.getSetPoint();

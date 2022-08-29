@@ -26,7 +26,15 @@ class SerialCom {
         void init(int baudrate = 9600);
         void print(const char* data);
         void print(float data);
-        void printTask(const char* task, float value, float desiredValue, float temp = 0, const char* going = "NA", bool now = false);
+        void printTask(
+            const char* whoami,
+            const char* task,
+            float value,
+            float desiredValue,
+            float temp = 0,
+            const char* going = "NA",
+            bool now = false
+        );
         void checkForCommand();
 };
 
