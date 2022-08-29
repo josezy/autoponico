@@ -1,25 +1,17 @@
 
 #include "SerialCom.h"
 
-#include <Arduino.h>  //needed for Serial.println
+#include <Arduino.h>  // Needed for Serial
 #include <Arduino_JSON.h>
 
-SerialCom::SerialCom(SensorEEPROM* sensorEEPROM, Control* control, float millisBetweenPrint) {
+SerialCom::SerialCom(SensorEEPROM* sensorEEPROM, Control* control, int baudrate) {
     this->sensorEEPROM = sensorEEPROM;
     this->control = control;
-    this->millisBetweenPrint = millisBetweenPrint;
+    this->baudrate = baudrate;
 }
 
-void SerialCom::init(int baudrate) {
-    this->serialWriteTimer = millis();
-    Serial.begin(baudrate);
-}
-
-void SerialCom::print(float data) {
-    Serial.print(data);
-}
-void SerialCom::print(const char* data) {
-    Serial.print(data);
+void SerialCom::init() {
+    Serial.begin(this->baudrate);
 }
 
 void SerialCom::printTask(
@@ -27,20 +19,15 @@ void SerialCom::printTask(
     const char* task,
     float value,
     float desiredValue,
-    float temp,
-    const char* going,
-    bool now) {
-    if (millis() - this->serialWriteTimer > this->millisBetweenPrint || now) {
-        this->serialWriteTimer = millis();
-        JSONVar Data;
-        Data["WHOAMI"] = whoami;
-        Data["TASK"] = task;
-        Data["GOING"] = going;
-        Data["VALUE"] = value;
-        Data["DESIRED"] = desiredValue;
-        Data["TEMP"] = temp;
-        Serial.println(JSON.stringify(Data));
-    }
+    const char* going
+) {
+    JSONVar Data;
+    Data["WHOAMI"] = whoami;
+    Data["TASK"] = task;
+    Data["GOING"] = going;
+    Data["VALUE"] = value;
+    Data["DESIRED"] = desiredValue;
+    Serial.println(JSON.stringify(Data));
 }
 
 void SerialCom::checkForCommand() {

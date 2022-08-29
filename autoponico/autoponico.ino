@@ -56,7 +56,10 @@ AtlasSerialSensor ecSensor = AtlasSerialSensor(EC_RX, EC_TX);
 #define GRAV_PH_PIN A0
 Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
 
-SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl, 1 * MINUTE);
+SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl);
+
+unsigned long lastMillis;
+unsigned int SERIAL_PERIOD = 1 * MINUTE;
 
 void setup() {
     phSensor.begin();
@@ -64,22 +67,27 @@ void setup() {
     phControl.setManualMode(false);
     phControl.setSetPoint(sensorEEPROM.getPh());
     phControl.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());
+    lastMillis = millis();
 }
 
 void loop() {
     float ecReading = ecSensor.getReading();
-    serialCom.printTask("EC", "READ", ecReading, 0);
 
     float phReading = phSensor.read_ph();
     phControl.setCurrent(phReading);
 
     float phSetpoint = phControl.getSetPoint();
-    serialCom.printTask("PH", "READ", phReading, phSetpoint);
     phControl.calculateError();
 
     displays.display(phReading);
     displays.display(phSetpoint, "asd");
     serialCom.checkForCommand();
+
+    if ((millis() - lastMillis) > SERIAL_PERIOD) {
+        lastMillis = millis();
+        serialCom.printTask("EC", "READ", ecReading);
+        serialCom.printTask("PH", "READ", phReading, phSetpoint);
+    }
 
     int going = phControl.doControl();
     if (going != GOING_NONE) {
@@ -88,9 +96,7 @@ void loop() {
             "CONTROL",
             phReading,
             phSetpoint,
-            0,
-            phControl.getControlText(going),
-            true
+            phControl.getControlText(going)
         );
     }
 }
