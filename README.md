@@ -24,3 +24,9 @@ arduino-cli lib install ShiftRegister74HC595 "Grove 4-Digit Display" Arduino_JSO
 ```fish
 arduino-cli compile -b arduino:avr:nano:cpu=atmega328 --libraries ../libraries/
 ```
+
+## Uploading the code
+Set board and port accordingly
+```fish
+arduino-cli compile -b arduino:avr:nano:cpu=atmega328 -u -p /dev/ttyUSB0 --libraries ../libraries/
+```
