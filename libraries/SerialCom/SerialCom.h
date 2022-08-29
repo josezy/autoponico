@@ -19,10 +19,10 @@ class SerialCom {
 
     public:
         SerialCom(
-            const char* WHOAMI,
             SensorEEPROM* sensorEEPROM,
             Control* control,
-            float millisBetweenPrint = SERIAL_WRITE_TIME);
+            float millisBetweenPrint = SERIAL_WRITE_TIME
+        );
         void init(int baudrate = 9600);
         void print(const char* data);
         void print(float data);
