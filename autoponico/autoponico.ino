@@ -69,7 +69,7 @@ void setup() {
     phControl.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());
     lastMillis = millis();
     pinMode(13, OUTPUT);
-    digitalWrite(13, LOW);
+    digitalWrite(13, HIGH);
 }
 
 void loop() {
