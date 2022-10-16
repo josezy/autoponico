@@ -5,6 +5,7 @@
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
 #include "ph_grav.h"
+#include <SimpleKalmanFilter.h>
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
@@ -58,6 +59,15 @@ Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
 
 SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl);
 
+ /*
+ SimpleKalmanFilter(e_mea, e_est, q);
+ e_mea: Measurement Uncertainty 
+ e_est: Estimation Uncertainty 
+ q: Process Noise
+ */
+SimpleKalmanFilter simpleKalmanFilter(2, 2, 0.01);
+
+
 unsigned long lastMillis;
 unsigned int SERIAL_PERIOD = 1 * MINUTE;
 
@@ -75,7 +85,8 @@ void setup() {
 void loop() {
     float ecReading = ecSensor.getReading();
 
-    float phReading = phSensor.read_ph();
+    float phReading = simpleKalmanFilter.updateEstimate(phSensor.read_ph());
+    
     phControl.setCurrent(phReading);
 
     float phSetpoint = phControl.getSetPoint();
