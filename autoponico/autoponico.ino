@@ -86,9 +86,10 @@ void setup() {
 void loop() {
     float ecReading = ecSensor.getReading();
 
-    float phReading = simpleKalmanFilter.updateEstimate(phSensor.read_ph());
-    
-    phControl.setCurrent(phReading);
+    float phReading = phSensor.read_ph();
+    float phKalman = simpleKalmanFilter.updateEstimate(phReading);
+
+    phControl.setCurrent(phKalman);
 
     float phSetpoint = phControl.getSetPoint();
     
@@ -105,6 +106,8 @@ void loop() {
         serialCom.printTask("EC", "READ", ecReading);
         delay(20);
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
+        delay(20);
+        serialCom.printTask("KALMAN", "READ", phKalman);
         delay(20);
         serialCom.printTask("LVL", "READ", waterLvl);
     }
