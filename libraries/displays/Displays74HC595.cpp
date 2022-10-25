@@ -37,6 +37,11 @@ Displays74HC595::Displays74HC595(
   this->setPointDisplay = new ShiftRegister74HC595<NUM_DIGITS>(setPointData, setPointClock, setPointLatch);
 }
 
+Displays74HC595::Displays74HC595(
+    uint8_t setPointData, uint8_t setPointClock, uint8_t setPointLatch)
+{
+  this->setPointDisplay = new ShiftRegister74HC595<NUM_DIGITS>(setPointData, setPointClock, setPointLatch);
+}
 
 void Displays74HC595::display(float value, String type)
 {
@@ -51,12 +56,14 @@ void Displays74HC595::display(float value, String type)
 
   if (type.equals("sense"))
   {
-    this->currentDisplay->setAll(numberToPrint);
+    if (this->currentDisplay != NULL)
+      this->currentDisplay->setAll(numberToPrint);
   }
   else
   {
 
-    this->setPointDisplay->setAll(numberToPrint);
+    if (this->setPointDisplay != NULL)
+      this->setPointDisplay->setAll(numberToPrint);
    
   }
 }

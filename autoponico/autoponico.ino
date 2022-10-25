@@ -6,6 +6,7 @@
 #include "SerialCom.h"
 #include "ph_grav.h"
 #include <SimpleKalmanFilter.h>
+#include "MeasureDistance.h"
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
@@ -42,13 +43,9 @@ Control phControl = Control(&configuration);
 #define CURRENT_SEG7_DATA 2
 #define CURRENT_SEG7_CLOCK 3
 #define CURRENT_SEG7_LATCH 4
-#define DESIRED_SEG7_DATA 5
-#define DESIRED_SEG7_CLOCK 6
-#define DESIRED_SEG7_LATCH 7
 
 Displays74HC595 displays = Displays74HC595(
-    CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH,
-    DESIRED_SEG7_DATA, DESIRED_SEG7_CLOCK, DESIRED_SEG7_LATCH);
+    CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH);
 
 #define EC_RX 10
 #define EC_TX 11
@@ -67,6 +64,10 @@ SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl);
  */
 SimpleKalmanFilter simpleKalmanFilter(2, 2, 0.01);
 
+#define LVL_TRG_PIN 5
+#define LVL_ECHO_PIN 6
+MeasureDistance* measureDistance = new MeasureDistance(LVL_TRG_PIN,LVL_ECHO_PIN);
+
 
 unsigned long lastMillis;
 unsigned int SERIAL_PERIOD = 1 * MINUTE;
@@ -84,22 +85,28 @@ void setup() {
 
 void loop() {
     float ecReading = ecSensor.getReading();
-    float phReading = phSensor.read_ph();
-    float phKalman = simpleKalmanFilter.updateEstimate(phReading);
-    phControl.setCurrent(phKalman);
+
+    float phReading = simpleKalmanFilter.updateEstimate(phSensor.read_ph());
+    
+    phControl.setCurrent(phReading);
 
     float phSetpoint = phControl.getSetPoint();
+    
     phControl.calculateError();
 
     displays.display(phReading);
-    displays.display(phSetpoint, "asd");
     serialCom.checkForCommand();
-
     if ((millis() - lastMillis) > SERIAL_PERIOD) {
+        float waterLvl = measureDistance->takeMeasure();
+        while(waterLvl==0){
+          waterLvl = measureDistance->takeMeasure();
+        }
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
+        delay(20);
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
-        serialCom.printTask("PH", "KALMAN", phKalman, phSetpoint);
+        delay(20);
+        serialCom.printTask("LVL", "READ", waterLvl);
     }
 
     int going = phControl.doControl();

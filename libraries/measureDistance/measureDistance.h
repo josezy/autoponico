@@ -1,13 +1,13 @@
 #ifndef MEASURE_DIST_H
 #define MEASURE_DIST_H
 
-class measureDistance
+class MeasureDistance
 {
     int trigPin;
     int echoPin;
 
 public:
-    measureDistance(const int trigPin = 9, const int echoPin = 10);
+    MeasureDistance(const int trigPin = 9, const int echoPin = 10);
     float takeMeasure();
 };
 #endif

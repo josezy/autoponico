@@ -1,8 +1,9 @@
 
 
-#include "measureDistance";
+#include "MeasureDistance.h"
+#include <Arduino.h> 
 
-measureDistance::measureDistance(const int trigPin, const int echoPin)
+MeasureDistance::MeasureDistance(const int trigPin, const int echoPin)
 {
     this->trigPin = trigPin;
     this->echoPin = echoPin;
@@ -11,7 +12,7 @@ measureDistance::measureDistance(const int trigPin, const int echoPin)
     pinMode(echoPin, INPUT);  // Sets the echoPin as an Input
 }
 
-float measureDistance::takeMeasure(){
+float MeasureDistance::takeMeasure(){
     // Clears the trigPin
     digitalWrite(this->trigPin, LOW);
     delayMicroseconds(2);
@@ -20,7 +21,6 @@ float measureDistance::takeMeasure(){
     delayMicroseconds(10);
     digitalWrite(this->trigPin, LOW);
     // Reads the echoPin, returns the sound wave travel time in microseconds
-    duration = pulseIn(echoPin, HIGH);
-    // Calculating the distance
-    return duration * 0.034 / 2;
+    // And calculating the distance
+    return pulseIn(echoPin, HIGH) * 0.034 / 2;
 }

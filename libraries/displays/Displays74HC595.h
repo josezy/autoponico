@@ -14,7 +14,10 @@ class Displays74HC595{
         Displays74HC595(
             uint8_t currentData, uint8_t currentClock, uint8_t currentLatch,
             uint8_t setPointData, uint8_t setPointClock, uint8_t setPointLatch
-        );        
+        );
+        Displays74HC595(
+            uint8_t setPointData, uint8_t setPointClock, uint8_t setPointLatch
+        );
         void display(float value, String type="sense");
 
 };
