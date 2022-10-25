@@ -84,10 +84,9 @@ void setup() {
 
 void loop() {
     float ecReading = ecSensor.getReading();
-
-    float phReading = simpleKalmanFilter.updateEstimate(phSensor.read_ph());
-    
-    phControl.setCurrent(phReading);
+    float phReading = phSensor.read_ph();
+    float phKalman = simpleKalmanFilter.updateEstimate(phReading);
+    phControl.setCurrent(phKalman);
 
     float phSetpoint = phControl.getSetPoint();
     phControl.calculateError();
@@ -100,6 +99,7 @@ void loop() {
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
+        serialCom.printTask("PH", "KALMAN", phKalman, phSetpoint);
     }
 
     int going = phControl.doControl();
