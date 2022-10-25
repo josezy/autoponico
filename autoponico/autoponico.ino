@@ -6,7 +6,7 @@
 #include "SerialCom.h"
 #include "ph_grav.h"
 #include <SimpleKalmanFilter.h>
-#include "MeasureDistance.h"
+#include "measureDistance.h"
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);

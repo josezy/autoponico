@@ -1,6 +1,6 @@
 
 
-#include "MeasureDistance.h"
+#include "measureDistance.h"
 #include <Arduino.h> 
 
 MeasureDistance::MeasureDistance(const int trigPin, const int echoPin)
