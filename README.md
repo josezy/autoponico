@@ -30,3 +30,14 @@ Set board and port accordingly
 ```fish
 arduino-cli compile -b arduino:avr:nano:cpu=atmega328 -u -p /dev/ttyUSB0 --libraries ../libraries/
 ```
+
+## Commands:
+```json
+{"COMMAND":"AUTO"}
+{"COMMAND":"MANUAL"}
+{"COMMAND":"PHREAD"}
+{"COMMAND":"SET_PH","VALUE":5.6}
+{"COMMAND":"DESIRED_SOURCE","VALUE":"CMD"}
+{"COMMAND":"PHUP","DROP_TIME":1000}
+{"COMMAND":"PHDOWN","DROP_TIME":1000}
+```
