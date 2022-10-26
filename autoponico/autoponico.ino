@@ -107,7 +107,7 @@ void loop() {
         delay(20);
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
         delay(20);
-        serialCom.printTask("KALMAN", "READ", phKalman);
+        serialCom.printTask("PH", "KALMAN", phKalman);
         delay(20);
         serialCom.printTask("LVL", "READ", waterLvl);
     }
