@@ -99,10 +99,6 @@ void loop() {
     displays.display(phReading);
     serialCom.checkForCommand();
     if ((millis() - lastMillis) > SERIAL_PERIOD) {
-        float waterLvl = measureDistance->takeMeasure();
-        while(waterLvl==0){
-          waterLvl = measureDistance->takeMeasure();
-        }
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
         delay(20);
@@ -110,7 +106,7 @@ void loop() {
         delay(20);
         serialCom.printTask("PH", "KALMAN", phKalman);
         delay(20);
-        serialCom.printTask("LVL", "READ", waterLvl);
+        serialCom.printTask("LVL", "READ", measureDistance->takeMeasure());
     }
 
     int going = phControl.doControl();

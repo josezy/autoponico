@@ -22,5 +22,7 @@ float MeasureDistance::takeMeasure(){
     digitalWrite(this->trigPin, LOW);
     // Reads the echoPin, returns the sound wave travel time in microseconds
     // And calculating the distance
-    return pulseIn(echoPin, HIGH) * 0.034 / 2;
-}
+    const float measure = pulseIn(echoPin, HIGH) * 0.034 / 2;
+    if (measure != 0)
+        this->distance = measure;
+    return this->distance;
