@@ -64,6 +64,7 @@ SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl);
  */
 SimpleKalmanFilter simpleKalmanFilter(2, 2, 0.01);
 
+#define TANK_LVL_CM 50
 #define LVL_TRG_PIN 5
 #define LVL_ECHO_PIN 6
 MeasureDistance* measureDistance = new MeasureDistance(LVL_TRG_PIN,LVL_ECHO_PIN);
@@ -106,7 +107,7 @@ void loop() {
         delay(20);
         serialCom.printTask("PH", "KALMAN", phKalman);
         delay(20);
-        serialCom.printTask("LVL", "READ", measureDistance->takeMeasure());
+        serialCom.printTask("LVL", "READ", TANK_LVL_CM-measureDistance->takeMeasure());
     }
 
     int going = phControl.doControl();

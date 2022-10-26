@@ -26,3 +26,4 @@ float MeasureDistance::takeMeasure(){
     if (measure != 0)
         this->distance = measure;
     return this->distance;
+}
