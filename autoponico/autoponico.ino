@@ -81,6 +81,7 @@ void setup() {
     lastMillis = millis();
     pinMode(13, OUTPUT);
     digitalWrite(13, HIGH);
+    serialCom.printTask("PH", "START", 1);
 }
 
 void loop() {
