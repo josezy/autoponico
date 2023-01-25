@@ -1,6 +1,5 @@
 
 #include "Control.h"
-#include "Displays74HC595.h"
 #include "AtlasSerialSensor.h"
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
@@ -26,26 +25,38 @@ SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
 #define MIN_DESIRED_MEASURE 7 * 10
 
 ControlConfig configuration = {
-    POT_PIN,
-    M_UP,
-    M_DN,
-    M_UP_SPEED,
-    M_DN_SPEED,
-    ZERO_SPEED,
-    DROP_TIME,
-    ERR_MARGIN,
-    STABILIZATION_TIME,
-    STABILIZATION_MARGIN,
-    MAX_DESIRED_MEASURE,
-    MIN_DESIRED_MEASURE};
+    A1,          // POT_PIN
+    8,           // M_UP
+    9,           // M_DN,
+    200,         // M_UP_SPEED,
+    200,         // M_DN_SPEED,
+    0,           // ZERO_SPEED,
+    1000,        // DROP_TIME,
+    0.3,         // ERR_MARGIN,
+    10 * MINUTE, // STABILIZATION_TIME,
+    0.1,         // STABILIZATION_MARGIN
+    5 * 10,      // MAX_DESIRED_MEASURE
+    7 * 10       // MIN_DESIRED_MEASURE
+};
 Control phControl = Control(&configuration);
 
-#define CURRENT_SEG7_DATA 2
-#define CURRENT_SEG7_CLOCK 3
-#define CURRENT_SEG7_LATCH 4
+#define MINUTE 1000L * 60
 
-Displays74HC595 displays = Displays74HC595(
-    CURRENT_SEG7_DATA, CURRENT_SEG7_CLOCK, CURRENT_SEG7_LATCH);
+ControlConfig ecUpConfiguration = {
+    0,           // POT_PIN
+    2,           // M_UP
+    0,           // M_DN,
+    200,         // M_UP_SPEED,
+    200,         // M_DN_SPEED,
+    0,           // ZERO_SPEED,
+    10000,       // DROP_TIME,
+    300,         // ERR_MARGIN,
+    10 * MINUTE, // STABILIZATION_TIME,
+    100,         // STABILIZATION_MARGIN
+    0,           // MAX_DESIRED_MEASURE 0 if POT_PIN=0
+    0            // MIN_DESIRED_MEASURE 0 if POT_PIN=0
+};
+Control ecUpControl = Control(&ecUpConfiguration);
 
 #define EC_RX 10
 #define EC_TX 11
@@ -76,29 +87,39 @@ unsigned int SERIAL_PERIOD = 1 * MINUTE;
 void setup() {
     phSensor.begin();
     serialCom.init();
+
     phControl.setManualMode(false);
     phControl.setSetPoint(sensorEEPROM.getPh());
-    phControl.setReadSetPointFromCMD(sensorEEPROM.readFromCmd());
+    phControl.setReadSetPointFromCMD(true);
+
+    ecUpControl.setManualMode(false);
+    ecUpControl.setSetPoint(2000);
+    ecUpControl.setReadSetPointFromCMD(true);
+
     lastMillis = millis();
     pinMode(13, OUTPUT);
     digitalWrite(13, HIGH);
     serialCom.printTask("PH", "START", 1);
+    serialCom.printTask("EC", "START", 1);
 }
 
 void loop() {
+
     float ecReading = ecSensor.getReading();
+    float ecKalman = simpleKalmanFilter.updateEstimate(ecReading);
+    ecUpControl.setCurrent(ecKalman);
+    // float ecSetpoint = ecUpControl.getSetPoint();
+    ecUpControl.calculateError();
 
     float phReading = phSensor.read_ph();
     float phKalman = simpleKalmanFilter.updateEstimate(phReading);
 
     phControl.setCurrent(phKalman);
-
-    float phSetpoint = phControl.getSetPoint();
-    
+    float phSetpoint = phControl.getSetPoint();    
     phControl.calculateError();
 
-    displays.display(phReading);
     serialCom.checkForCommand();
+    
     if ((millis() - lastMillis) > SERIAL_PERIOD) {
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
@@ -115,9 +136,21 @@ void loop() {
         serialCom.printTask(
             "PH",
             "CONTROL",
-            DROP_TIME,
+            1000,
             0,
             phControl.getControlText(going)
         );
     }
+
+    int goingEc = ecUpControl.doControl();
+    if (goingEc != GOING_NONE)
+    {
+        serialCom.printTask(
+            "EC",
+            "CONTROL",
+            10000,
+            0,
+            ecUpControl.getControlText(goingEc));
+    }
+    
 }

@@ -35,14 +35,14 @@ bool Control::getReadSetPointFromCMD() {
 }
 
 float Control::getSetPoint() {
-    if (!this->readSetPointFromCMD)
-        this->setPoint = map(
-                             analogRead(this->configuration->POT_PIN),
-                             0,
-                             1023,
-                             this->configuration->MIN_DESIRED_MEASURE,
-                             this->configuration->MAX_DESIRED_MEASURE) /
-                         10.0;
+    if (!this->readSetPointFromCMD && this->configuration->POT_PIN>0)
+            this->setPoint = map(
+                    analogRead(this->configuration->POT_PIN),
+                    0,
+                    1023,
+                    this->configuration->MIN_DESIRED_MEASURE,
+                    this->configuration->MAX_DESIRED_MEASURE) /
+                10.0;
     return this->setPoint;
 }
 
