@@ -4,25 +4,15 @@
 #include "SensorEEPROM.h"
 #include "SerialCom.h"
 #include "ph_grav.h"
-#include <SimpleKalmanFilter.h>
+#include "SimpleKalmanFilter.h"
 #include "measureDistance.h"
+#include "OneWire.h"
+#include "DallasTemperature.h"
+
+#define MINUTE 1000L * 60
 
 #define WHOAMI "PH"
 SensorEEPROM sensorEEPROM = SensorEEPROM(WHOAMI);
-
-#define MINUTE 1000L * 60
-#define POT_PIN A1
-#define M_UP 8
-#define M_DN 9
-#define M_UP_SPEED 200
-#define M_DN_SPEED 200
-#define ZERO_SPEED 0
-#define STABILIZATION_MARGIN 0.1
-#define ERR_MARGIN 0.3
-#define STABILIZATION_TIME 10 * MINUTE
-#define DROP_TIME 1000
-#define MAX_DESIRED_MEASURE 5 * 10
-#define MIN_DESIRED_MEASURE 7 * 10
 
 ControlConfig configuration = {
     A1,          // POT_PIN
@@ -39,8 +29,6 @@ ControlConfig configuration = {
     7 * 10       // MIN_DESIRED_MEASURE
 };
 Control phControl = Control(&configuration);
-
-#define MINUTE 1000L * 60
 
 ControlConfig ecUpConfiguration = {
     0,           // POT_PIN
@@ -61,44 +49,43 @@ Control ecUpControl = Control(&ecUpConfiguration);
 #define EC_RX 10
 #define EC_TX 11
 AtlasSerialSensor ecSensor = AtlasSerialSensor(EC_RX, EC_TX);
+SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 
 #define GRAV_PH_PIN A0
 Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
+SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl);
-
- /*
- SimpleKalmanFilter(e_mea, e_est, q);
- e_mea: Measurement Uncertainty 
- e_est: Estimation Uncertainty 
- q: Process Noise
- */
-SimpleKalmanFilter simpleKalmanFilter(2, 2, 0.01);
 
 #define TANK_LVL_CM 50
 #define LVL_TRG_PIN 5
 #define LVL_ECHO_PIN 6
 MeasureDistance* measureDistance = new MeasureDistance(LVL_TRG_PIN,LVL_ECHO_PIN);
 
+#define TEMPERATURE_PIN 3
+OneWire oneWireObject(TEMPERATURE_PIN);
+DallasTemperature sensorDS18B20(&oneWireObject);
 
 unsigned long lastMillis;
 unsigned int SERIAL_PERIOD = 1 * MINUTE;
 
 void setup() {
     phSensor.begin();
+    sensorDS18B20.begin();
     serialCom.init();
 
     phControl.setManualMode(false);
-    phControl.setSetPoint(sensorEEPROM.getPh());
+    phControl.setSetPoint(5.6);
     phControl.setReadSetPointFromCMD(true);
 
     ecUpControl.setManualMode(false);
-    ecUpControl.setSetPoint(2000);
+    ecUpControl.setSetPoint(2500);
     ecUpControl.setReadSetPointFromCMD(true);
 
     lastMillis = millis();
     pinMode(13, OUTPUT);
     digitalWrite(13, HIGH);
+
     serialCom.printTask("PH", "START", 1);
     serialCom.printTask("EC", "START", 1);
 }
@@ -106,21 +93,23 @@ void setup() {
 void loop() {
 
     float ecReading = ecSensor.getReading();
-    float ecKalman = simpleKalmanFilter.updateEstimate(ecReading);
+    float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
     ecUpControl.setCurrent(ecKalman);
-    // float ecSetpoint = ecUpControl.getSetPoint();
+    float ecSetpoint = ecUpControl.getSetPoint();
     ecUpControl.calculateError();
 
     float phReading = phSensor.read_ph();
-    float phKalman = simpleKalmanFilter.updateEstimate(phReading);
-
+    float phKalman = simpleKalmanPh.updateEstimate(phReading);
     phControl.setCurrent(phKalman);
     float phSetpoint = phControl.getSetPoint();    
     phControl.calculateError();
 
+
     serialCom.checkForCommand();
     
-    if ((millis() - lastMillis) > SERIAL_PERIOD) {
+    if ((millis() - lastMillis) > SERIAL_PERIOD)
+    {
+        sensorDS18B20.requestTemperatures();
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
         delay(20);
@@ -128,7 +117,9 @@ void loop() {
         delay(20);
         serialCom.printTask("PH", "KALMAN", phKalman);
         delay(20);
-        serialCom.printTask("LVL", "READ", TANK_LVL_CM-measureDistance->takeMeasure());
+        serialCom.printTask("LVL", "READ", TANK_LVL_CM - measureDistance->takeMeasure());
+        delay(20);
+        serialCom.printTask("TEMP", "READ", sensorDS18B20.getTempCByIndex(0));
     }
 
     int going = phControl.doControl();
@@ -150,7 +141,8 @@ void loop() {
             "CONTROL",
             10000,
             0,
-            ecUpControl.getControlText(goingEc));
+            ecUpControl.getControlText(goingEc)
+        );
     }
     
 }
