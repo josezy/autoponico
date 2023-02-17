@@ -13,8 +13,8 @@
 struct ControlConfig {    
     //Pin configurations
     const uint16_t POT_PIN;
-    const uint16_t M_UP = 0;
-    const uint16_t M_DN = 0;
+    const uint16_t M_UP;
+    const uint16_t M_DN;
     //Param configurations
     const uint32_t M_UP_SPEED;
     const uint32_t M_DN_SPEED;
