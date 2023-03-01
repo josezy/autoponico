@@ -75,11 +75,11 @@ void setup() {
     serialCom.init();
 
     phControl.setManualMode(false);
-    phControl.setSetPoint(5.6);
+    phControl.setSetPoint(5.7);
     phControl.setReadSetPointFromCMD(true);
 
     ecUpControl.setManualMode(false);
-    ecUpControl.setSetPoint(2500);
+    ecUpControl.setSetPoint(3000);
     ecUpControl.setReadSetPointFromCMD(true);
 
     lastMillis = millis();
