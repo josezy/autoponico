@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <SoftwareSerial.h>
-#define A 0.2
+#define A 0.02
 
 class AtlasSerialSensor {
     SoftwareSerial *sensorSerial;
