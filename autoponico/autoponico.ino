@@ -92,8 +92,12 @@ void setup() {
 
 void loop() {
 
+    sensorDS18B20.requestTemperatures();
+    float currentTemp = sensorDS18B20.getTempCByIndex(0);
     float ecReading = ecSensor.getReading();
-    float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
+    float ecComp = ecSensor.getCompenseReading(currentTemp);
+    float ecKalman = simpleKalmanEc.updateEstimate(ecComp);
+
     ecUpControl.setCurrent(ecKalman);
     float ecSetpoint = ecUpControl.getSetPoint();
     ecUpControl.calculateError();
@@ -104,22 +108,22 @@ void loop() {
     float phSetpoint = phControl.getSetPoint();    
     phControl.calculateError();
 
-
     serialCom.checkForCommand();
     
     if ((millis() - lastMillis) > SERIAL_PERIOD)
     {
-        sensorDS18B20.requestTemperatures();
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
         delay(20);
+        serialCom.printTask("EC_COMP", "READ", ecComp);
+        delay(20);
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
         delay(20);
-        serialCom.printTask("PH", "KALMAN", phKalman);
+        serialCom.printTask("PH_KALMAN", "READ", phKalman);
         delay(20);
         serialCom.printTask("LVL", "READ", TANK_LVL_CM - measureDistance->takeMeasure());
         delay(20);
-        serialCom.printTask("TEMP", "READ", sensorDS18B20.getTempCByIndex(0));
+        serialCom.printTask("TEMP", "READ", currentTemp);
     }
 
     int going = phControl.doControl();
@@ -144,5 +148,4 @@ void loop() {
             ecUpControl.getControlText(goingEc)
         );
     }
-    
 }
