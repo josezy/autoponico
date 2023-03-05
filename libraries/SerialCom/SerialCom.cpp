@@ -21,11 +21,11 @@ void SerialCom::printTask(
     float desiredValue,
     const char* going
 ) {
-    String Data = std::string("{'WHOAMI':") + whoami + "," + "'TASK':" + task + ",";
+    String Data = String("{'WHOAMI':") + whoami + String(",'TASK':") + task + String(",");
     if (task == "CONTROL")
-        Data += "'GOING':" + going + ",";
-    Data +="'VALUE':" + value + ",";
-    Data += "'DESIRED':" + desiredValue + "}";
+        Data += String("'GOING':") + going + String(",");
+    Data +=String("'VALUE':") + String(value,4) + String(",");
+    Data += String("'DESIRED':") + String(desiredValue,4) + String("}");
     Serial.println(Data);
 }
 
