@@ -21,13 +21,12 @@ void SerialCom::printTask(
     float desiredValue,
     const char* going
 ) {
-    String Data = "{";
-    Data += 'WHOAMI:' + whoami + ',';
-    Data += 'TASK:' + task + ',';
+    String Data = "{'WHOAMI':"+ whoami + ",";
+    Data += "'TASK':" + task + ",";
     if (task == "CONTROL")
-        Data += 'GOING:' + going + ',';
-    Data +='VALUE:' + String(value, 4) + ',';
-    Data += 'DESIRED:' + String(desiredValue,4) + "}";
+        Data += "'GOING':" + going + ",";
+    Data +="'VALUE':" + value + ",";
+    Data += "'DESIRED':" + desiredValue + "}";
     Serial.println(Data);
 }
 
