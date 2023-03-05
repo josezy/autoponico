@@ -64,6 +64,12 @@ DallasTemperature sensorDS18B20(&oneWireObject);
 unsigned long lastMillis;
 unsigned int SERIAL_PERIOD = 1 * MINUTE;
 
+//LOOP VARIABLES
+float currentTemp;
+float ecReading,ecComp,ecKalman,ecSetpoint;
+float phReading,phKalman,phSetpoint;
+int going, goingEc;
+
 void setup() {
     phSensor.begin();
     sensorDS18B20.begin();
@@ -88,19 +94,19 @@ void setup() {
 void loop() {
 
     sensorDS18B20.requestTemperatures();
-    float currentTemp = sensorDS18B20.getTempCByIndex(0);
-    float ecReading = ecSensor.getReading();
-    float ecComp = ecSensor.getCompenseReading(currentTemp);
-    float ecKalman = simpleKalmanEc.updateEstimate(ecComp);
+    currentTemp = sensorDS18B20.getTempCByIndex(0);
+    ecReading = ecSensor.getReading();
+    ecComp = ecSensor.getCompenseReading(currentTemp);
+    ecKalman = simpleKalmanEc.updateEstimate(ecComp);
 
     ecUpControl.setCurrent(ecKalman);
-    float ecSetpoint = ecUpControl.getSetPoint();
+    ecSetpoint = ecUpControl.getSetPoint();
     ecUpControl.calculateError();
 
-    float phReading = phSensor.read_ph();
-    float phKalman = simpleKalmanPh.updateEstimate(phReading);
+    phReading = phSensor.read_ph();
+    phKalman = simpleKalmanPh.updateEstimate(phReading);
     phControl.setCurrent(phKalman);
-    float phSetpoint = phControl.getSetPoint();    
+    phSetpoint = phControl.getSetPoint();    
     phControl.calculateError();
 
     serialCom.checkForCommand();
@@ -119,7 +125,7 @@ void loop() {
         serialCom.printTask("TEMP", "READ", currentTemp);
     }
 
-    int going = phControl.doControl();
+    going = phControl.doControl();
     if (going != GOING_NONE) {
         serialCom.printTask(
             "PH",
@@ -130,7 +136,7 @@ void loop() {
         );
     }
 
-    int goingEc = ecUpControl.doControl();
+    goingEc = ecUpControl.doControl();
     if (goingEc != GOING_NONE)
     {
         serialCom.printTask(
