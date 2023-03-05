@@ -14,6 +14,15 @@ void SerialCom::init() {
     Serial.begin(this->baudrate);
 }
 
+char* floatToCharArray(float value) {
+    char sz[20] = {' '};
+    int val_int = (int)value; // compute the integer part of the float
+    float val_float = (abs(value) - abs(val_int)) * 10000;
+    int val_fra = (int)val_float;
+    sprintf(sz, "%d.%d", val_int, val_fra); //
+    return sz;
+}
+
 void SerialCom::printTask(
     const char* whoami,
     const char* task,
@@ -22,13 +31,28 @@ void SerialCom::printTask(
     const char* going
 ) {
     char* Data = "{";
-    Data += 'WHOAMI:' + whoami + ',';
-    Data += 'TASK:' + task + ',';
-    if (task == "CONTROL")
-        Data += 'GOING:' + going + ',';
-    Data += 'VALUE:' + value + ',';
-    Data += 'DESIRED:' + desiredValue + '';
-    Data += "}";
+    strcat(Data, 'WHOAMI:');
+    strcat(Data, whoami);
+    strcat(Data, ',');
+
+    strcat(Data, 'TASK:');
+    strcat(Data, task);
+    strcat(Data, ',');
+
+    if (task == "CONTROL"){
+        strcat(Data, 'GOING:');
+        strcat(Data, going);
+        strcat(Data, ',');
+    }
+
+    strcat(Data, 'VALUE:');
+    strcat(Data, floatToCharArray(value));
+    strcat(Data, ',');
+
+    strcat(Data, 'DESIRED:');
+    strcat(Data, floatToCharArray(desiredValue));
+    strcat(Data, '}');
+
     Serial.println(Data);
 }
 
