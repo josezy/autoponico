@@ -148,4 +148,6 @@ void loop() {
             ecUpControl.getControlText(goingEc)
         );
     }
+
+    delay(100);
 }
