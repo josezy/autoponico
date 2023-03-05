@@ -93,6 +93,7 @@ void setup() {
 void loop() {
 
     sensorDS18B20.requestTemperatures();
+    delay(100);
     float currentTemp = sensorDS18B20.getTempCByIndex(0);
     float ecReading = ecSensor.getReading();
     float ecComp = ecSensor.getCompenseReading(currentTemp);
