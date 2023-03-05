@@ -21,7 +21,8 @@ void SerialCom::printTask(
     float desiredValue,
     const char* going
 ) {
-    String Data = "{'WHOAMI':"+ whoami + ",";
+    String Data = "{'WHOAMI':";
+    Data += whoami + ",";
     Data += "'TASK':" + task + ",";
     if (task == "CONTROL")
         Data += "'GOING':" + going + ",";
