@@ -21,12 +21,13 @@ void SerialCom::printTask(
     float desiredValue,
     const char* going
 ) {
-    String Data = String("{'WHOAMI':") + whoami + String(",'TASK':") + task + String(",");
-    if (task == "CONTROL")
-        Data += String("'GOING':") + going + String(",");
-    Data +=String("'VALUE':") + String(value,4) + String(",");
-    Data += String("'DESIRED':") + String(desiredValue,4) + String("}");
-    Serial.println(Data);
+    JSONVar Data;
+    Data["WHOAMI"] = whoami;
+    Data["TASK"] = task;
+    Data["GOING"] = going;
+    Data["VALUE"] = value;
+    Data["DESIRED"] = desiredValue;
+    Serial.println(JSON.stringify(Data));
 }
 
 void SerialCom::checkForCommand() {
