@@ -31,7 +31,7 @@ void SerialCom::printTask(
     const char* going
 )
 {
-    char Data[1000]={""};
+    char Data[1000]={"{"};
     strcat(Data, 'WHOAMI:');
     strcat(Data, whoami);
     strcat(Data, ',');
