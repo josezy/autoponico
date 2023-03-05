@@ -24,7 +24,8 @@ void SerialCom::printTask(
     JSONVar Data;
     Data["WHOAMI"] = whoami;
     Data["TASK"] = task;
-    Data["GOING"] = going;
+    if (task=="CONTROL")
+        Data["GOING"] = going;
     Data["VALUE"] = value;
     Data["DESIRED"] = desiredValue;
     Serial.println(JSON.stringify(Data));

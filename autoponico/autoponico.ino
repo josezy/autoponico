@@ -5,7 +5,6 @@
 #include "SerialCom.h"
 #include "ph_grav.h"
 #include "SimpleKalmanFilter.h"
-#include "measureDistance.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"
 
@@ -57,10 +56,6 @@ SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl);
 
-#define TANK_LVL_CM 50
-#define LVL_TRG_PIN 5
-#define LVL_ECHO_PIN 6
-MeasureDistance* measureDistance = new MeasureDistance(LVL_TRG_PIN,LVL_ECHO_PIN);
 
 #define TEMPERATURE_PIN 3
 OneWire oneWireObject(TEMPERATURE_PIN);
@@ -121,8 +116,6 @@ void loop() {
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
         delay(20);
         serialCom.printTask("PH_KALMAN", "READ", phKalman);
-        delay(20);
-        serialCom.printTask("LVL", "READ", TANK_LVL_CM - measureDistance->takeMeasure());
         delay(20);
         serialCom.printTask("TEMP", "READ", currentTemp);
     }
