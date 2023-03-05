@@ -78,7 +78,7 @@ void setup() {
     phControl.setSetPoint(5.7);
     phControl.setReadSetPointFromCMD(true);
 
-    ecUpControl.setManualMode(false);
+    ecUpControl.setManualMode(true);
     ecUpControl.setSetPoint(3000);
     ecUpControl.setReadSetPointFromCMD(true);
 
