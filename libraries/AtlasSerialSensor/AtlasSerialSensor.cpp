@@ -10,7 +10,7 @@ AtlasSerialSensor::AtlasSerialSensor(int Rx, int Tx, int baudrate) {
 float AtlasSerialSensor::getCompenseReading(float temp)
 {
     // https://www.aqion.de/site/112
-    return (1 + A * (temp - 25)) * this->lastReading;
+    return floor((1 + A * (temp - 25)) * this->lastReading);
 }
 
 float AtlasSerialSensor::getReading() {
