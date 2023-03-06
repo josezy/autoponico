@@ -11,7 +11,7 @@ float AtlasSerialSensor::getCompensateReading(float temp)
 {
     // https://www.aqion.de/site/112
     if (isnan(temp))
-        return 0
+        return 0;
     else
         return floor((1 + A * (temp - 25)) * this->lastReading);    
 
@@ -21,7 +21,7 @@ float AtlasSerialSensor::setTemperature(float temp)
 {
     // https://www.aqion.de/site/112
     if (isnan(temp))
-        this->sensorSerial->println("T,"+String(temp,4))
+        this->sensorSerial->println("T,"+String(temp,4));
 }
 
 float AtlasSerialSensor::getReading() {
