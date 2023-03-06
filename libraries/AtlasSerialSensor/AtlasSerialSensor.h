@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <SoftwareSerial.h>
-#define A 0.02
 
 class AtlasSerialSensor {
     SoftwareSerial *sensorSerial;
@@ -13,7 +12,6 @@ class AtlasSerialSensor {
     public:
         AtlasSerialSensor(int Rx, int Tx, int baudrate = 9600);
         float getReading();
-        float getCompenseReading(float temp);
 };
 
 #endif

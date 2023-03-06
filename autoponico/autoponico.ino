@@ -5,6 +5,7 @@
 #include "SerialCom.h"
 #include "ph_grav.h"
 #include "SimpleKalmanFilter.h"
+#include "measureDistance.h"
 #include "OneWire.h"
 #include "DallasTemperature.h"
 
@@ -56,6 +57,10 @@ SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 SerialCom serialCom = SerialCom(&sensorEEPROM, &phControl);
 
+#define TANK_LVL_CM 50
+#define LVL_TRG_PIN 5
+#define LVL_ECHO_PIN 6
+MeasureDistance* measureDistance = new MeasureDistance(LVL_TRG_PIN,LVL_ECHO_PIN);
 
 #define TEMPERATURE_PIN 3
 OneWire oneWireObject(TEMPERATURE_PIN);
@@ -73,7 +78,7 @@ void setup() {
     phControl.setSetPoint(5.7);
     phControl.setReadSetPointFromCMD(true);
 
-    ecUpControl.setManualMode(true);
+    ecUpControl.setManualMode(false);
     ecUpControl.setSetPoint(3000);
     ecUpControl.setReadSetPointFromCMD(true);
 
@@ -87,12 +92,8 @@ void setup() {
 
 void loop() {
 
-    sensorDS18B20.requestTemperatures();
-    float currentTemp = sensorDS18B20.getTempCByIndex(0);
     float ecReading = ecSensor.getReading();
-    float ecComp = ecSensor.getCompenseReading(currentTemp);
-    float ecKalman = simpleKalmanEc.updateEstimate(ecComp);
-
+    float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
     ecUpControl.setCurrent(ecKalman);
     float ecSetpoint = ecUpControl.getSetPoint();
     ecUpControl.calculateError();
@@ -103,20 +104,22 @@ void loop() {
     float phSetpoint = phControl.getSetPoint();    
     phControl.calculateError();
 
+
     serialCom.checkForCommand();
     
     if ((millis() - lastMillis) > SERIAL_PERIOD)
     {
+        sensorDS18B20.requestTemperatures();
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
         delay(20);
-        serialCom.printTask("EC_COMP", "READ", ecComp);
-        delay(20);
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
         delay(20);
-        serialCom.printTask("PH_KALMAN", "READ", phKalman);
+        serialCom.printTask("PH", "KALMAN", phKalman);
         delay(20);
-        serialCom.printTask("TEMP", "READ", currentTemp);
+        serialCom.printTask("LVL", "READ", TANK_LVL_CM - measureDistance->takeMeasure());
+        delay(20);
+        serialCom.printTask("TEMP", "READ", sensorDS18B20.getTempCByIndex(0));
     }
 
     int going = phControl.doControl();
@@ -141,5 +144,5 @@ void loop() {
             ecUpControl.getControlText(goingEc)
         );
     }
-
+    
 }
