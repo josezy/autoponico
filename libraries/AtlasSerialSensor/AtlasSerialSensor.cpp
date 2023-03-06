@@ -21,7 +21,7 @@ float AtlasSerialSensor::setTemperature(float temp)
 {
     // https://www.aqion.de/site/112
     if (isnan(temp))
-        this->sensorSerial.println("T,"+String(temp,4))
+        this->sensorSerial->println("T,"+String(temp,4))
 }
 
 float AtlasSerialSensor::getReading() {
