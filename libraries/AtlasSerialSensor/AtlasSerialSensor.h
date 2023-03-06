@@ -13,7 +13,8 @@ class AtlasSerialSensor {
     public:
         AtlasSerialSensor(int Rx, int Tx, int baudrate = 9600);
         float getReading();
-        float getCompenseReading(float temp);
+        float getCompensateReading(float temp);
+        float setTemperature(float temp);
 };
 
 #endif

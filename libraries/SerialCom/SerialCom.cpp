@@ -25,8 +25,10 @@ void SerialCom::printTask(
     Data["WHOAMI"] = whoami;
     Data["TASK"] = task;
     Data["GOING"] = going;
-    Data["VALUE"] = value;
-    Data["DESIRED"] = desiredValue;
+    if (!isnan(value))
+        Data["VALUE"] = value;
+    if (!isnan(desiredValue))
+        Data["DESIRED"] = desiredValue;
     Serial.println(JSON.stringify(Data));
 }
 

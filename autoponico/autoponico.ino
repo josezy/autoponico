@@ -96,7 +96,7 @@ void loop() {
     sensorDS18B20.requestTemperatures();
     currentTemp = sensorDS18B20.getTempCByIndex(0);
     ecReading = ecSensor.getReading();
-    ecComp = ecSensor.getCompenseReading(currentTemp);
+    ecComp = ecSensor.getCompensateReading(currentTemp);
     ecKalman = simpleKalmanEc.updateEstimate(ecComp);
 
     ecUpControl.setCurrent(ecKalman);
@@ -115,13 +115,9 @@ void loop() {
     {
         lastMillis = millis();
         serialCom.printTask("EC", "READ", ecReading);
-        delay(20);
         serialCom.printTask("EC_COMP", "READ", ecComp);
-        delay(20);
         serialCom.printTask("PH", "READ", phReading, phSetpoint);
-        delay(20);
         serialCom.printTask("PH_KALMAN", "READ", phKalman);
-        delay(20);
         serialCom.printTask("TEMP", "READ", currentTemp);
     }
 
