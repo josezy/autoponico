@@ -15,6 +15,7 @@ float AtlasSerialSensor::getCompensateReading(float temp)
     else
         return floor((1 + A * (temp - 25)) * this->lastReading);    
 
+}
 
 float AtlasSerialSensor::setTemperature(float temp)
 {
