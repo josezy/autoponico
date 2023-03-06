@@ -29,7 +29,7 @@ void SerialCom::printTask(
         Data["VALUE"] = value;
     if (!isnan(desiredValue))
         Data["DESIRED"] = desiredValue;
-    Serial.println(JSON.stringify(Data));
+    Serial.println(F(JSON.stringify(Data)));
 }
 
 void SerialCom::checkForCommand() {
