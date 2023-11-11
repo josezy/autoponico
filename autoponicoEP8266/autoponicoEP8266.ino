@@ -124,6 +124,7 @@ void setup()
 
   phSensor.begin();
   sensorDS18B20.begin();
+  ecSensor.begin(9600);
 
   phControl.setManualMode(false);
   phControl.setSetPoint(5.7);
@@ -139,6 +140,7 @@ void setup()
 void loop()
 {
   client.poll();
+  ecSensor.readSerial();
   if ((millis() - lastMillis) > 1000)
   {
     lastMillis = millis();
