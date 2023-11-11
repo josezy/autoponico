@@ -7,11 +7,15 @@
 class AtlasSerialSensor {
     SoftwareSerial *sensorSerial;
     String sensorString = "";
-    float lastReading;
+    String lastReading;
+    boolean sensorStringComplete = false;
 
     public:
-        AtlasSerialSensor(int Rx, int Tx, int baudrate = 9600);
+        AtlasSerialSensor(int rx, int tx);
         float getReading();
+        void begin(int baudrate = 9600);
+        void readSerial();
 };
+
 
 #endif
