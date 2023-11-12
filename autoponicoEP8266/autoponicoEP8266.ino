@@ -21,7 +21,7 @@ InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXD
 Point basilPoints("basil");
 
 // Wifi
-const char *ssid = WIFI_SSID;         // Enter SSID
+const char *ssid = WIFI_SSID;       // Enter SSID
 const char *password = WIFI_PASSWORD; // Enter Password
 
 // Websockets
@@ -113,7 +113,7 @@ unsigned long influxSyncTimer;
 
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(57600);
   Serial.setDebugOutput(true);
   // Connect to wifi
   WiFi.begin(ssid, password);
