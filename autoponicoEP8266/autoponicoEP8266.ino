@@ -9,14 +9,27 @@
 #include "OneWire.h"
 #include "DallasTemperature.h"
 
+#include <InfluxDbClient.h>
+#include <InfluxDbCloud.h>
+#include "env.h"
+
 #define MINUTE 1000L * 60
+#define SENSOR_READING_INTERVAL 1000
 
-const char *ssid = "SSID_NAME";                                                                                                                    // Enter SSID
-const char *password = "SSID_PASS";                                                                                                              // Enter Password
-const char *websockets_connection_string = "PISOCKET_URL"; // Enter server adress
+#define INFLUXDB_SYNC_COLD_DOWN 10000
+InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
+Point basilPoints("basil");
+
+// Wifi
+const char *ssid = WIFI_SSID;         // Enter SSID
+const char *password = WIFI_PASSWORD; // Enter Password
+
+// Websockets
+const char *websockets_connection_string = PISOCKET_URL; // Enter server adress
 using namespace websockets;
-WebsocketsClient client;
+WebsocketsClient webSocketClient;
 
+// Control
 ControlConfig phConfiguration = {
     0,           // POT_PIN
     5,           // M_UP, D1
@@ -67,9 +80,10 @@ void onMessageCallback(WebsocketsMessage message)
 {
   Serial.print("Got Message: ");
   Serial.println(message.data());
-  if (message.data() == "status"){
-    client.send("Ph: "+String(phSensor.read_ph())+"\n");
-    client.send("EC: "+String(ecSensor.getReading())+"\n");
+  if (message.data() == "status")
+  {
+    webSocketClient.send("Ph: " + String(phSensor.read_ph()) + "\n");
+    webSocketClient.send("EC: " + String(ecSensor.getReading()) + "\n");
   }
 }
 
@@ -94,7 +108,8 @@ void onEventsCallback(WebsocketsEvent event, String data)
   }
 }
 
-unsigned long lastMillis;
+unsigned long sensorReadingTimer;
+unsigned long influxSyncTimer;
 
 void setup()
 {
@@ -102,25 +117,19 @@ void setup()
   Serial.setDebugOutput(true);
   // Connect to wifi
   WiFi.begin(ssid, password);
-  // Wait some time to connect to wifi
-  for (int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++)
-  {
-    Serial.print(".");
-    delay(1000);
-  }
   // run callback when messages are received
-  client.onMessage(onMessageCallback);
+  webSocketClient.onMessage(onMessageCallback);
   // run callback when events are occuring
-  client.onEvent(onEventsCallback);
+  webSocketClient.onEvent(onEventsCallback);
   // Before connecting, set the ssl fingerprint of the server
-  // client.setFingerprint(echo_org_ssl_fingerprint);
-  client.setInsecure();
+  // webSocketClient.setFingerprint(echo_org_ssl_fingerprint);
+  webSocketClient.setInsecure();
   // Connect to server
-  client.connect(websockets_connection_string);
+  webSocketClient.connect(websockets_connection_string);
   // Send a message
-  client.send("Hello Server");
+  webSocketClient.send("Hello Server");
   // Send a ping
-  client.ping();
+  webSocketClient.ping();
 
   phSensor.begin();
   sensorDS18B20.begin();
@@ -134,16 +143,33 @@ void setup()
   ecUpControl.setSetPoint(3000);
   ecUpControl.setReadSetPointFromCMD(true);
 
-  lastMillis = millis();
+  sensorReadingTimer = millis();
+  influxSyncTimer = millis();
+
+  // Influx
+  timeSync(TZ_INFO, "pool.ntp.org", "time.nis.gov");
+  // Check server connection
+  if (influxClient.validateConnection())
+  {
+    Serial.println("Connected to InfluxDB: ");
+    Serial.println(influxClient.getServerUrl());
+  }
+  else
+  {
+    Serial.println("InfluxDB connection failed: ");
+    Serial.println(influxClient.getLastErrorMessage());
+  }
 }
 
 void loop()
 {
-  client.poll();
+  webSocketClient.poll();
   ecSensor.readSerial();
-  if ((millis() - lastMillis) > 1000)
+  if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL)
   {
-    lastMillis = millis();
+    Serial.println("Reading");
+    sensorReadingTimer = millis();
+
     float ecReading = ecSensor.getReading();
     float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
     ecUpControl.setCurrent(ecKalman);
@@ -153,11 +179,32 @@ void loop()
     float phReading = phSensor.read_ph();
     float phKalman = simpleKalmanPh.updateEstimate(phReading);
     phControl.setCurrent(phKalman);
-    float phSetpoint = phControl.getSetPoint();    
+    float phSetpoint = phControl.getSetPoint();
     phControl.calculateError();
-    Serial.println(String(phReading));
-    Serial.println(String(ecReading));
+    // Do control
+    int going = phControl.doControl();
+    int goingEc = ecUpControl.doControl();
+    // Sync with influx
+    if ((millis() - influxSyncTimer) > INFLUXDB_SYNC_COLD_DOWN)
+    {
+      Serial.println("Syncing with InfluxDB");
+      influxSyncTimer = millis();
+      basilPoints.clearFields();
+      basilPoints.addField("ph_kalman", phKalman);
+      basilPoints.addField("ph_desired", phSetpoint);
+      basilPoints.addField("ec_kalman", ecKalman);
+      basilPoints.addField("ec_desired", ecSetpoint);
+      writePoints(basilPoints);
+    }
   }
-  int going = phControl.doControl();
-  int goingEc = ecUpControl.doControl();
+}
+
+void writePoints(Point point)
+{
+  // Write points
+  if (!influxClient.writePoint(point))
+  {
+    Serial.print("InfluxDB write failed: ");
+    Serial.println(influxClient.getLastErrorMessage());
+  }
 }
