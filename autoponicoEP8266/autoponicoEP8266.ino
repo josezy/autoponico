@@ -16,7 +16,7 @@
 #define MINUTE 1000L * 60
 #define SENSOR_READING_INTERVAL 1000
 
-#define INFLUXDB_SYNC_COLD_DOWN 10000
+#define INFLUXDB_SYNC_COLD_DOWN 1 * MINUTE
 InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
 Point basilPoints("basil");
 
@@ -168,6 +168,7 @@ void loop()
   if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL)
   {
     Serial.println("Reading");
+    sensorDS18B20.requestTemperatures();
     sensorReadingTimer = millis();
 
     float ecReading = ecSensor.getReading();
@@ -194,6 +195,7 @@ void loop()
       basilPoints.addField("ph_desired", phSetpoint);
       basilPoints.addField("ec_kalman", ecKalman);
       basilPoints.addField("ec_desired", ecSetpoint);
+      basilPoints.addField("temp", sensorDS18B20.getTempCByIndex(0));
       writePoints(basilPoints);
     }
   }
