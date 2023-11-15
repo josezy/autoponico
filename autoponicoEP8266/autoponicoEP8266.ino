@@ -21,13 +21,19 @@ InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXD
 Point basilPoints("basil");
 
 // Wifi
-const char *ssid = WIFI_SSID;       // Enter SSID
+const char *ssid = WIFI_SSID;         // Enter SSID
 const char *password = WIFI_PASSWORD; // Enter Password
 
 // Websockets
-const char *websockets_connection_string = PISOCKET_URL; // Enter server adress
+const char *websockets_connection_string = "wss://free.blr2.piesocket.com/v3/1?api_key=nUiffYRr0FGxT0S3d1MjTlTyVCV2s5RQCzfzJJIn&notify_self=1"; // Enter server adress
 using namespace websockets;
 WebsocketsClient webSocketClient;
+enum websocketState
+{
+  WS_DISCONNECTED,
+  WS_CONNECTING,
+  WS_CONNECTED
+} websocketState = WS_DISCONNECTED;
 
 // Control
 ControlConfig phConfiguration = {
@@ -93,10 +99,12 @@ void onEventsCallback(WebsocketsEvent event, String data)
   if (event == WebsocketsEvent::ConnectionOpened)
   {
     Serial.println("Connnection Opened");
+    websocketState = WS_CONNECTED;
   }
   else if (event == WebsocketsEvent::ConnectionClosed)
   {
     Serial.println("Connnection Closed");
+    websocketState = WS_DISCONNECTED;
   }
   else if (event == WebsocketsEvent::GotPing)
   {
@@ -108,6 +116,27 @@ void onEventsCallback(WebsocketsEvent event, String data)
   }
 }
 
+void websocketJob()
+{
+  if (
+      websocketState == WS_DISCONNECTED &&
+      websocketState != WS_CONNECTING &&
+      WiFi.waitForConnectResult() == WL_CONNECTED)
+  {
+    Serial.println("Connecting to Websockets server...");
+    websocketState = WS_CONNECTING;
+    webSocketClient.connect(websockets_connection_string);
+    // Send a message
+    webSocketClient.send("Hello Server");
+    // Send a ping
+    webSocketClient.ping();
+  }
+  else if (websocketState == WS_CONNECTED)
+    webSocketClient.poll();
+  if (WiFi.waitForConnectResult() != WL_CONNECTED)
+    websocketState = WS_DISCONNECTED;
+}
+
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 
@@ -117,6 +146,7 @@ void setup()
   Serial.setDebugOutput(true);
   // Connect to wifi
   WiFi.begin(ssid, password);
+
   // run callback when messages are received
   webSocketClient.onMessage(onMessageCallback);
   // run callback when events are occuring
@@ -124,12 +154,6 @@ void setup()
   // Before connecting, set the ssl fingerprint of the server
   // webSocketClient.setFingerprint(echo_org_ssl_fingerprint);
   webSocketClient.setInsecure();
-  // Connect to server
-  webSocketClient.connect(websockets_connection_string);
-  // Send a message
-  webSocketClient.send("Hello Server");
-  // Send a ping
-  webSocketClient.ping();
 
   phSensor.begin();
   sensorDS18B20.begin();
@@ -163,11 +187,10 @@ void setup()
 
 void loop()
 {
-  webSocketClient.poll();
+  websocketJob();
   ecSensor.readSerial();
   if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL)
   {
-    Serial.println("Reading");
     sensorDS18B20.requestTemperatures();
     sensorReadingTimer = millis();
 
@@ -188,7 +211,6 @@ void loop()
     // Sync with influx
     if ((millis() - influxSyncTimer) > INFLUXDB_SYNC_COLD_DOWN)
     {
-      Serial.println("Syncing with InfluxDB");
       influxSyncTimer = millis();
       basilPoints.clearFields();
       basilPoints.addField("ph_kalman", phKalman);
