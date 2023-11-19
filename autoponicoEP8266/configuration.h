@@ -1,5 +1,3 @@
-#include <Control.h>
-
 #define MINUTE 1000L * 60
 #define SENSOR_READING_INTERVAL 1000
 #define INFLUXDB_SYNC_COLD_DOWN 1 * MINUTE
