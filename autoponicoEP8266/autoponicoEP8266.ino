@@ -1,6 +1,5 @@
-
-#include <ArduinoWebsockets.h>
 #include <ESP8266WiFi.h>
+
 #include "ph_iso_grav.h"
 #include "SimpleKalmanFilter.h"
 
@@ -11,29 +10,19 @@
 
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
+#include "WebsocketCommands.h"
 #include "env.h"
+#include "configuration.h"
 
-#define MINUTE 1000L * 60
-#define SENSOR_READING_INTERVAL 1000
-
-#define INFLUXDB_SYNC_COLD_DOWN 1 * MINUTE
 InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
 Point basilPoints("basil");
 
 // Wifi
-const char *ssid = WIFI_SSID;         // Enter SSID
-const char *password = WIFI_PASSWORD; // Enter Password
+const char *ssid = WIFI_SSID;
+const char *password = WIFI_PASSWORD;
 
 // Websockets
-const char *websockets_connection_string = "wss://free.blr2.piesocket.com/v3/1?api_key=nUiffYRr0FGxT0S3d1MjTlTyVCV2s5RQCzfzJJIn&notify_self=1"; // Enter server adress
-using namespace websockets;
-WebsocketsClient webSocketClient;
-enum websocketState
-{
-  WS_DISCONNECTED,
-  WS_CONNECTING,
-  WS_CONNECTED
-} websocketState = WS_DISCONNECTED;
+WebsocketCommands websocketCommands;
 
 // Control
 ControlConfig phConfiguration = {
@@ -50,8 +39,6 @@ ControlConfig phConfiguration = {
     5 * 10,      // MAX_DESIRED_MEASURE
     7 * 10       // MIN_DESIRED_MEASURE
 };
-Control phControl = Control(&phConfiguration);
-
 ControlConfig ecUpConfiguration = {
     0,           // POT_PIN
     2,           // M_UP, D4
@@ -66,76 +53,18 @@ ControlConfig ecUpConfiguration = {
     0,           // MAX_DESIRED_MEASURE 0 if POT_PIN=0
     0            // MIN_DESIRED_MEASURE 0 if POT_PIN=0
 };
-Control ecUpControl = Control(&ecUpConfiguration);
 
+Control phControl = Control(&phConfiguration);
+Control ecUpControl = Control(&ecUpConfiguration);
 // Temp sensor
-#define TEMPERATURE_PIN 14 // D5
 OneWire oneWireObject(TEMPERATURE_PIN);
 DallasTemperature sensorDS18B20(&oneWireObject);
 // EC Sensor
-#define EC_RX 12 // D6
-#define EC_TX 13 // D7
 AtlasSerialSensor ecSensor = AtlasSerialSensor(EC_RX, EC_TX);
 SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 // Ph sensor
-#define GRAV_PH_PIN 15 // D8
 Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
 SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
-
-void onMessageCallback(WebsocketsMessage message)
-{
-  Serial.print("Got Message: ");
-  Serial.println(message.data());
-  if (message.data() == "status")
-  {
-    webSocketClient.send("Ph: " + String(phSensor.read_ph()) + "\n");
-    webSocketClient.send("EC: " + String(ecSensor.getReading()) + "\n");
-  }
-}
-
-void onEventsCallback(WebsocketsEvent event, String data)
-{
-
-  if (event == WebsocketsEvent::ConnectionOpened)
-  {
-    Serial.println("Connnection Opened");
-    websocketState = WS_CONNECTED;
-  }
-  else if (event == WebsocketsEvent::ConnectionClosed)
-  {
-    Serial.println("Connnection Closed");
-    websocketState = WS_DISCONNECTED;
-  }
-  else if (event == WebsocketsEvent::GotPing)
-  {
-    Serial.println("Got a Ping!");
-  }
-  else if (event == WebsocketsEvent::GotPong)
-  {
-    Serial.println("Got a Pong!");
-  }
-}
-
-void websocketJob()
-{
-  if (
-      websocketState == WS_DISCONNECTED &&
-      websocketState != WS_CONNECTING &&
-      WiFi.waitForConnectResult() == WL_CONNECTED)
-  {
-    Serial.println("Connecting to Websockets server...");
-    websocketState = WS_CONNECTING;
-    webSocketClient.connect(websockets_connection_string);
-    // Send a message
-    webSocketClient.send("Hello Server");
-    // Send a ping
-    webSocketClient.ping();
-  }
-  else if (websocketState == WS_CONNECTED)
-    webSocketClient.poll();
-  if (WiFi.waitForConnectResult() != WL_CONNECTED)
-    websocketState = WS_DISCONNECTED;
-}
 
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
@@ -147,13 +76,12 @@ void setup()
   // Connect to wifi
   WiFi.begin(ssid, password);
 
-  // run callback when messages are received
-  webSocketClient.onMessage(onMessageCallback);
-  // run callback when events are occuring
-  webSocketClient.onEvent(onEventsCallback);
-  // Before connecting, set the ssl fingerprint of the server
-  // webSocketClient.setFingerprint(echo_org_ssl_fingerprint);
-  webSocketClient.setInsecure();
+  websocketCommands.setSocketUrl(PISOCKET_URL);
+  websocketCommands.init();
+  websocketCommands.registerCmd("ph", []() {
+    websocketCommands.send(strcat("ph: ",String(phSensor.read_ph()).c_str()));
+  });
+  
 
   phSensor.begin();
   sensorDS18B20.begin();
@@ -187,7 +115,7 @@ void setup()
 
 void loop()
 {
-  websocketJob();
+  websocketCommands.websocketJob();
   ecSensor.readSerial();
   if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL)
   {
