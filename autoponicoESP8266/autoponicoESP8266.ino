@@ -1,16 +1,14 @@
 #include <ESP8266WiFi.h>
-
-#include "ph_iso_grav.h"
-#include "SimpleKalmanFilter.h"
-
-#include "Control.h"
-#include "AtlasSerialSensor.h"
-#include "OneWire.h"
-#include "DallasTemperature.h"
-
+#include <ph_iso_grav.h>
+#include <SimpleKalmanFilter.h>
+#include <Control.h>
+#include <AtlasSerialSensor.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <WebsocketCommands.h>
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
-#include "WebsocketCommands.h"
+
 #include "env.h"
 #include "configuration.h"
 
@@ -78,10 +76,8 @@ void setup()
 
   websocketCommands.setSocketUrl(PISOCKET_URL);
   websocketCommands.init();
-  websocketCommands.registerCmd("ph", []() {
-    websocketCommands.send(strcat("ph: ",String(phSensor.read_ph()).c_str()));
-  });
-  
+  websocketCommands.registerCmd("ph", []()
+                                { websocketCommands.send(strcat("ph: ", String(phSensor.read_ph()).c_str())); });
 
   phSensor.begin();
   sensorDS18B20.begin();
