@@ -20,6 +20,7 @@ bool WebsocketCommands::registerCmd(const char *cmd, CommandHanndler handler, vo
     return false;
 }
 
+// FIXME: review need for this, clean up code
 void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data)
 {
     switch (event)
@@ -52,7 +53,7 @@ void WebsocketCommands::onMessageCallback(WebsocketsMessage message)
         if (m_commands[i].cmd && strcmp(m_commands[i].cmd, cmd) == 0)
         {
             m_commands[i].handler();
-            break;
+            break; // FIXME: remove this break and allow multiple commands to be executed
         }
     }
 }
@@ -77,7 +78,7 @@ void WebsocketCommands::init()
 {
     this->webSocketClient.onEvent(std::bind(&WebsocketCommands::onEventsCallback, this, std::placeholders::_1, std::placeholders::_2));
     this->webSocketClient.onMessage(std::bind(&WebsocketCommands::onMessageCallback, this, std::placeholders::_1));
-    this->webSocketClient.setInsecure();
+    this->webSocketClient.setInsecure(); // FIXME: use secure connection
 }
 
 void WebsocketCommands::send(char *message)

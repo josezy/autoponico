@@ -22,7 +22,7 @@
 
 
 InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
-Point basilPoints("basil");
+Point autoponicoPoint("cultivo");
 
 // Wifi
 const char *ssid = WIFI_SSID;
@@ -93,11 +93,11 @@ void setup()
   ecSensor.begin(9600);
 
   phControl.setManualMode(false);
-  phControl.setSetPoint(5.7);
+  phControl.setSetPoint(5.7); // FIXME: make this setable from websocket (read from EEPROM?)
   phControl.setReadSetPointFromCMD(true);
 
   ecUpControl.setManualMode(false);
-  ecUpControl.setSetPoint(3000);
+  ecUpControl.setSetPoint(3000); // FIXME: make this setable from websocket (read from EEPROM?)
   ecUpControl.setReadSetPointFromCMD(true);
 
   sensorReadingTimer = millis();
@@ -138,20 +138,24 @@ void loop()
     phControl.setCurrent(phKalman);
     float phSetpoint = phControl.getSetPoint();
     phControl.calculateError();
-    // Do control
-    int going = phControl.doControl();
-    int goingEc = ecUpControl.doControl();
+
+    // Perform actual control
+    int ph_control_direction = phControl.doControl();
+    int ec_control_direction = ecUpControl.doControl();
+
     // Sync with influx
     if ((millis() - influxSyncTimer) > INFLUXDB_SYNC_COLD_DOWN)
     {
       influxSyncTimer = millis();
-      basilPoints.clearFields();
-      basilPoints.addField("ph_kalman", phKalman);
-      basilPoints.addField("ph_desired", phSetpoint);
-      basilPoints.addField("ec_kalman", ecKalman);
-      basilPoints.addField("ec_desired", ecSetpoint);
-      basilPoints.addField("temp", sensorDS18B20.getTempCByIndex(0));
-      writePoints(basilPoints);
+      autoponicoPoint.clearFields();
+      autoponicoPoint.addField("ph_kalman", phKalman);
+      autoponicoPoint.addField("ph_desired", phSetpoint);
+      autoponicoPoint.addField("ec_kalman", ecKalman);
+      autoponicoPoint.addField("ec_desired", ecSetpoint);
+      autoponicoPoint.addField("ph_control_direction", ph_control_direction);
+      autoponicoPoint.addField("ec_control_direction", ec_control_direction);
+      autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
+      writePoints(autoponicoPoint);
     }
   }
 }

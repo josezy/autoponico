@@ -22,7 +22,7 @@ void AtlasSerialSensor::readSerial()
 
     if (this->sensorStringComplete == true)
     { // if a string from the Atlas Scientific product has been received in its entirety
-        if (isdigit(this->sensorString[0]) == false)
+        if (isdigit(this->sensorString[0]) == false) // FIXME: make sure this actually works, clean up code
         {                                       // if the first character in the string is a digit
             Serial.println(this->sensorString); // send that string to the PC's serial monitor
         }
