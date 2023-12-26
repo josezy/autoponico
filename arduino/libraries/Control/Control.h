@@ -58,8 +58,5 @@ class Control {
         void setReadSetPointFromCMD(bool readSetPointFromCMD);
         bool getReadSetPointFromCMD();
 
-
-        void calculateError();
-
 };
 #endif

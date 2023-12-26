@@ -22,9 +22,6 @@ const char* Control::getControlText(int control_type) {
             return "NONE";
     }
 }
-void Control::calculateError() {
-    this->error = this->current - this->setPoint;
-}
 
 void Control::setReadSetPointFromCMD(bool readSetPointFromCMD) {
     this->readSetPointFromCMD = readSetPointFromCMD;
@@ -60,6 +57,9 @@ void Control::setCurrent(float current) {
 
 int Control::doControl() {
     int going = GOING_NONE;
+
+    this->error = this->current - this->setPoint;
+
     if (!this->manualMode) {
         switch (this->state) {
             case STABLE:
