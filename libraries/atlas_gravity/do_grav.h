@@ -46,8 +46,8 @@ class Gravity_DO : public Gravity_Base{
 		float read_do_percentage(float voltage_mV);
 		float read_do_percentage();
         
-        float cal();
-        float cal_clear();
+        void cal();
+        void cal_clear();
         
     protected:
 		static const int volt_avg_len = 1000;
@@ -56,7 +56,7 @@ class Gravity_DO : public Gravity_Base{
         const float DEFAULT_SAT_VOLTAGE = DEFAULT_SAT_VOLTAGE_CONST;
 		struct DO {
 		  const uint8_t magic = magic_char;
-          const enum grav_type type = GRAV_DO;
+          const uint8_t type = GRAV_DO;
 		  float full_sat_voltage = DEFAULT_SAT_VOLTAGE_CONST;
 		};
 		struct DO Do;

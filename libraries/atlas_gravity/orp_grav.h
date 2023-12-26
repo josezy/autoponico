@@ -44,13 +44,13 @@ class Gravity_ORP : public Gravity_Base{
 		float read_orp(float voltage_mV);
 		float read_orp();
         
-        float cal(float value);
-        float cal_clear();
+        void cal(float value);
+        void cal_clear();
 		
 	private:
 		struct ORP {
 		  const uint8_t magic = magic_char;
-          const enum grav_type type = GRAV_ORP;
+          const uint8_t type = GRAV_ORP;
 		  float cal_offset = 0.0;
 		};
 		struct ORP Orp;
