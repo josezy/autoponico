@@ -20,6 +20,7 @@ bool WebsocketCommands::registerCmd(const char *cmd, CommandHanndler handler, vo
     return false;
 }
 
+
 // FIXME: review need for this, clean up code
 void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data)
 {
