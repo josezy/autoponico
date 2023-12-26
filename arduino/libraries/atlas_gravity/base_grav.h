@@ -34,9 +34,10 @@ SOFTWARE
 class Gravity_Base{
 	public:
         enum grav_type{
-            GRAV_PH,
+            GRAV_PH = 1,
             GRAV_DO,
-            GRAV_ORP
+            GRAV_ORP,
+            GRAV_RTD
         };
         
         virtual bool begin();

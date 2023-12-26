@@ -1,43 +1,11 @@
 # Autoponico
 
-Software running on an Arduino Nano to report measurements taken from
-atlas sensors (pH and EC), this Arduino is connected to a Raspberry who performs
-another task to push collected measurements to an Influx bucket
+Software running on an ESP8266 to report measurements taken from atlas sensors
+it pushes collected measurements to an InfluxDB bucket
 
-## To develop
-Install [`arduino-cli`](https://arduino.github.io/arduino-cli/0.26/installation/)
-, make sure you have the board:
-```fish
-arduino-cli board listall
-```
-otherwise install them with:
-```fish
-arduino-cli core install arduino:avr
-```
+## Get started
+Install the [Arduino IDE](https://www.arduino.cc/en/software)
+Copy the all libraries from `/libraries` to your Arduino's library location, usually at `~/Documents/Arduino/libraries`
+`cp -R ./libraries/* ~/Documents/Arduino/libraries`
 
-### Install required libraries with
-```fish
-arduino-cli lib install ShiftRegister74HC595 "Grove 4-Digit Display" Arduino_JSON
-```
-
-### Compile the code with
-```fish
-arduino-cli compile -b arduino:avr:nano:cpu=atmega328 --libraries ../libraries/
-```
-
-## Uploading the code
-Set board and port accordingly
-```fish
-arduino-cli compile -b arduino:avr:nano:cpu=atmega328 -u -p /dev/ttyUSB0 --libraries ../libraries/
-```
-
-## Commands:
-```json
-{"COMMAND":"AUTO"}
-{"COMMAND":"MANUAL"}
-{"COMMAND":"PHREAD"}
-{"COMMAND":"SET_PH","VALUE":5.6}
-{"COMMAND":"DESIRED_SOURCE","VALUE":"CMD"}
-{"COMMAND":"PHUP","DROP_TIME":1000}
-{"COMMAND":"PHDOWN","DROP_TIME":1000}
-```
+Open the `.ino` file with Arduino IDE, compile and happy upload :fire:

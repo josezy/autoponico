@@ -31,7 +31,15 @@ bool Gravity_DO::begin(){
 float Gravity_DO::read_voltage() {
     float voltage_mV = 0;
     for (int i = 0; i < volt_avg_len; ++i) {
-      voltage_mV += analogRead(this->pin) / 1024.0 * 5000.0;
+	#if defined(ESP32)
+	//ESP32 has significant nonlinearity in its ADC, we will attempt to compensate 
+	//but you're on your own to some extent
+	//this compensation is only for the ESP32
+	//https://github.com/espressif/arduino-esp32/issues/92
+		voltage_mV += analogRead(this->pin) / 4095.0 * 3300.0 + 130;
+	#else
+		voltage_mV += analogRead(this->pin) / 1024.0 * 5000.0;
+    #endif 
     }
     voltage_mV /= volt_avg_len;
     return voltage_mV;
@@ -41,7 +49,7 @@ float Gravity_DO::read_do_percentage(float voltage_mV) {
     return voltage_mV * 100.0 / this->Do.full_sat_voltage;
 }
 
-float Gravity_DO::cal() {
+void Gravity_DO::cal() {
     this->Do.full_sat_voltage = read_voltage();
     EEPROM.put(this->EEPROM_offset,Do);
     #if defined(ESP8266) || defined(ESP32)
@@ -49,7 +57,7 @@ float Gravity_DO::cal() {
     #endif
 }
 
-float Gravity_DO::cal_clear() {
+void Gravity_DO::cal_clear() {
     this->Do.full_sat_voltage = DEFAULT_SAT_VOLTAGE;
     EEPROM.put(this->EEPROM_offset,Do);
     #if defined(ESP8266) || defined(ESP32)

@@ -31,7 +31,15 @@ bool Gravity_ORP::begin(){
 float Gravity_ORP::read_voltage() {
   float voltage_mV = 0;
     for (int i = 0; i < volt_avg_len; ++i) {
-      voltage_mV += analogRead(this->pin) / 1024.0 * 5000.0;
+	#if defined(ESP32)
+	//ESP32 has significant nonlinearity in its ADC, we will attempt to compensate 
+	//but you're on your own to some extent
+	//this compensation is only for the ESP32
+	//https://github.com/espressif/arduino-esp32/issues/92
+		voltage_mV += analogRead(this->pin) / 4095.0 * 3300.0 + 130;
+	#else
+		voltage_mV += analogRead(this->pin) / 1024.0 * 5000.0;
+    #endif 
     }
     voltage_mV /= volt_avg_len;
   return voltage_mV;
@@ -41,7 +49,7 @@ float Gravity_ORP::read_orp(float voltage_mV) {
     return voltage_mV - 1500.0 - this->Orp.cal_offset; //midpoint
 }
 
-float Gravity_ORP::cal(float value) {
+void Gravity_ORP::cal(float value) {
     this->Orp.cal_offset = read_voltage() - (value + 1500);
     EEPROM.put(this->EEPROM_offset,Orp);
     
@@ -50,7 +58,7 @@ float Gravity_ORP::cal(float value) {
     #endif
 }
 
-float Gravity_ORP::cal_clear() {
+void Gravity_ORP::cal_clear() {
     this->Orp.cal_offset = 0;
     EEPROM.put(this->EEPROM_offset,Orp);
     

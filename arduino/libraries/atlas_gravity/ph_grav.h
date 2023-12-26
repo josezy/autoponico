@@ -59,7 +59,7 @@ class Gravity_pH : public Gravity_Base{
 		
 		struct PH {
 		  const uint8_t magic = magic_char;
-          const enum grav_type type = GRAV_PH;
+          const uint8_t type = GRAV_PH;
 		  float mid_cal = 1500;
 		  float low_cal = 2030;
 		  float high_cal = 975;
