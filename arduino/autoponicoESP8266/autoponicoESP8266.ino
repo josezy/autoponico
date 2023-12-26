@@ -75,12 +75,11 @@ unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 
 void setup() {
-    Serial.begin(57600);
+    Serial.begin(115200);
 
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
 
-    websocketCommands.setSocketUrl((char*)WEBSOCKET_URL);
-    websocketCommands.init();
+    websocketCommands.init((char*)WEBSOCKET_URL);
     websocketCommands.registerCmd((char*)"ph", []() { websocketCommands.send(strcat((char*)"ph: ", String(phSensor.read_ph()).c_str())); });
 
     phSensor.begin();
@@ -132,7 +131,7 @@ void loop() {
         int ec_control_direction = ecUpControl.doControl();
 
         // Sync with influx
-        if ((millis() - influxSyncTimer) > INFLUXDB_SYNC_COLD_DOWN) {
+        if (INFLUXDB_ENABLED && (millis() - influxSyncTimer) > INFLUXDB_SYNC_COLD_DOWN) {
             influxSyncTimer = millis();
             autoponicoPoint.clearFields();
             autoponicoPoint.addField("ph_raw", phReading);

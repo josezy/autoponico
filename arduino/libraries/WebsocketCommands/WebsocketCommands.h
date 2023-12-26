@@ -1,14 +1,14 @@
 #ifndef WebsocketCommands_h
 #define WebsocketCommands_h
 #define MAX_CMDS 10
-#include <ESP8266WiFi.h>
 #include <ArduinoWebsockets.h>
+#include <ESP8266WiFi.h>
+
 #include <functional>
 
 typedef void (*CommandHanndler)();
 
-enum WebsocketState
-{
+enum WebsocketState {
     WS_DISCONNECTED,
     WS_CONNECTING,
     WS_CONNECTED
@@ -16,31 +16,27 @@ enum WebsocketState
 
 using namespace websockets;
 using namespace std::placeholders;
-struct CommandStruct
-{
+struct CommandStruct {
     const char *cmd;
     CommandHanndler handler;
     void *data;
 };
-class WebsocketCommands
-{
 
-private:
-    char *socketUrl;
+class WebsocketCommands {
+   private:
+    String socketUrl;
     WebsocketState websocketState = WS_DISCONNECTED;
     CommandStruct m_commands[MAX_CMDS];
-    WebsocketsClient webSocketClient;
+    WebsocketsClient wsClient;
     void onEventsCallback(WebsocketsEvent event, String data);
     void onMessageCallback(WebsocketsMessage message);
 
-public:
-    WebsocketCommands()
-    {
+   public:
+    WebsocketCommands() {
         memset(this->m_commands, 0, sizeof(this->m_commands));
     };
-    void setSocketUrl(char *socketUrl);
     void websocketJob();
-    void init();
+    void init(String socketUrl);
     bool registerCmd(const char *cmd, CommandHanndler handler, void *data = NULL);
     void send(char *message);
 };
