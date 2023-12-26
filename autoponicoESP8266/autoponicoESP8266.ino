@@ -74,10 +74,10 @@ void setup()
   // Connect to wifi
   WiFi.begin(ssid, password);
 
-  websocketCommands.setSocketUrl(PISOCKET_URL);
+  websocketCommands.setSocketUrl((char*)PISOCKET_URL);
   websocketCommands.init();
-  websocketCommands.registerCmd("ph", []()
-                                { websocketCommands.send(strcat("ph: ", String(phSensor.read_ph()).c_str())); });
+  websocketCommands.registerCmd((char*)"ph", []()
+                                { websocketCommands.send(strcat((char*)"ph: ", String(phSensor.read_ph()).c_str())); });
 
   phSensor.begin();
   sensorDS18B20.begin();
