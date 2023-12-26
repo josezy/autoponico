@@ -29,12 +29,20 @@ bool Gravity_pH::begin(){
 }
 
 float Gravity_pH::read_voltage() {
-      float voltage_mV = 0;
-      for (int i = 0; i < volt_avg_len; ++i) {
-        voltage_mV += analogRead(this->pin) / 1024.0 * 5000.0;
-      }
-      voltage_mV /= volt_avg_len;
-      return voltage_mV;
+	float voltage_mV = 0;
+	for (int i = 0; i < volt_avg_len; ++i) {
+	#if defined(ESP32)
+	//ESP32 has significant nonlinearity in its ADC, we will attempt to compensate 
+	//but you're on your own to some extent
+	//this compensation is only for the ESP32
+	//https://github.com/espressif/arduino-esp32/issues/92
+		voltage_mV += analogRead(this->pin) / 4095.0 * 3300.0 + 130;
+	#else
+		voltage_mV += analogRead(this->pin) / 1024.0 * 5000.0;
+    #endif 
+	}
+	voltage_mV /= volt_avg_len;
+	return voltage_mV;
 }
 
 float Gravity_pH::read_ph(float voltage_mV) {

@@ -1,16 +1,25 @@
+// Arduino included libraries
 #include <ESP8266WiFi.h>
+
+// Download from https://files.atlas-scientific.com/gravity-pH-ardunio-code.pdf
 #include <ph_iso_grav.h>
+
+// Install from library manager
 #include <SimpleKalmanFilter.h>
-#include <Control.h>
-#include <AtlasSerialSensor.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <WebsocketCommands.h>
+#include <ArduinoWebsockets.h>
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
 
-#include "env.h"
+// Custom libraries
+#include <Control.h>
+#include <AtlasSerialSensor.h>
+#include <WebsocketCommands.h>
+
 #include "configuration.h"
+#include "env.h"
+
 
 InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
 Point basilPoints("basil");
