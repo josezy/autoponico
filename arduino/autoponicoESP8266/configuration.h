@@ -7,6 +7,7 @@
 #define D6 12
 #define D7 13
 #define D8 15
+
 // Sensor's pins
 #define TEMPERATURE_PIN D5
 #define EC_RX D6
@@ -14,7 +15,6 @@
 #define GRAV_PH_PIN D8 
 
 // ENUMS 
-
 enum influxdbState
 {
   INFLUXDB_DISCONNECTED,
