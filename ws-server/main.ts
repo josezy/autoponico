@@ -4,7 +4,7 @@ import WebSocketServer from 'ws';
 
 // Creating a new websocket server
 const wss = new WebSocketServer.Server({
-    port: 8080,
+    port: 8085,
 })
 const clients = new Set<WebSocketServer>();
  
@@ -36,4 +36,4 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
         console.log("Some Error occurred")
     }
 });
-console.log("The WebSocket server is running on port 8080");
+console.log("The WebSocket server is running on port 8085");
