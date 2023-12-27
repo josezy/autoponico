@@ -21,7 +21,7 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
         console.log(`Client has sent us: ${data}`)
         clients.forEach(client => {
             if (client !== ws) {
-                client.send(data);
+                client.send(data.toString());
             }
         });
     });
