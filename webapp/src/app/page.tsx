@@ -23,7 +23,7 @@ const WebsocketCommander = () => {
   const [isConnected, setIsConnected] = React.useState<boolean>(false)
 
   const connect = () => {
-    const ws = new WebSocket("ws://localhost:8080/ws")
+    const ws = new WebSocket("ws://localhost:8085/ws?id=webapp")
     ws.onopen = () => {
       setIsConnected(true)
     }
