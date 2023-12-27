@@ -70,7 +70,7 @@ void WebsocketCommands::websocketJob() {
     }
 }
 
-void WebsocketCommands::init(String socketUrl) {
+void WebsocketCommands::init(char* socketUrl) {
     this->socketUrl = socketUrl;
     this->wsClient.onEvent(std::bind(&WebsocketCommands::onEventsCallback, this, std::placeholders::_1, std::placeholders::_2));
     this->wsClient.onMessage(std::bind(&WebsocketCommands::onMessageCallback, this, std::placeholders::_1));

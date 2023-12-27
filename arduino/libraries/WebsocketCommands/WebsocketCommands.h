@@ -24,7 +24,7 @@ struct CommandStruct {
 
 class WebsocketCommands {
    private:
-    String socketUrl;
+    char* socketUrl;
     WebsocketState websocketState = WS_DISCONNECTED;
     CommandStruct m_commands[MAX_CMDS];
     WebsocketsClient wsClient;
@@ -36,7 +36,7 @@ class WebsocketCommands {
         memset(this->m_commands, 0, sizeof(this->m_commands));
     };
     void websocketJob();
-    void init(String socketUrl);
+    void init(char* socketUrl);
     bool registerCmd(const char *cmd, CommandHanndler handler, void *data = NULL);
     void send(char *message);
 };
