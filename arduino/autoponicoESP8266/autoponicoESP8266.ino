@@ -116,23 +116,49 @@ void setupCommands() {
 
     // Control
     websocketCommands.registerCmd((char*)"control", [](char* message) {
-        Serial.println("Not implemented");
-        // TODO: dose manually eg "control ec up 100"/"control ph down 1000"
-        // TODO: set ph/ec setpoints eg "control ph setpoint 5.7"
-        // phControl.setSetPoint(5.7);
+        String action = String(message);
+        int subindex = action.indexOf(' ');
+        String value = action.substring(0, );
 
-        // TODO: change mode to always allow manual dose, enable/disable auto mode
-        // phControl.setManualMode(false);
-
-        // send temperature
+        switch (action) {
+            case "ph_up":
+                phControl.up(value.toInt());
+                break;
+            case "ph_down":
+                phControl.down(value.toInt());
+                break;
+            case "ph_setpoint":
+                phControl.setSetPoint(value.toFloat());
+                break;
+            case "ph_auto":
+                // TODO: change mode to always allow manual dose, enable/disable auto mode
+                // phControl.setAutoMode(value == "true");
+                break;
+            case "ec_up":
+                ecUpControl.up(value.toInt());
+                break;
+            case "ec_down":
+                ecUpControl.down(value.toInt());
+                break;
+            case "ec_setpoint":
+                ecUpControl.setSetPoint(value.toFloat());
+                break;
+            case "ec_auto":
+                // TODO: change mode to always allow manual dose, enable/disable auto mode
+                // ecUpControl.setAutoMode(value == "true");
+                break;
+            default:
+                Serial.printf("Unknown action type: %s\n", message);
+        }
     });
 
     // Management
     websocketCommands.registerCmd((char*)"management", [](char* message) {
         Serial.println("Not implemented");
         // Request variables
-        // Request reboot?
+        // Request reboot? void(* resetFunc) (void) = 0; // create a standard reset function
         // Update wifi?
+        // send temperature
     }
 
 }
