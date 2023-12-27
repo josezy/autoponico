@@ -78,6 +78,17 @@ void setup() {
     Serial.begin(115200);
 
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
+    // Wait some time to connect to wifi
+    for(int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++) {
+        Serial.print("x");
+        delay(1000);
+    }
+
+    // Check if connected to wifi
+    if(WiFi.status() != WL_CONNECTED) {
+        Serial.println("No Wifi!");
+        return;
+    }
 
     websocketCommands.init((char*)WEBSOCKET_URL);
     websocketCommands.registerCmd((char*)"ph", []() { websocketCommands.send(strcat((char*)"ph: ", String(phSensor.read_ph()).c_str())); });
