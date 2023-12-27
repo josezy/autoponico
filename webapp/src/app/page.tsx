@@ -22,6 +22,19 @@ const WebsocketCommander = () => {
   const [message, setMessage] = React.useState<string>("")
   const [isConnected, setIsConnected] = React.useState<boolean>(false)
 
+  React.useEffect(() => {
+    // press enter to send message
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === "Enter") {
+        send()
+      }
+    }
+    document.addEventListener("keydown", handleKeyPress)
+    return () => {
+      document.removeEventListener("keydown", handleKeyPress)
+    }
+  }, [])
+
   const connect = () => {
     const ws = new WebSocket("ws://localhost:8085/ws?id=webapp")
     ws.onopen = () => {
