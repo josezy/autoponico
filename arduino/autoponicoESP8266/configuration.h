@@ -15,6 +15,7 @@
 #define EC_RX D6
 #define EC_TX D7 
 #define GRAV_PH_PIN D8 
+// #define USE_PULSE_OUT // Comment if NOT using isolation board
 
 // ENUMS 
 enum influxdbState

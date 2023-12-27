@@ -88,29 +88,52 @@ void setupCommands() {
         }
     });
 
-    // calibrate ph/ec
-    // websocketCommands.registerCmd((char*)"ph cal_low", []() {
-    //     Serial.println("Calibrating ph low");
-    //     phSensor.cal_low();
-    // });
-    // websocketCommands.registerCmd((char*)"ph cal_mid", []() {
-    //     Serial.println("Calibrating ph mid");
-    //     phSensor.cal_mid();
-    // });
-    // websocketCommands.registerCmd((char*)"ph cal_high", []() {
-    //     Serial.println("Calibrating ph high");
-    //     phSensor.cal_high();
-    // });
-    // websocketCommands.registerCmd((char*)"ec cal", []() {
-    //     Serial.println("Not implemented");
-    //     // Send calibration command through serial
-    //     // ecSensor.sendSerial("Cal,n")
-    // });
+    // Manage Analog Gravity pH
+    websocketCommands.registerCmd((char*)"atlas-gravity", [](char* message) {
+        String action = String(message);
 
-    // TODO: dose manually
-    // TODO: set ph/ec setpoints
-    // TODO: set ec probe type
-    // TODO: bypass ws command to atlas' EZO
+        if (action == "cal_low") {
+            phSensor.cal_low();
+        } else if (action == "cal_mid") {
+            phSensor.cal_mid();
+        } else if (action == "cal_high") {
+            phSensor.cal_high();
+        } else if (action == "cal_clear") {
+            phSensor.cal_clear();
+        } else if (action == "read_ph") {
+            websocketCommands.send(String(phSensor.read_ph()).c_str());
+        } else {
+            Serial.printf("Unknown action type: %s\n", message);
+        }
+    });
+
+    // Bypass websocket message to atlas' EZO UART eg "ec-serial Cal,n"
+    websocketCommands.registerCmd((char*)"ec-serial", [](char* message) {
+        Serial.println("Not implemented");
+        // ecSensor.sendSerial(message)
+        // ...and send response to websocket
+    });
+
+    // Control
+    websocketCommands.registerCmd((char*)"control", [](char* message) {
+        Serial.println("Not implemented");
+        // TODO: dose manually eg "control ec up 100"/"control ph down 1000"
+        // TODO: set ph/ec setpoints eg "control ph setpoint 5.7"
+        // phControl.setSetPoint(5.7);
+
+        // TODO: change mode to always allow manual dose, enable/disable auto mode
+        // phControl.setManualMode(false);
+
+        // send temperature
+    });
+
+    // Management
+    websocketCommands.registerCmd((char*)"management", [](char* message) {
+        Serial.println("Not implemented");
+        // Request variables
+        // Request reboot?
+        // Update wifi?
+    }
 
 }
 
