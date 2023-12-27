@@ -6,7 +6,7 @@
 
 #include <functional>
 
-typedef void (*CommandHanndler)();
+typedef void (*CommandHanndler)(char*);
 
 enum WebsocketState {
     WS_DISCONNECTED,
@@ -17,9 +17,9 @@ enum WebsocketState {
 using namespace websockets;
 using namespace std::placeholders;
 struct CommandStruct {
-    const char *cmd;
+    const char* command;
     CommandHanndler handler;
-    void *data;
+    const char* message;
 };
 
 class WebsocketCommands {
@@ -37,8 +37,8 @@ class WebsocketCommands {
     };
     void websocketJob();
     void init(char* socketUrl);
-    bool registerCmd(const char *cmd, CommandHanndler handler, void *data = NULL);
-    void send(char *message);
+    bool registerCmd(char* command, CommandHanndler handler, char* message = NULL);
+    void send(char* message);
 };
 
 #endif

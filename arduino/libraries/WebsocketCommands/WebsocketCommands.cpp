@@ -1,11 +1,11 @@
 #include "WebsocketCommands.h"
 
-bool WebsocketCommands::registerCmd(const char *cmd, CommandHanndler handler, void *data) {
+bool WebsocketCommands::registerCmd(char* command, CommandHanndler handler, char* message) {
     for (int i = 0; i < MAX_CMDS; i++) {
-        if (!m_commands[i].cmd) {
-            m_commands[i].cmd = cmd;
+        if (!m_commands[i].command) {
+            m_commands[i].command = command;
             m_commands[i].handler = handler;
-            m_commands[i].data = data;
+            m_commands[i].message = message;
             return true;
         }
     }
@@ -35,15 +35,26 @@ void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data) {
 }
 
 void WebsocketCommands::onMessageCallback(WebsocketsMessage message) {
-    String s = message.data();
-    const int length = s.length();
-    char *char_array = new char[length + 1];
-    strcpy(char_array, s.c_str());
-    char *cmd = strtok(char_array, " ");
+    String inputString = message.data();
+    int spaceIndex = inputString.indexOf(' ');
+
+    String command;
+    String data;
+
+    if (spaceIndex != -1) {
+        command = inputString.substring(0, spaceIndex);
+        data = inputString.substring(spaceIndex + 1);
+    } else {
+        command = inputString;
+        data = "";
+    }
+
     for (int i = 0; i < MAX_CMDS; i++) {
-        if (m_commands[i].cmd && strcmp(m_commands[i].cmd, cmd) == 0) {
-            m_commands[i].handler();
-            break;  // FIXME: remove this break and allow multiple commands to be executed
+        if (!m_commands[i].command) {
+            continue;
+        }
+        if (String(m_commands[i].command) == command) {
+            m_commands[i].handler((char*)data.c_str());
         }
     }
 }
@@ -77,6 +88,6 @@ void WebsocketCommands::init(char* socketUrl) {
     this->wsClient.setInsecure();  // FIXME: use secure connection
 }
 
-void WebsocketCommands::send(char *message) {
+void WebsocketCommands::send(char* message) {
     this->wsClient.send(message);
 }

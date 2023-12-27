@@ -33,7 +33,7 @@ const WebsocketCommander = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyPress)
     }
-  }, [])
+  }, [message])
 
   const connect = () => {
     const ws = new WebSocket("ws://localhost:8085/ws?id=webapp")

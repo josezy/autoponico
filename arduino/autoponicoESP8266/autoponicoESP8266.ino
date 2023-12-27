@@ -74,9 +74,50 @@ SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 
+void setupCommands() {
+    websocketCommands.init((char*)WEBSOCKET_URL);
+
+    pinMode(LED_BUILTIN, OUTPUT);
+    websocketCommands.registerCmd((char*)"ping", [](char* message) {
+        Serial.printf("Sending pong: %s\n", message);
+        websocketCommands.send((char*)"pong");
+        if (strcmp(message, "on") == 0) {
+            digitalWrite(LED_BUILTIN, LOW);
+        } else if (strcmp(message, "off") == 0) {
+            digitalWrite(LED_BUILTIN, HIGH);
+        }
+    });
+
+    // calibrate ph/ec
+    // websocketCommands.registerCmd((char*)"ph cal_low", []() {
+    //     Serial.println("Calibrating ph low");
+    //     phSensor.cal_low();
+    // });
+    // websocketCommands.registerCmd((char*)"ph cal_mid", []() {
+    //     Serial.println("Calibrating ph mid");
+    //     phSensor.cal_mid();
+    // });
+    // websocketCommands.registerCmd((char*)"ph cal_high", []() {
+    //     Serial.println("Calibrating ph high");
+    //     phSensor.cal_high();
+    // });
+    // websocketCommands.registerCmd((char*)"ec cal", []() {
+    //     Serial.println("Not implemented");
+    //     // Send calibration command through serial
+    //     // ecSensor.sendSerial("Cal,n")
+    // });
+
+    // TODO: dose manually
+    // TODO: set ph/ec setpoints
+    // TODO: set ec probe type
+    // TODO: bypass ws command to atlas' EZO
+
+}
+
 void setup() {
     Serial.begin(115200);
 
+    Serial.printf("Connecting to wifi: %s\n", WIFI_SSID);
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
     // Wait some time to connect to wifi
     for(int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++) {
@@ -90,12 +131,7 @@ void setup() {
         return;
     }
 
-    websocketCommands.init((char*)WEBSOCKET_URL);
-    websocketCommands.registerCmd((char*)"ping", []() {
-        websocketCommands.send("pong");
-    });
-    // TODO: add more commands to: calibrate ph/ec, dose manually, set ph/ec setpoint
-
+    setupCommands();
 
     phSensor.begin();
     sensorDS18B20.begin();
