@@ -91,7 +91,11 @@ void setup() {
     }
 
     websocketCommands.init((char*)WEBSOCKET_URL);
-    websocketCommands.registerCmd((char*)"ph", []() { websocketCommands.send(strcat((char*)"ph: ", String(phSensor.read_ph()).c_str())); });
+    websocketCommands.registerCmd((char*)"ping", []() {
+        websocketCommands.send("pong");
+    });
+    // TODO: add more commands to: calibrate ph/ec, dose manually, set ph/ec setpoint
+
 
     phSensor.begin();
     sensorDS18B20.begin();
