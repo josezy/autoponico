@@ -53,7 +53,13 @@ void WebsocketCommands::websocketJob() {
         Serial.print("Connecting to websocket: ");
         Serial.println(this->socketUrl);
         this->websocketState = WS_CONNECTING;
-        this->wsClient.connect(this->socketUrl);
+        bool connected = this->wsClient.connect(this->socketUrl);
+        if (connected) {
+            Serial.println("Websocket connected");
+        } else {
+            Serial.println("Websocket connection failed");
+            this->websocketState = WS_DISCONNECTED;
+        }
     } else if (this->websocketState == WS_CONNECTED) {
         this->wsClient.poll();
     }
