@@ -20,6 +20,8 @@
 #include "configuration.h"
 #include "env.h"
 
+void (*resetFunc)(void) = 0;  // create a standard reset function
+
 InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
 Point autoponicoPoint("cultivo");
 
@@ -101,7 +103,7 @@ void setupCommands() {
         } else if (action == "cal_clear") {
             phSensor.cal_clear();
         } else if (action == "read_ph") {
-            websocketCommands.send(String(phSensor.read_ph()).c_str());
+            websocketCommands.send((char*)String(phSensor.read_ph()).c_str());
         } else {
             Serial.printf("Unknown action type: %s\n", message);
         }
@@ -118,49 +120,67 @@ void setupCommands() {
     websocketCommands.registerCmd((char*)"control", [](char* message) {
         String action = String(message);
         int subindex = action.indexOf(' ');
-        String value = action.substring(0, );
+        String value = action.substring(0, subindex);
 
-        switch (action) {
-            case "ph_up":
-                phControl.up(value.toInt());
-                break;
-            case "ph_down":
-                phControl.down(value.toInt());
-                break;
-            case "ph_setpoint":
-                phControl.setSetPoint(value.toFloat());
-                break;
-            case "ph_auto":
-                // TODO: change mode to always allow manual dose, enable/disable auto mode
-                // phControl.setAutoMode(value == "true");
-                break;
-            case "ec_up":
-                ecUpControl.up(value.toInt());
-                break;
-            case "ec_down":
-                ecUpControl.down(value.toInt());
-                break;
-            case "ec_setpoint":
-                ecUpControl.setSetPoint(value.toFloat());
-                break;
-            case "ec_auto":
-                // TODO: change mode to always allow manual dose, enable/disable auto mode
-                // ecUpControl.setAutoMode(value == "true");
-                break;
-            default:
-                Serial.printf("Unknown action type: %s\n", message);
+        if (action == "ph_up") {
+            phControl.up(value.toInt());
+        } else if (action == "ph_down") {
+            phControl.down(value.toInt());
+        } else if (action == "ph_setpoint") {
+            phControl.setSetPoint(value.toFloat());
+        } else if (action == "ph_auto") {
+            // phControl.setAutoMode(value == "true");
+        } else if (action == "ec_up") {
+            ecUpControl.up(value.toInt());
+        } else if (action == "ec_down") {
+            ecUpControl.down(value.toInt());
+        } else if (action == "ec_setpoint") {
+            ecUpControl.setSetPoint(value.toFloat());
+        } else if (action == "ec_auto") {
+            // ecUpControl.setAutoMode(value == "true");
+        } else {
+            Serial.printf("Unknown action type: %s\n", message);
         }
     });
 
     // Management
     websocketCommands.registerCmd((char*)"management", [](char* message) {
-        Serial.println("Not implemented");
-        // Request variables
-        // Request reboot? void(* resetFunc) (void) = 0; // create a standard reset function
-        // Update wifi?
-        // send temperature
-    }
+        String action = String(message);
 
+        if (action == "reboot") {
+            resetFunc();
+        } else if (action == "update") {
+            Serial.println("Not implemented");
+            // TODO: Update from OTA: https://github.com/JAndrassy/ArduinoOTA/blob/master/examples/Advanced/OTASketchDownloadWifi/OTASketchDownloadWifi.ino
+        } else if (action == "wifi") {
+            Serial.println("Not implemented");
+            // TODO: Update wifi
+        } else if (action == "configuration") {
+            String response = String();
+            response += String("VERSION:");
+            response += String(VERSION);
+            response += String(",IP:");
+            response += WiFi.localIP().toString();
+            response += String(",MAC:");
+            response += WiFi.macAddress();
+            response += String(",SSID:");
+            response += WiFi.SSID();
+            response += String(",RSSI:");
+            response += WiFi.RSSI();
+            response += String(",PH_SETPOINT:");
+            response += phControl.getSetPoint();
+            response += String(",EC_SETPOINT:");
+            response += ecUpControl.getSetPoint();
+            // TODO: Add calibration values?
+            websocketCommands.send((char*)response.c_str());
+        } else if (action == "temperature") {
+            sensorDS18B20.requestTemperatures();
+            String temp = String(sensorDS18B20.getTempCByIndex(0));
+            websocketCommands.send((char*)temp.c_str());
+        } else  {
+            Serial.printf("Unknown action type: %s\n", message);
+        }
+    });
 }
 
 void setup() {
@@ -169,13 +189,13 @@ void setup() {
     Serial.printf("Connecting to wifi: %s\n", WIFI_SSID);
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
     // Wait some time to connect to wifi
-    for(int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++) {
+    for (int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++) {
         Serial.print("x");
         delay(1000);
     }
 
     // Check if connected to wifi
-    if(WiFi.status() != WL_CONNECTED) {
+    if (WiFi.status() != WL_CONNECTED) {
         Serial.println("No Wifi!");
         return;
     }

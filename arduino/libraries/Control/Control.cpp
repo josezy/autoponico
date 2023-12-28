@@ -102,9 +102,11 @@ int Control::doControl() {
     return going;
 }
 
+// TODO: change mode to always allow manual dose, enable/disable auto mode
 void Control::setManualMode(bool manualMode) {
     this->manualMode = manualMode;
 }
+
 void Control::down(int dropTime) {
     if (this->configuration->M_DN > 0) {
         analogWrite(this->configuration->M_DN, this->configuration->M_DN_SPEED);
