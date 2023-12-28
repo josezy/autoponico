@@ -105,7 +105,7 @@ void setupCommands() {
         } else if (action == "read_ph") {
             websocketCommands.send((char*)String(phSensor.read_ph()).c_str());
         } else {
-            Serial.printf("Unknown action type: %s\n", message);
+            Serial.printf("[Atlas Gravity] Unknown action type: %s\n", message);
         }
     });
 
@@ -118,9 +118,10 @@ void setupCommands() {
 
     // Control
     websocketCommands.registerCmd((char*)"control", [](char* message) {
-        String action = String(message);
-        int subindex = action.indexOf(' ');
-        String value = action.substring(0, subindex);
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index);
 
         if (action == "ph_up") {
             phControl.up(value.toInt());
@@ -139,7 +140,7 @@ void setupCommands() {
         } else if (action == "ec_auto") {
             // ecUpControl.setAutoMode(value == "true");
         } else {
-            Serial.printf("Unknown action type: %s\n", message);
+            Serial.printf("[Control] Unknown action type: %s\n", message);
         }
     });
 
@@ -178,7 +179,7 @@ void setupCommands() {
             String temp = String(sensorDS18B20.getTempCByIndex(0));
             websocketCommands.send((char*)temp.c_str());
         } else  {
-            Serial.printf("Unknown action type: %s\n", message);
+            Serial.printf("[Management] Unknown action type: %s\n", message);
         }
     });
 }
