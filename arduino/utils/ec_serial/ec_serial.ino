@@ -1,16 +1,14 @@
 //This code was written to be easy to understand.
-									 
 //Modify this code as you see fit.
 //This code will output data to the Arduino serial monitor.
 //Type commands into the Arduino serial monitor to control the EC circuit.
-//This code was written in the Arduino 1.8.9 IDE
-//An Arduino UNO was used to test this code.
-//This code was last tested 6/2019
+//This code was written in the Arduino 2.0 IDE
+//This code was last tested 10/2022
 
 
 #include <SoftwareSerial.h>                           //we have to include the SoftwareSerial library, or else we can't use it
-#define rx 10                                         //define what pin rx is going to be
-#define tx 11                                         //define what pin tx is going to be
+#define rx 2                                          //define what pin rx is going to be
+#define tx 3                                          //define what pin tx is going to be
 
 SoftwareSerial myserial(rx, tx);                      //define how the soft serial port is going to work
 
@@ -56,13 +54,13 @@ void loop() {                                         //here we go...
 
 
   if (sensor_string_complete == true) {               //if a string from the Atlas Scientific product has been received in its entirety
-    // if (isDigit(sensorstring[0]) == false) {          //if the first character in the string is a digit
+    if (isdigit(sensorstring[0]) == false) {          //if the first character in the string is NOT a digit
       Serial.println(sensorstring);                   //send that string to the PC's serial monitor
-    // }
-    // else                                              //if the first character in the string is NOT a digit
-    // {
-    //   print_EC_data();                                //then call this function 
-    // }
+    }
+    else                                              //if the first character in the string is a digit
+    {
+      print_EC_data();                                //then call this function 
+    }
     sensorstring = "";                                //clear the string
     sensor_string_complete = false;                   //reset the flag used to tell if we have received a completed string from the Atlas Scientific product
   }
