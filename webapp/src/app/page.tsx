@@ -36,7 +36,7 @@ const WebsocketCommander = () => {
   }, [message])
 
   const connect = () => {
-    const ws = new WebSocket("ws://localhost:8085/ws?id=webapp")
+    const ws = new WebSocket("ws://207.246.118.54:8085/ws?id=webapp")
     ws.onopen = () => {
       setIsConnected(true)
     }
