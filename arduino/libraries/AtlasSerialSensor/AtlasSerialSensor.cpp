@@ -2,47 +2,74 @@
 
 #include <SoftwareSerial.h>
 
-AtlasSerialSensor::AtlasSerialSensor(int rx, int tx)
-{
-    this->sensorSerial = new SoftwareSerial(rx, tx);
+AtlasSerialSensor::AtlasSerialSensor(int rx, int tx) {
+    this->ezoSerial = new SoftwareSerial(rx, tx);
     this->sensorString.reserve(30);
 }
 
-void AtlasSerialSensor::readSerial()
-{
-    if (this->sensorSerial->available() > 0)
-    {                                                   // if we see that the Atlas Scientific product has sent a character
-        char inchar = (char)this->sensorSerial->read(); // get the char we just received
-        this->sensorString += inchar;                   // add the char to the var called this->sensorString
-        if (inchar == '\r')
-        {                                      // if the incoming character is a <CR>
-            this->sensorStringComplete = true; // set the flag
+void AtlasSerialSensor::readSerial() {
+    if (this->ezoSerial->available() > 0) {
+        char inchar = (char)this->ezoSerial->read();
+        this->sensorString += inchar;
+        if (inchar == '\r') {
+            this->sensorStringComplete = true;
         }
     }
+    if (this->sensorStringComplete) {
+        String sensorStringCopy = this->sensorString;
+        this->sensorString = "";
+        this->sensorStringComplete = false;
 
-    if (this->sensorStringComplete == true)
-    { // if a string from the Atlas Scientific product has been received in its entirety
-        if (isdigit(this->sensorString[0]) == false) // FIXME: make sure this actually works, clean up code
-        {                                       // if the first character in the string is a digit
-            Serial.println(this->sensorString); // send that string to the PC's serial monitor
+        if (isDigit(sensorStringCopy[0])) {
+            char sensorstring_array[30];
+            sensorStringCopy.toCharArray(sensorstring_array, 30);
+            char* EC = strtok(sensorstring_array, ",");
+            this->lastReading = String(EC).toFloat();
         }
-        else // if the first character in the string is NOT a digit
-        {
-            char sensorstring_array[30];                            // we make a char array
-            this->sensorString.toCharArray(sensorstring_array, 30); // convert the string to a char array
-            this->lastReading = strtok(sensorstring_array, ",");    // let's pars the array at each comma
-        }
-        this->sensorString = "";                  // clear the string
-        this->sensorStringComplete = false; // reset the flag used to tell if we have received a completed string from the Atlas Scientific product
+
+        // To send through websocket
+        this->sensorStringToWebsocket = sensorStringCopy;    
     }
 }
 
-float AtlasSerialSensor::getReading()
-{
-    return this->lastReading.toFloat();
+float AtlasSerialSensor::getReading() {
+    this->sendSerial("R");
+    
+    // Wait for serial to respond AT command: 143.5,12\r*OK\r
+    int cr_received = 0;
+    int timeout = 0;
+    String atString = "";
+    while (cr_received < 2 && timeout < 1000) {
+        delay(1);
+        timeout++;
+        if (this->ezoSerial->available() > 0) {
+            char inchar = (char)this->ezoSerial->read();
+            atString += inchar;
+            if (inchar == '\r') {
+                cr_received++;
+            }
+        }
+    }
+    if (timeout >= 1000) {
+        return 0;
+    }
+
+    int cr_index = atString.indexOf('\r');
+    if (cr_index < 0) {
+        return 0;
+    }
+
+    String ec_data = atString.substring(0, cr_index);
+    char* EC = strtok((char*)ec_data.c_str(), ",");
+    this->lastReading = String(EC).toFloat();
+    return this->lastReading;
 }
 
-void AtlasSerialSensor::begin(int baudrate)
-{
-    this->sensorSerial->begin(baudrate);
+void AtlasSerialSensor::sendSerial(String command) {
+    this->ezoSerial->print((char*)command.c_str());
+    this->ezoSerial->print('\r');
+}
+
+void AtlasSerialSensor::begin(int baudrate) {
+    this->ezoSerial->begin(baudrate);
 }

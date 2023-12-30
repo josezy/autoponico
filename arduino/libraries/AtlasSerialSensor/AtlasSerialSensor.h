@@ -5,16 +5,18 @@
 #include <SoftwareSerial.h>
 
 class AtlasSerialSensor {
-    SoftwareSerial *sensorSerial;
+    SoftwareSerial* ezoSerial;
     String sensorString = "";
-    String lastReading;
-    boolean sensorStringComplete = false;
+    bool sensorStringComplete = false;
+    float lastReading = 0;
 
     public:
         AtlasSerialSensor(int rx, int tx);
-        float getReading();
         void begin(int baudrate = 9600);
+        void sendSerial(String command);
         void readSerial();
+        float getReading();
+        String sensorStringToWebsocket = "";
 };
 
 

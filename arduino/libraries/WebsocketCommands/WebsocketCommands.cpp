@@ -12,7 +12,6 @@ bool WebsocketCommands::registerCmd(char* command, CommandHanndler handler, char
     return false;
 }
 
-// FIXME: review need for this, clean up code
 void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data) {
     Serial.print("Websocket event: ");
 
@@ -70,6 +69,7 @@ void WebsocketCommands::websocketJob() {
         } else {
             Serial.println("Websocket connection failed");
             this->websocketState = WS_DISCONNECTED;
+            delay(1000);
         }
     } else if (this->websocketState == WS_CONNECTED) {
         this->wsClient.poll();

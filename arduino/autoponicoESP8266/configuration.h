@@ -13,8 +13,8 @@
 #define D8 15
 
 // Sensor's pins
-#define EC_RX D6
-#define EC_TX D7
+#define EC_RX D7
+#define EC_TX D6
 #define GRAV_PH_PIN D5
 #define USE_PULSE_OUT  // Comment if NOT using isolation board
 #define TEMPERATURE_PIN D8

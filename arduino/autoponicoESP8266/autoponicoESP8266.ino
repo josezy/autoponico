@@ -91,7 +91,7 @@ void setupCommands() {
     });
 
     // Manage Analog Gravity pH
-    websocketCommands.registerCmd((char*)"atlas-gravity", [](char* message) {
+    websocketCommands.registerCmd((char*)"ph", [](char* message) {
         String action = String(message);
 
         if (action == "cal_low") {
@@ -110,10 +110,8 @@ void setupCommands() {
     });
 
     // Bypass websocket message to atlas' EZO UART eg "ec-serial Cal,n"
-    websocketCommands.registerCmd((char*)"ec-serial", [](char* message) {
-        Serial.println("Not implemented");
-        // ecSensor.sendSerial(message)
-        // ...and send response to websocket
+    websocketCommands.registerCmd((char*)"ec", [](char* message) {
+        ecSensor.sendSerial(String(message));
     });
 
     // Control
@@ -219,23 +217,31 @@ void setup() {
     influxSyncTimer = millis();
 
     // Influx clock sync
-    timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
-    if (influxClient.validateConnection()) {
-        Serial.print("Connected to InfluxDB: ");
-        Serial.println(influxClient.getServerUrl());
+    if (INFLUXDB_ENABLED) {
+        timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
+        if (influxClient.validateConnection()) {
+            Serial.print("Connected to InfluxDB: ");
+            Serial.println(influxClient.getServerUrl());
+        } else {
+            Serial.print("InfluxDB connection failed: ");
+            Serial.println(influxClient.getLastErrorMessage());
+        }
     } else {
-        Serial.print("InfluxDB connection failed: ");
-        Serial.println(influxClient.getLastErrorMessage());
+        Serial.println("InfluxDB disabled");
     }
 }
 
 void loop() {
     websocketCommands.websocketJob();
     ecSensor.readSerial();
+    if (ecSensor.sensorStringToWebsocket.length() > 0) {
+        websocketCommands.send((char*)ecSensor.sensorStringToWebsocket.c_str());
+        ecSensor.sensorStringToWebsocket = "";
+    }
 
     if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL) {
-        sensorDS18B20.requestTemperatures();
         sensorReadingTimer = millis();
+        sensorDS18B20.requestTemperatures();
 
         float ecReading = ecSensor.getReading();
         float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
