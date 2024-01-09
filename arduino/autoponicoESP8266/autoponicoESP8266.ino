@@ -188,7 +188,7 @@ void setup() {
     Serial.printf("Connecting to wifi: %s\n", WIFI_SSID);
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
     // Wait some time to connect to wifi
-    for (int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++) {
+    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
         Serial.print("x");
         delay(1000);
     }
