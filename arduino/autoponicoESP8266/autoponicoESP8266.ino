@@ -73,8 +73,12 @@ SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
 SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
+// timers
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
+
+// Functions
+RemoteFlasher remoteFlasher(REMOTE_FLASH_HOST, REMOTE_FLASH_PATH, REMOTE_FLASH_PORT);
 
 void setupCommands() {
     websocketCommands.init((char*)WEBSOCKET_URL);
@@ -150,7 +154,7 @@ void setupCommands() {
             resetFunc();
         } else if (action == "update") {
             Serial.println("Not implemented");
-            // TODO: Update from OTA: https://github.com/JAndrassy/ArduinoOTA/blob/master/examples/Advanced/OTASketchDownloadWifi/OTASketchDownloadWifi.ino
+            remoteFlasher.flash();
         } else if (action == "wifi") {
             Serial.println("Not implemented");
             // TODO: Update wifi
