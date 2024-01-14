@@ -1,7 +1,5 @@
 #include "Control.h"
 
-#include <Arduino.h>
-
 Control::Control(ControlConfig* configuration) {
     this->configuration = configuration;
     this->stabilizationTimer = millis();
