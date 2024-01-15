@@ -10,3 +10,6 @@
 #define INFLUXDB_BUCKET ""
 
 #define WEBSOCKET_URL ""
+
+#define REMOTE_FLASH_HOST "http://192.168.1.1:3000"
+#define REMOTE_FLASH_PATH "/"

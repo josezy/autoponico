@@ -17,6 +17,8 @@
 #include <Control.h>
 #include <WebsocketCommands.h>
 
+#include <RemoteFlasher.h>
+
 #include "configuration.h"
 #include "env.h"
 
@@ -77,8 +79,7 @@ SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 
-// Functions
-RemoteFlasher remoteFlasher(REMOTE_FLASH_HOST, REMOTE_FLASH_PATH, REMOTE_FLASH_PORT);
+RemoteFlasher remoteFlasher(REMOTE_FLASH_HOST, REMOTE_FLASH_PATH);
 
 void setupCommands() {
     websocketCommands.init((char*)WEBSOCKET_URL);
@@ -153,8 +154,7 @@ void setupCommands() {
         if (action == "reboot") {
             resetFunc();
         } else if (action == "update") {
-            Serial.println("Not implemented");
-            remoteFlasher.flash();
+            remoteFlasher.pullSketchAndFlash();
         } else if (action == "wifi") {
             Serial.println("Not implemented");
             // TODO: Update wifi
