@@ -154,6 +154,8 @@ void setupCommands() {
         if (action == "reboot") {
             resetFunc();
         } else if (action == "update") {
+            char *resp = remoteFlasher.pullSketchAndFlash();            
+            websocketCommands.send(resp);  
             remoteFlasher.pullSketchAndFlash();
         } else if (action == "wifi") {
             Serial.println("Not implemented");

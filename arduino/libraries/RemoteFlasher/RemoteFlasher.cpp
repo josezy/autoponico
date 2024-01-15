@@ -6,7 +6,7 @@ RemoteFlasher::RemoteFlasher(const char *host, const char *path)
     this->path = path;
 }
 
-void RemoteFlasher::pullSketchAndFlash()
+char *RemoteFlasher::pullSketchAndFlash()
 {
 
     HTTPClient http;
@@ -34,8 +34,7 @@ void RemoteFlasher::pullSketchAndFlash()
         if (!InternalStorage.open(contentLength))
         {
             http.end();
-            Serial.println("There is not enough space to store the update. Can't continue with update.");
-            return;
+            return "There is not enough space to store the update. Can't continue with update.";
         }
 
         while (contentLength > 0)
@@ -48,31 +47,24 @@ void RemoteFlasher::pullSketchAndFlash()
             contentLength = contentLength - chunckSize;
             if (chunckSize == 0)
             {
-                Serial.println("Timeout downloading update file. Can't continue with update.");
-                return;
+
+                return "Timeout downloading update file. Can't continue with update.";
             }
         }
 
         InternalStorage.close();
         http.end();
 
-        if (contentLength > 0)
+        if (contentLength == 0)
         {
-            Serial.print("Timeout downloading update file at ");
-            Serial.print(contentLength);
-            Serial.println(" bytes. Can't continue with update.");
-            return;
+            InternalStorage.apply(); // this doesn't return
         }
 
-        Serial.println("Sketch update apply and reset.");
-        Serial.flush();
-        InternalStorage.apply(); // this doesn't return
-        return;
+        return "Update file downloaded successfully.";
     }
     else
     {
-        Serial.printf("HTTP request failed with error code %d\n", httpCode);
         http.end();
-        return;
+        return "Error downloading update file. Can't continue with update.";
     }
 }
