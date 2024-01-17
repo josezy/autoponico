@@ -8,7 +8,7 @@ RemoteFlasher::RemoteFlasher(const char *host, const char *path)
 
 char *RemoteFlasher::pullSketchAndFlash()
 {
-
+    Serial.println("Pulling sketch from remote server...");
     HTTPClient http;
     WiFiClient wifiClient = http.getStream();
 
@@ -47,7 +47,6 @@ char *RemoteFlasher::pullSketchAndFlash()
             contentLength = contentLength - chunckSize;
             if (chunckSize == 0)
             {
-
                 return "Timeout downloading update file. Can't continue with update.";
             }
         }
