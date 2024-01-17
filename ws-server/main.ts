@@ -1,21 +1,26 @@
-// Importing the required modules
 import { IncomingMessage } from 'http';
 import WebSocketServer from 'ws';
+import https from 'https';
+import fs from 'fs';
 
 // Creating a new websocket server
-const wss = new WebSocketServer.Server({
-    port: 8085,
-})
+const server = https.createServer({
+    cert: fs.readFileSync('../webapp/certificates/localhost.pem'),
+    key: fs.readFileSync('../webapp/certificates/localhost-key.pem'),
+});
+
+const wss = new WebSocketServer.Server({ server });
+
 const clients = new Set<WebSocketServer>();
- 
+
 // Creating connection using websocket
 wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
     console.log("new socket connected: ", req.url);
     clients.add(ws);
- 
+
     // sending message to client
     ws.send('Welcome, you are connected!');
- 
+
     //on message from client
     ws.on("message", (data: WebSocketServer.RawData) => {
         console.log(`Client has sent us: ${data}`)
@@ -25,7 +30,7 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
             }
         });
     });
- 
+
     // handling what to do when clients disconnects from server
     ws.on("close", () => {
         console.log("the client has disconnected");
@@ -36,4 +41,5 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
         console.log("Some Error occurred")
     }
 });
-console.log("The WebSocket server is running on port 8085");
+
+server.listen(443);
