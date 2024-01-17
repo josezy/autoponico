@@ -15,9 +15,8 @@ or create a symlink 😏
 
 Open the `.ino` file with Arduino IDE, compile and happy upload :fire:
 
-:::warning
-**Note:** To upload from webapp, generate the .bin file from Arduino IDE and send command `management update`
-:::
+> [!NOTE]  
+> To upload from webapp, generate the `.bin` file from Arduino IDE and send command `management update`, it will be automatically downloaded from NextJS/vercel
 
 ## WebSocket server
 NodeJS program using typescript to handle websockets between webapp and Arduino boards
