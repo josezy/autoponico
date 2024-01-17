@@ -188,10 +188,14 @@ void setupCommands() {
             ESPhttpUpdate.onProgress(update_progress);
             ESPhttpUpdate.onError(update_error);
 
+            String msg = "Updating firmware from ";
+            msg += FIRMWARE_URL;
+            Serial.println(msg.c_str());
+            websocketCommands.send((char*)msg.c_str());
             t_httpUpdate_return ret = ESPhttpUpdate.update(client, FIRMWARE_URL);
 
             switch (ret) {
-                case HTTP_UPDATE_FAILED:
+                case HTTP_UPDATE_FAILED: {
                     String msg = "HTTP_UPDATE_FAILED Error: (";
                     msg += ESPhttpUpdate.getLastError();
                     msg += "): ";
@@ -199,15 +203,16 @@ void setupCommands() {
                     Serial.println(msg.c_str());
                     websocketCommands.send((char*)msg.c_str());
                     break;
-                case HTTP_UPDATE_NO_UPDATES:
+                } case HTTP_UPDATE_NO_UPDATES: {
                     Serial.println("HTTP_UPDATE_NO_UPDATES");
                     websocketCommands.send((char*)"No update available");
                     break;
+                }
             }
         } else if (action == "wifi") {
             Serial.println("Not implemented");
             // TODO: Update wifi
-        } else if (action == "configuration") {
+        } else if (action == "info") {
             String response = String();
             response += String("VERSION:");
             response += String(VERSION);
@@ -238,13 +243,15 @@ void setupCommands() {
 void setup() {
     Serial.begin(115200);
 
-    Serial.printf("\n\nConnecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
+    Serial.printf("\n\nWelcome to Arduponico v%s\n", VERSION);
+    Serial.printf("Connecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
     // Wait some time to connect to wifi
     for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
         Serial.print("x");
         delay(1000);
     }
+    Serial.println();
 
     // Check if connected to wifi
     if (WiFi.status() != WL_CONNECTED) {
