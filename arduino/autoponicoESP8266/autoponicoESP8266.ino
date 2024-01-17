@@ -18,7 +18,6 @@
 #include <Control.h>
 #include <WebsocketCommands.h>
 
-
 #include "configuration.h"
 #include "env.h"
 
@@ -75,7 +74,7 @@ SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
 SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
-// timers
+// Timers
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 
