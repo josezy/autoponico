@@ -1,7 +1,5 @@
 #include "AtlasSerialSensor.h"
 
-#include <SoftwareSerial.h>
-
 AtlasSerialSensor::AtlasSerialSensor(int rx, int tx) {
     this->ezoSerial = new SoftwareSerial(rx, tx);
     this->sensorString.reserve(30);

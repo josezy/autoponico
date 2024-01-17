@@ -1,5 +1,6 @@
 // Arduino included libraries
 #include <ESP8266WiFi.h>
+#include <ESP8266httpUpdate.h>
 
 // Download from https://files.atlas-scientific.com/gravity-pH-ardunio-code.pdf
 #include <ph_iso_grav.h>
@@ -73,8 +74,39 @@ SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
 SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
+// Timers
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
+
+
+void update_started() {
+    String msg = "CALLBACK:  HTTP update process started";
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
+
+void update_finished() {
+    String msg = "CALLBACK:  HTTP update process finished";
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
+
+void update_progress(int cur, int total) {
+    String msg = "CALLBACK:  HTTP update process at ";
+    msg += cur;
+    msg += " of ";
+    msg += total;
+    msg += " bytes...";
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
+
+void update_error(int err) {
+    String msg = "CALLBACK:  HTTP update fatal error code ";
+    msg += err;
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
 
 void setupCommands() {
     websocketCommands.init((char*)WEBSOCKET_URL);
@@ -149,12 +181,38 @@ void setupCommands() {
         if (action == "reboot") {
             resetFunc();
         } else if (action == "update") {
-            Serial.println("Not implemented");
-            // TODO: Update from OTA: https://github.com/JAndrassy/ArduinoOTA/blob/master/examples/Advanced/OTASketchDownloadWifi/OTASketchDownloadWifi.ino
+            WiFiClient client;
+            ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
+            ESPhttpUpdate.onStart(update_started);
+            ESPhttpUpdate.onEnd(update_finished);
+            ESPhttpUpdate.onProgress(update_progress);
+            ESPhttpUpdate.onError(update_error);
+
+            String msg = "Updating firmware from ";
+            msg += FIRMWARE_URL;
+            Serial.println(msg.c_str());
+            websocketCommands.send((char*)msg.c_str());
+            t_httpUpdate_return ret = ESPhttpUpdate.update(client, FIRMWARE_URL);
+
+            switch (ret) {
+                case HTTP_UPDATE_FAILED: {
+                    String msg = "HTTP_UPDATE_FAILED Error: (";
+                    msg += ESPhttpUpdate.getLastError();
+                    msg += "): ";
+                    msg += ESPhttpUpdate.getLastErrorString();
+                    Serial.println(msg.c_str());
+                    websocketCommands.send((char*)msg.c_str());
+                    break;
+                } case HTTP_UPDATE_NO_UPDATES: {
+                    Serial.println("HTTP_UPDATE_NO_UPDATES");
+                    websocketCommands.send((char*)"No update available");
+                    break;
+                }
+            }
         } else if (action == "wifi") {
             Serial.println("Not implemented");
             // TODO: Update wifi
-        } else if (action == "configuration") {
+        } else if (action == "info") {
             String response = String();
             response += String("VERSION:");
             response += String(VERSION);
@@ -176,7 +234,7 @@ void setupCommands() {
             sensorDS18B20.requestTemperatures();
             String temp = String(sensorDS18B20.getTempCByIndex(0));
             websocketCommands.send((char*)temp.c_str());
-        } else  {
+        } else {
             Serial.printf("[Management] Unknown action type: %s\n", message);
         }
     });
@@ -185,13 +243,15 @@ void setupCommands() {
 void setup() {
     Serial.begin(115200);
 
-    Serial.printf("Connecting to wifi: %s\n", WIFI_SSID);
+    Serial.printf("\n\nWelcome to Arduponico v%s\n", VERSION);
+    Serial.printf("Connecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
     // Wait some time to connect to wifi
     for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
         Serial.print("x");
         delay(1000);
     }
+    Serial.println();
 
     // Check if connected to wifi
     if (WiFi.status() != WL_CONNECTED) {

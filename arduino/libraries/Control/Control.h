@@ -10,6 +10,8 @@
 #define STABLE 0
 
 #include <stdint.h> 
+#include <Arduino.h>
+
 struct ControlConfig {    
     //Pin configurations
     const uint16_t POT_PIN;
