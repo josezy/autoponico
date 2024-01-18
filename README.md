@@ -22,7 +22,9 @@ Open the `.ino` file with Arduino IDE, compile and happy upload :fire:
 NodeJS program using typescript to handle websockets between webapp and Arduino boards
 Move to dir `cd ./ws-server`
 Install packages `yarn install`
-Run with `nodemon main.ts`
+Run with `env (cat .env | xargs) nodemon main.ts`
+
+For production, run with `env (cat prod.env | xargs) ts-node main.ts`
 
 ## Web App
 NextJS bootstraped app, check `webapp/README.md` for more info

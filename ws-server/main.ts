@@ -1,16 +1,26 @@
 import { IncomingMessage } from 'http';
 import WebSocketServer from 'ws';
 import https from 'https';
+import http from 'http';
 import fs from 'fs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+console.log("Working on", IS_PROD ? "PROD" : "DEV");
+
+const port = IS_PROD ? 443 : 8085;
+
 // Creating a new websocket server
-const server = https.createServer({
-    cert: fs.readFileSync('../webapp/certificates/localhost.pem'),
-    key: fs.readFileSync('../webapp/certificates/localhost-key.pem'),
-});
+let server: https.Server | http.Server;
+if (IS_PROD) {
+    server = https.createServer({
+        cert: fs.readFileSync('./certificates/cert.pem'),
+        key: fs.readFileSync('./certificates/cert-key.pem'),
+    });
+} else {
+    server = http.createServer({});
+}
 
 const wss = new WebSocketServer.Server({ server });
-
 const clients = new Set<WebSocketServer>();
 
 // Creating connection using websocket
@@ -42,4 +52,4 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
     }
 });
 
-server.listen(443);
+server.listen(port);
