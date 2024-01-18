@@ -13,8 +13,8 @@ const port = IS_PROD ? 443 : 8085;
 let server: https.Server | http.Server;
 if (IS_PROD) {
     server = https.createServer({
-        cert: fs.readFileSync('./certificates/cert.pem'),
-        key: fs.readFileSync('./certificates/cert-key.pem'),
+        cert: fs.readFileSync('/etc/letsencrypt/live/autoponico-ws.tucanorobotics.co/fullchain.pem'),
+        key: fs.readFileSync('/etc/letsencrypt/live/autoponico-ws.tucanorobotics.co/privkey.pem'),
     });
 } else {
     server = http.createServer({});

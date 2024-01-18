@@ -9,6 +9,6 @@
 #define INFLUXDB_ORG ""
 #define INFLUXDB_BUCKET ""
 
-#define WEBSOCKET_URL "wss://autoponico.tucanorobotics.co/ws?id=ESP"
+#define WEBSOCKET_URL "wss://autoponico-ws.tucanorobotics.co/ws?id=ESP"
 
 #define FIRMWARE_URL "https://autoponico.tucanorobotics.co/latest-firmware.bin"
