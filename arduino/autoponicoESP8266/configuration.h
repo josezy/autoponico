@@ -1,4 +1,4 @@
-#define VERSION "0.3"
+#define VERSION "0.4"
 
 #define MINUTE 1000L * 60
 #define SENSOR_READING_INTERVAL 1000
