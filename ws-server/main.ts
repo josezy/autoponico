@@ -8,23 +8,23 @@ import express from 'express';
 const IS_PROD = process.env.NODE_ENV === 'production';
 console.log("Working on", IS_PROD ? "PROD" : "DEV");
 
-const port = IS_PROD ? 443 : 8085;
+const port = IS_PROD ? 80 : 8085;
 
 const app = express();
 app.use(express.static('public'))
 
-let server: https.Server | http.Server;
+let secureServer: https.Server | null = null;
 if (IS_PROD) {
-    server = https.createServer({
+    secureServer = https.createServer({
         cert: fs.readFileSync('/etc/letsencrypt/live/autoponico-ws.tucanorobotics.co/fullchain.pem'),
         key: fs.readFileSync('/etc/letsencrypt/live/autoponico-ws.tucanorobotics.co/privkey.pem'),
     });
-} else {
-    server = http.createServer(app);
 }
 
+const server = http.createServer(app);
+
 // Upgrade to websocket server
-const wss = new WebSocketServer.Server({ server });
+const wss = new WebSocketServer.Server({ server: secureServer || server });
 const clients = new Set<WebSocketServer>();
 
 // Creating connection using websocket
@@ -57,3 +57,4 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
 });
 
 server.listen(port);
+secureServer?.listen(443);
