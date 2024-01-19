@@ -5,4 +5,5 @@ node_modules
 env.h
 *.env
 
-arduino/**/build
+*.ino.elf
+*.ino.map
