@@ -3,13 +3,16 @@ import WebSocketServer from 'ws';
 import https from 'https';
 import http from 'http';
 import fs from 'fs';
+import express from 'express';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 console.log("Working on", IS_PROD ? "PROD" : "DEV");
 
 const port = IS_PROD ? 443 : 8085;
 
-// Creating a new websocket server
+const app = express();
+app.use(express.static('public'))
+
 let server: https.Server | http.Server;
 if (IS_PROD) {
     server = https.createServer({
@@ -17,9 +20,10 @@ if (IS_PROD) {
         key: fs.readFileSync('/etc/letsencrypt/live/autoponico-ws.tucanorobotics.co/privkey.pem'),
     });
 } else {
-    server = http.createServer({});
+    server = http.createServer(app);
 }
 
+// Upgrade to websocket server
 const wss = new WebSocketServer.Server({ server });
 const clients = new Set<WebSocketServer>();
 
