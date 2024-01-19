@@ -30,14 +30,14 @@ bool Control::getReadSetPointFromCMD() {
 }
 
 float Control::getSetPoint() {
-    if (!this->readSetPointFromCMD && this->configuration->POT_PIN>0)
-            this->setPoint = map(
-                    analogRead(this->configuration->POT_PIN),
-                    0,
-                    1023,
-                    this->configuration->MIN_DESIRED_MEASURE,
-                    this->configuration->MAX_DESIRED_MEASURE) /
-                10.0;
+    if (!this->readSetPointFromCMD && this->configuration->POT_PIN > 0)
+        this->setPoint = map(
+                             analogRead(this->configuration->POT_PIN),
+                             0,
+                             1023,
+                             this->configuration->MIN_DESIRED_MEASURE,
+                             this->configuration->MAX_DESIRED_MEASURE) /
+                         10.0;
     return this->setPoint;
 }
 
@@ -58,7 +58,7 @@ int Control::doControl() {
 
     this->error = this->current - this->setPoint;
 
-    if (!this->manualMode) {
+    if (this->autoMode) {
         switch (this->state) {
             case STABLE:
                 if (
@@ -100,9 +100,12 @@ int Control::doControl() {
     return going;
 }
 
-// TODO: change mode to always allow manual dose, enable/disable auto mode
-void Control::setManualMode(bool manualMode) {
-    this->manualMode = manualMode;
+void Control::setAutoMode(bool flag) {
+    this->autoMode = flag;
+}
+
+bool Control::getAutoMode() {
+    return this->autoMode;
 }
 
 void Control::down(int dropTime) {

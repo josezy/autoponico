@@ -78,7 +78,6 @@ SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 
-
 void update_started() {
     String msg = "CALLBACK:  HTTP update process started";
     Serial.println(msg.c_str());
@@ -160,7 +159,7 @@ void setupCommands() {
         } else if (action == "ph_setpoint") {
             phControl.setSetPoint(value.toFloat());
         } else if (action == "ph_auto") {
-            // phControl.setAutoMode(value == "true");
+            phControl.setAutoMode(value == "true");
         } else if (action == "ec_up") {
             ecUpControl.up(value.toInt());
         } else if (action == "ec_down") {
@@ -168,7 +167,18 @@ void setupCommands() {
         } else if (action == "ec_setpoint") {
             ecUpControl.setSetPoint(value.toFloat());
         } else if (action == "ec_auto") {
-            // ecUpControl.setAutoMode(value == "true");
+            ecUpControl.setAutoMode(value == "true");
+        } else if (action == "info") {
+            String msg = "ph_setpoint:";
+            msg += phControl.getSetPoint();
+            msg += ",ph_auto:";
+            msg += phControl.getAutoMode();
+            msg += ",ec_setpoint:";
+            msg += ecUpControl.getSetPoint();
+            msg += ",ec_auto:";
+            msg += ecUpControl.getAutoMode();
+            // TODO: add more relevant info, find a better way to arrange state
+            websocketCommands.send((char*)msg.c_str());
         } else {
             Serial.printf("[Control] Unknown action type: %s\n", message);
         }
@@ -203,7 +213,8 @@ void setupCommands() {
                     Serial.println(msg.c_str());
                     websocketCommands.send((char*)msg.c_str());
                     break;
-                } case HTTP_UPDATE_NO_UPDATES: {
+                }
+                case HTTP_UPDATE_NO_UPDATES: {
                     Serial.println("HTTP_UPDATE_NO_UPDATES");
                     websocketCommands.send((char*)"No update available");
                     break;
@@ -224,11 +235,6 @@ void setupCommands() {
             response += WiFi.SSID();
             response += String(",RSSI:");
             response += WiFi.RSSI();
-            response += String(",PH_SETPOINT:");
-            response += phControl.getSetPoint();
-            response += String(",EC_SETPOINT:");
-            response += ecUpControl.getSetPoint();
-            // TODO: Add calibration values?
             websocketCommands.send((char*)response.c_str());
         } else if (action == "temperature") {
             sensorDS18B20.requestTemperatures();
@@ -265,11 +271,9 @@ void setup() {
     sensorDS18B20.begin();
     ecSensor.begin(9600);
 
-    phControl.setManualMode(false);
     phControl.setSetPoint(5.7);  // FIXME: make this setable from websocket (read from EEPROM?)
     phControl.setReadSetPointFromCMD(true);
 
-    ecUpControl.setManualMode(false);
     ecUpControl.setSetPoint(3000);  // FIXME: make this setable from websocket (read from EEPROM?)
     ecUpControl.setReadSetPointFromCMD(true);
 
