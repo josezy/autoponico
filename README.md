@@ -16,13 +16,21 @@ or create a symlink 😏
 Open the `.ino` file with Arduino IDE, compile and happy upload :fire:
 
 > [!NOTE]  
-> To upload from webapp, generate the `.bin` file from Arduino IDE and send command `management update`, it will be automatically downloaded from NextJS/vercel
+> To update from webapp, generate the `.bin` file from Arduino IDE, copy it into NextJS public folder `cp arduino/autoponicoESP8266/build/esp8266.esp8266.nodemcuv2/autoponicoESP8266.ino.bin webapp/public/latest-f
+irmware.bin`, deploy and send command `management update` from webapp, it will tell the Arduino to download that file and apply updated firmware.
 
 ## WebSocket server
 NodeJS program using typescript to handle websockets between webapp and Arduino boards
 Move to dir `cd ./ws-server`
 Install packages `yarn install`
-Run with `nodemon main.ts`
+Run with `env (cat .env | xargs) nodemon main.ts`
+
+For production, run with `env (cat prod.env | xargs) ts-node main.ts`
+
+> [!NOTE]
+> sudo snap install --classic certbot
+> sudo certbot certonly --standalone -d autoponico-ws.tucanorobotics.co
+> 
 
 ## Web App
 NextJS bootstraped app, check `webapp/README.md` for more info

@@ -32,8 +32,8 @@ WebsocketCommands websocketCommands;
 // Control
 ControlConfig phConfiguration = {
     0,            // POT_PIN
-    5,            // M_UP, D1
-    4,            // M_DN, D2
+    D1,           // M_UP
+    D2,           // M_DN
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
     0,            // ZERO_SPEED,
@@ -46,7 +46,7 @@ ControlConfig phConfiguration = {
 };
 ControlConfig ecUpConfiguration = {
     0,            // POT_PIN
-    2,            // M_UP, D4
+    D8,           // M_UP, D0
     0,            // M_DN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
@@ -63,15 +63,15 @@ Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
 // Temp sensor
-OneWire oneWireObject(TEMPERATURE_PIN);
+OneWire oneWireObject(D8);
 DallasTemperature sensorDS18B20(&oneWireObject);
 
 // EC Sensor
-AtlasSerialSensor ecSensor = AtlasSerialSensor(EC_RX, EC_TX);
+AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
 SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 
 // Ph sensor
-Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
+Gravity_pH phSensor = Gravity_pH(D5);
 SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 // Timers
@@ -176,7 +176,10 @@ void setupCommands() {
 
     // Management
     websocketCommands.registerCmd((char*)"management", [](char* message) {
-        String action = String(message);
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index);
 
         if (action == "reboot") {
             resetFunc();
@@ -188,11 +191,18 @@ void setupCommands() {
             ESPhttpUpdate.onProgress(update_progress);
             ESPhttpUpdate.onError(update_error);
 
+            String url;
+            if (value == "latest" || value == "") {
+                url = FIRMWARE_URL;
+            } else {
+                url = value;
+            }
+
             String msg = "Updating firmware from ";
-            msg += FIRMWARE_URL;
+            msg += url;
             Serial.println(msg.c_str());
             websocketCommands.send((char*)msg.c_str());
-            t_httpUpdate_return ret = ESPhttpUpdate.update(client, FIRMWARE_URL);
+            t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
 
             switch (ret) {
                 case HTTP_UPDATE_FAILED: {
