@@ -11,4 +11,4 @@
 
 #define WEBSOCKET_URL "wss://autoponico-ws.tucanorobotics.co/ws?id=ESP"
 
-#define FIRMWARE_URL "http://autoponico.tucanorobotics.co/latest-firmware.bin" // FIXME: only unsecured 
+#define FIRMWARE_URL "http://autoponico-ws.tucanorobotics.co/latest-firmware.bin" // requires more effort to run over https
