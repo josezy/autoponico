@@ -32,8 +32,8 @@ WebsocketCommands websocketCommands;
 // Control
 ControlConfig phConfiguration = {
     0,            // POT_PIN
-    5,            // M_UP, D1
-    4,            // M_DN, D2
+    D1,           // M_UP
+    D2,           // M_DN
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
     0,            // ZERO_SPEED,
@@ -46,7 +46,7 @@ ControlConfig phConfiguration = {
 };
 ControlConfig ecUpConfiguration = {
     0,            // POT_PIN
-    2,            // M_UP, D4
+    D8,           // M_UP, D0
     0,            // M_DN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
@@ -63,15 +63,15 @@ Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
 // Temp sensor
-OneWire oneWireObject(TEMPERATURE_PIN);
+OneWire oneWireObject(D8);
 DallasTemperature sensorDS18B20(&oneWireObject);
 
 // EC Sensor
-AtlasSerialSensor ecSensor = AtlasSerialSensor(EC_RX, EC_TX);
+AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
 SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 
 // Ph sensor
-Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
+Gravity_pH phSensor = Gravity_pH(D5);
 SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 // Timers
