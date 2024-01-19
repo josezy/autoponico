@@ -176,7 +176,10 @@ void setupCommands() {
 
     // Management
     websocketCommands.registerCmd((char*)"management", [](char* message) {
-        String action = String(message);
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index);
 
         if (action == "reboot") {
             resetFunc();
@@ -188,11 +191,18 @@ void setupCommands() {
             ESPhttpUpdate.onProgress(update_progress);
             ESPhttpUpdate.onError(update_error);
 
+            String url;
+            if (value == "latest" || value == "") {
+                url = FIRMWARE_URL;
+            } else {
+                url = value;
+            }
+
             String msg = "Updating firmware from ";
-            msg += FIRMWARE_URL;
+            msg += url;
             Serial.println(msg.c_str());
             websocketCommands.send((char*)msg.c_str());
-            t_httpUpdate_return ret = ESPhttpUpdate.update(client, FIRMWARE_URL);
+            t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
 
             switch (ret) {
                 case HTTP_UPDATE_FAILED: {
