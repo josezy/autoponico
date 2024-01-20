@@ -1,4 +1,4 @@
-#define VERSION "0.4"
+#define VERSION "0.4-cota"
 
 #define MINUTE 1000L * 60
 #define SENSOR_READING_INTERVAL 1000
