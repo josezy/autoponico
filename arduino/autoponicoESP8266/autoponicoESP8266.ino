@@ -46,7 +46,7 @@ ControlConfig phConfiguration = {
 };
 ControlConfig ecUpConfiguration = {
     0,            // POT_PIN
-    D8,           // M_UP, D0
+    D8,           // M_UP
     0,            // M_DN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,

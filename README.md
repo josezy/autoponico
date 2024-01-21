@@ -16,8 +16,7 @@ or create a symlink 😏
 Open the `.ino` file with Arduino IDE, compile and happy upload :fire:
 
 > [!NOTE]  
-> To update from webapp, generate the `.bin` file from Arduino IDE, copy it into NextJS public folder `cp arduino/autoponicoESP8266/build/esp8266.esp8266.nodemcuv2/autoponicoESP8266.ino.bin webapp/public/latest-f
-irmware.bin`, deploy and send command `management update` from webapp, it will tell the Arduino to download that file and apply updated firmware.
+> To update from webapp, generate the `.bin` file from Arduino IDE, rsync it to the ws-server and send command `management update` from webapp, it will tell the Arduino to download that file and apply updated firmware.
 
 ## WebSocket server
 NodeJS program using typescript to handle websockets between webapp and Arduino boards
