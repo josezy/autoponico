@@ -7,10 +7,10 @@
 
 // Install from library manager
 #include <ArduinoWebsockets.h>
-#include <DallasTemperature.h>
+// #include <DallasTemperature.h>
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
-#include <OneWire.h>
+// #include <OneWire.h>
 #include <SimpleKalmanFilter.h>
 
 // Custom libraries
@@ -63,8 +63,8 @@ Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
 // Temp sensor
-OneWire oneWireObject(D8);
-DallasTemperature sensorDS18B20(&oneWireObject);
+// OneWire oneWireObject(D8);
+// DallasTemperature sensorDS18B20(&oneWireObject);
 
 // EC Sensor
 AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
@@ -220,7 +220,7 @@ void setupCommands() {
                 }
             }
         } else if (action == "wifi") {
-            Serial.println("Not implemented");
+            websocketCommands.send((char*)"Not implemented");
             // TODO: Update wifi
         } else if (action == "info") {
             String response = String();
@@ -241,9 +241,10 @@ void setupCommands() {
             // TODO: Add calibration values?
             websocketCommands.send((char*)response.c_str());
         } else if (action == "temperature") {
-            sensorDS18B20.requestTemperatures();
-            String temp = String(sensorDS18B20.getTempCByIndex(0));
-            websocketCommands.send((char*)temp.c_str());
+            // sensorDS18B20.requestTemperatures();
+            // String temp = String(sensorDS18B20.getTempCByIndex(0));
+            // websocketCommands.send((char*)temp.c_str());
+            websocketCommands.send((char*)"Not implemented");
         } else {
             Serial.printf("[Management] Unknown action type: %s\n", message);
         }
@@ -272,7 +273,7 @@ void setup() {
     setupCommands();
 
     phSensor.begin();
-    sensorDS18B20.begin();
+    // sensorDS18B20.begin();
     ecSensor.begin(9600);
 
     phControl.setManualMode(false);
@@ -311,7 +312,7 @@ void loop() {
 
     if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL) {
         sensorReadingTimer = millis();
-        sensorDS18B20.requestTemperatures();
+        // sensorDS18B20.requestTemperatures();
 
         float ecReading = ecSensor.getReading();
         float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
@@ -339,7 +340,7 @@ void loop() {
             autoponicoPoint.addField("ec_desired", ecSetpoint);
             autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             autoponicoPoint.addField("ec_control_direction", ec_control_direction);
-            autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
+            // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
             writePoints(autoponicoPoint);
         }
     }
