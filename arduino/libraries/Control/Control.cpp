@@ -4,10 +4,10 @@ Control::Control(ControlConfig* configuration) {
     this->configuration = configuration;
     this->stabilizationTimer = millis();
 
-    if (configuration->M_UP > 0)
-        pinMode(configuration->M_UP, OUTPUT);
-    if (configuration->M_DN > 0)
-        pinMode(configuration->M_DN, OUTPUT);
+    if (configuration->M_UP_PIN > 0)
+        pinMode(configuration->M_UP_PIN, OUTPUT);
+    if (configuration->M_DN_PIN > 0)
+        pinMode(configuration->M_DN_PIN, OUTPUT);
 }
 
 const char* Control::getControlText(int control_type) {
@@ -21,23 +21,7 @@ const char* Control::getControlText(int control_type) {
     }
 }
 
-void Control::setReadSetPointFromCMD(bool readSetPointFromCMD) {
-    this->readSetPointFromCMD = readSetPointFromCMD;
-}
-
-bool Control::getReadSetPointFromCMD() {
-    return this->readSetPointFromCMD;
-}
-
 float Control::getSetPoint() {
-    if (!this->readSetPointFromCMD && this->configuration->POT_PIN>0)
-            this->setPoint = map(
-                    analogRead(this->configuration->POT_PIN),
-                    0,
-                    1023,
-                    this->configuration->MIN_DESIRED_MEASURE,
-                    this->configuration->MAX_DESIRED_MEASURE) /
-                10.0;
     return this->setPoint;
 }
 
@@ -70,10 +54,10 @@ int Control::doControl() {
             case CONTROLING:
                 if (
                     abs(this->error) >= this->configuration->STABILIZATION_MARGIN) {
-                    if (this->error > 0 && this->current != 0 && this->configuration->M_DN > 0) {
+                    if (this->error > 0 && this->current != 0 && this->configuration->M_DN_PIN > 0) {
                         this->down(this->configuration->DROP_TIME);
                         going = GOING_DOWN;
-                    } else if (this->error < 0 && this->current != 0 && this->configuration->M_UP > 0) {
+                    } else if (this->error < 0 && this->current != 0 && this->configuration->M_UP_PIN > 0) {
                         this->up(this->configuration->DROP_TIME);
                         going = GOING_UP;
                     }
@@ -106,17 +90,17 @@ void Control::setManualMode(bool manualMode) {
 }
 
 void Control::down(int dropTime) {
-    if (this->configuration->M_DN > 0) {
-        analogWrite(this->configuration->M_DN, this->configuration->M_DN_SPEED);
+    if (this->configuration->M_DN_PIN > 0) {
+        analogWrite(this->configuration->M_DN_PIN, this->configuration->M_DN_SPEED);
         delay(dropTime);
-        analogWrite(this->configuration->M_DN, this->configuration->ZERO_SPEED);
+        analogWrite(this->configuration->M_DN_PIN, this->configuration->ZERO_SPEED);
     }
 }
 
 void Control::up(int dropTime) {
-    if (this->configuration->M_UP > 0) {
-        analogWrite(this->configuration->M_UP, this->configuration->M_UP_SPEED);
+    if (this->configuration->M_UP_PIN > 0) {
+        analogWrite(this->configuration->M_UP_PIN, this->configuration->M_UP_SPEED);
         delay(dropTime);
-        analogWrite(this->configuration->M_UP, this->configuration->ZERO_SPEED);
+        analogWrite(this->configuration->M_UP_PIN, this->configuration->ZERO_SPEED);
     }
 }

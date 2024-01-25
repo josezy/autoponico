@@ -32,8 +32,8 @@ WebsocketCommands websocketCommands;
 // Control
 ControlConfig phConfiguration = {
     0,            // POT_PIN
-    D1,           // M_UP
-    D2,           // M_DN
+    D1,           // M_UP_PIN
+    D2,           // M_DN_PIN
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
     0,            // ZERO_SPEED,
@@ -41,13 +41,11 @@ ControlConfig phConfiguration = {
     0.3,          // ERR_MARGIN,
     10 * MINUTE,  // STABILIZATION_TIME,
     0.1,          // STABILIZATION_MARGIN
-    5 * 10,       // MAX_DESIRED_MEASURE
-    7 * 10        // MIN_DESIRED_MEASURE
 };
 ControlConfig ecUpConfiguration = {
     0,            // POT_PIN
-    D8,           // M_UP
-    0,            // M_DN,
+    D8,           // M_UP_PIN
+    0,            // M_DN_PIN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
     0,            // ZERO_SPEED,
@@ -55,8 +53,6 @@ ControlConfig ecUpConfiguration = {
     300,          // ERR_MARGIN,
     10 * MINUTE,  // STABILIZATION_TIME,
     100,          // STABILIZATION_MARGIN
-    0,            // MAX_DESIRED_MEASURE 0 if POT_PIN=0
-    0             // MIN_DESIRED_MEASURE 0 if POT_PIN=0
 };
 
 Control phControl = Control(&phConfiguration);
@@ -278,11 +274,9 @@ void setup() {
 
     phControl.setManualMode(false);
     phControl.setSetPoint(5.7);  // FIXME: make this setable from websocket (read from EEPROM?)
-    phControl.setReadSetPointFromCMD(true);
 
     ecUpControl.setManualMode(false);
     ecUpControl.setSetPoint(3000);  // FIXME: make this setable from websocket (read from EEPROM?)
-    ecUpControl.setReadSetPointFromCMD(true);
 
     sensorReadingTimer = millis();
     influxSyncTimer = millis();
