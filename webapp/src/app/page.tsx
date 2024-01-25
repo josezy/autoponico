@@ -4,7 +4,7 @@ import React from "react"
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+    <main className="flex min-h-screen flex-col items-center justify-between p-1 sm:p-6 md:p-12 lg:p-16 max-w-5xl w-full mx-auto">
       <WebsocketCommander />
       <Footer />
     </main>
@@ -22,6 +22,8 @@ const WebsocketCommander = () => {
   const [message, setMessage] = React.useState<string>("")
   const [isConnected, setIsConnected] = React.useState<boolean>(false)
 
+  const bottomRef = React.useRef<HTMLDivElement>(null)
+
   React.useEffect(() => {
     // press enter to send message
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -35,13 +37,20 @@ const WebsocketCommander = () => {
     }
   }, [message])
 
+  React.useEffect(() => {
+    if (messages.length) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [messages.length])
+
   const connect = () => {
     const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WSSERVER_URL}?id=webapp`)
     ws.onopen = () => {
       setIsConnected(true)
     }
     ws.onmessage = (event) => {
-      setMessages((messages) => [...messages, event.data])
+      const line = `[${new Date().toISOString()}]: ${event.data}`
+      setMessages((messages) => [...messages, line])
     }
     ws.onclose = () => {
       setIsConnected(false)
@@ -97,12 +106,13 @@ const WebsocketCommander = () => {
         <div className="flex flex-col items-center justify-center w-full">
           <span className="text-xl font-bold">Messages</span>
         </div>
-        <div className="flex flex-col items-center justify-center w-full mt-3">
+        <div className="flex flex-col items-start px-5 py-2 justify-start w-full mt-3 h-96 overflow-y-auto border border-gray-300 rounded-md">
           {messages.map((message, index) => (
-            <span key={index} className="text-lg">
+            <span key={index} className="text-lg break-all">
               {message}
             </span>
           ))}
+          <div ref={bottomRef} />
         </div>
       </div>
     </div>
