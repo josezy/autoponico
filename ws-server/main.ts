@@ -5,8 +5,12 @@ import http from 'http';
 import fs from 'fs';
 import express from 'express';
 
+const logWithTimestamp = (...messages: (string | any)[]): void => {
+    console.log(`[${new Date().toISOString()}]`, ...messages)
+}
+
 const IS_PROD = process.env.NODE_ENV === 'production';
-console.log("Working on", IS_PROD ? "PROD" : "DEV");
+logWithTimestamp("Working on", IS_PROD ? "PROD" : "DEV");
 
 const port = IS_PROD ? 80 : 8085;
 
@@ -29,7 +33,7 @@ const clients = new Set<WebSocketServer>();
 
 // Creating connection using websocket
 wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
-    console.log("new socket connected: ", req.url);
+    logWithTimestamp("new socket connected: ", req.url);
     clients.add(ws);
 
     // sending message to client
@@ -37,7 +41,7 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
 
     //on message from client
     ws.on("message", (data: WebSocketServer.RawData) => {
-        console.log(`Client has sent us: ${data}`)
+        logWithTimestamp(`Client has sent us: ${data}`)
         clients.forEach(client => {
             if (client !== ws) {
                 client.send(data.toString());
@@ -47,12 +51,12 @@ wss.on("connection", (ws: WebSocketServer, req: IncomingMessage) => {
 
     // handling what to do when clients disconnects from server
     ws.on("close", () => {
-        console.log("the client has disconnected");
+        logWithTimestamp("the client has disconnected", req.url);
         clients.delete(ws);
     });
     // handling client connection error
-    ws.onerror = function () {
-        console.log("Some Error occurred")
+    ws.onerror = function (e) {
+        logWithTimestamp("Some Error occurred", e);
     }
 });
 
