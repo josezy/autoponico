@@ -234,6 +234,8 @@ void setupCommands() {
             response += phControl.getSetPoint();
             response += String(",EC_SETPOINT:");
             response += ecUpControl.getSetPoint();
+            response += String(",INFLUXDB_ENABLED:");
+            response += String(INFLUXDB_ENABLED);
             // TODO: Add calibration values?
             websocketCommands.send((char*)response.c_str());
         } else if (action == "temperature") {
@@ -252,6 +254,7 @@ void setup() {
 
     Serial.printf("\n\nWelcome to Arduponico v%s\n", VERSION);
     Serial.printf("Connecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
+    WiFi.mode(WIFI_STA); // FIXME: needs to be both: STA and AP
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
     // Wait some time to connect to wifi
     for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
@@ -261,9 +264,9 @@ void setup() {
     Serial.println();
 
     // Check if connected to wifi
+    // FIXME: Have the AP running to manage WiFi connection
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("No Wifi!");
-        return;
+        Serial.println("No Wifi! Retrying in loop...");
     }
 
     setupCommands();
@@ -335,14 +338,10 @@ void loop() {
             autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             autoponicoPoint.addField("ec_control_direction", ec_control_direction);
             // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
-            writePoints(autoponicoPoint);
+            if (!influxClient.writePoint(autoponicoPoint)) {
+                Serial.print("InfluxDB write failed: ");
+                Serial.println(influxClient.getLastErrorMessage());
+            }
         }
-    }
-}
-
-void writePoints(Point point) {
-    if (!influxClient.writePoint(point)) {
-        Serial.print("InfluxDB write failed: ");
-        Serial.println(influxClient.getLastErrorMessage());
     }
 }
