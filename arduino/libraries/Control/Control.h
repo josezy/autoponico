@@ -30,7 +30,7 @@ struct ControlConfig {
 
 class Control {
     ControlConfig* configuration;
-    bool manualMode = false;
+    bool autoMode = true;
     int state = STABLE;
     float error;
     float current = 0;
@@ -43,7 +43,8 @@ class Control {
     void down(int dropTime);
     int doControl();
     const char* getControlText(int control_type);
-    void setManualMode(bool manualMode);
+    void setAutoMode(bool flag);
+    bool getAutoMode();
 
     void setCurrent(float current);
     float getCurrent();

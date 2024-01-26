@@ -42,7 +42,7 @@ int Control::doControl() {
 
     this->error = this->current - this->setPoint;
 
-    if (!this->manualMode) {
+    if (this->autoMode) {
         switch (this->state) {
             case STABLE:
                 if (
@@ -84,9 +84,12 @@ int Control::doControl() {
     return going;
 }
 
-// TODO: change mode to always allow manual dose, enable/disable auto mode
-void Control::setManualMode(bool manualMode) {
-    this->manualMode = manualMode;
+void Control::setAutoMode(bool flag) {
+    this->autoMode = flag;
+}
+
+bool Control::getAutoMode() {
+    return this->autoMode;
 }
 
 void Control::down(int dropTime) {
