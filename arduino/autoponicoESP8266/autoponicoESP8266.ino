@@ -156,7 +156,7 @@ void setupCommands() {
         } else if (action == "ph_setpoint") {
             phControl.setSetPoint(value.toFloat());
         } else if (action == "ph_auto") {
-            phControl.setAutoMode(value == "true");
+            phControl.setAutoMode(value.toInt());
         } else if (action == "ec_up") {
             ecUpControl.up(value.toInt());
         } else if (action == "ec_down") {
@@ -164,7 +164,7 @@ void setupCommands() {
         } else if (action == "ec_setpoint") {
             ecUpControl.setSetPoint(value.toFloat());
         } else if (action == "ec_auto") {
-            ecUpControl.setAutoMode(value == "true");
+            ecUpControl.setAutoMode(value.toInt());
         } else if (action == "info") {
             String msg = "ph_setpoint:";
             msg += phControl.getSetPoint();
