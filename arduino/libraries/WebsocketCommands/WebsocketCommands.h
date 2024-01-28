@@ -6,11 +6,12 @@
 
 #include <functional>
 
+#define WS_PING_INTERVAL 10000
+
 typedef void (*CommandHanndler)(char*);
 
 enum WebsocketState {
     WS_DISCONNECTED,
-    WS_CONNECTING,
     WS_CONNECTED
 };
 
@@ -28,6 +29,7 @@ class WebsocketCommands {
     WebsocketState websocketState = WS_DISCONNECTED;
     CommandStruct m_commands[MAX_CMDS];
     WebsocketsClient wsClient;
+    unsigned long lastPing = 0;
     void onEventsCallback(WebsocketsEvent event, String data);
     void onMessageCallback(WebsocketsMessage message);
 

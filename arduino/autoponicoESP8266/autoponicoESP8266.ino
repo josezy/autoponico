@@ -1,15 +1,16 @@
 // Arduino included libraries
 #include <ESP8266WiFi.h>
+#include <ESP8266httpUpdate.h>
 
 // Download from https://files.atlas-scientific.com/gravity-pH-ardunio-code.pdf
 #include <ph_iso_grav.h>
 
 // Install from library manager
 #include <ArduinoWebsockets.h>
-#include <DallasTemperature.h>
+// #include <DallasTemperature.h>
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
-#include <OneWire.h>
+// #include <OneWire.h>
 #include <SimpleKalmanFilter.h>
 
 // Custom libraries
@@ -31,8 +32,8 @@ WebsocketCommands websocketCommands;
 // Control
 ControlConfig phConfiguration = {
     0,            // POT_PIN
-    5,            // M_UP, D1
-    4,            // M_DN, D2
+    D1,           // M_UP_PIN
+    D2,           // M_DN_PIN
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
     0,            // ZERO_SPEED,
@@ -40,13 +41,11 @@ ControlConfig phConfiguration = {
     0.3,          // ERR_MARGIN,
     10 * MINUTE,  // STABILIZATION_TIME,
     0.1,          // STABILIZATION_MARGIN
-    5 * 10,       // MAX_DESIRED_MEASURE
-    7 * 10        // MIN_DESIRED_MEASURE
 };
 ControlConfig ecUpConfiguration = {
     0,            // POT_PIN
-    2,            // M_UP, D4
-    0,            // M_DN,
+    D8,           // M_UP_PIN
+    0,            // M_DN_PIN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
     0,            // ZERO_SPEED,
@@ -54,27 +53,56 @@ ControlConfig ecUpConfiguration = {
     300,          // ERR_MARGIN,
     10 * MINUTE,  // STABILIZATION_TIME,
     100,          // STABILIZATION_MARGIN
-    0,            // MAX_DESIRED_MEASURE 0 if POT_PIN=0
-    0             // MIN_DESIRED_MEASURE 0 if POT_PIN=0
 };
 
 Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
 // Temp sensor
-OneWire oneWireObject(TEMPERATURE_PIN);
-DallasTemperature sensorDS18B20(&oneWireObject);
+// OneWire oneWireObject(D8);
+// DallasTemperature sensorDS18B20(&oneWireObject);
 
 // EC Sensor
-AtlasSerialSensor ecSensor = AtlasSerialSensor(EC_RX, EC_TX);
+AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
 SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 
 // Ph sensor
-Gravity_pH phSensor = Gravity_pH(GRAV_PH_PIN);
+Gravity_pH phSensor = Gravity_pH(D5);
 SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
+// Timers
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
+
+
+void update_started() {
+    String msg = "CALLBACK:  HTTP update process started";
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
+
+void update_finished() {
+    String msg = "CALLBACK:  HTTP update process finished";
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
+
+void update_progress(int cur, int total) {
+    String msg = "CALLBACK:  HTTP update process at ";
+    msg += cur;
+    msg += " of ";
+    msg += total;
+    msg += " bytes...";
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
+
+void update_error(int err) {
+    String msg = "CALLBACK:  HTTP update fatal error code ";
+    msg += err;
+    Serial.println(msg.c_str());
+    websocketCommands.send((char*)msg.c_str());
+}
 
 void setupCommands() {
     websocketCommands.init((char*)WEBSOCKET_URL);
@@ -128,7 +156,7 @@ void setupCommands() {
         } else if (action == "ph_setpoint") {
             phControl.setSetPoint(value.toFloat());
         } else if (action == "ph_auto") {
-            // phControl.setAutoMode(value == "true");
+            phControl.setAutoMode(value == "true");
         } else if (action == "ec_up") {
             ecUpControl.up(value.toInt());
         } else if (action == "ec_down") {
@@ -136,7 +164,18 @@ void setupCommands() {
         } else if (action == "ec_setpoint") {
             ecUpControl.setSetPoint(value.toFloat());
         } else if (action == "ec_auto") {
-            // ecUpControl.setAutoMode(value == "true");
+            ecUpControl.setAutoMode(value == "true");
+        } else if (action == "info") {
+            String msg = "ph_setpoint:";
+            msg += phControl.getSetPoint();
+            msg += ",ph_auto:";
+            msg += phControl.getAutoMode();
+            msg += ",ec_setpoint:";
+            msg += ecUpControl.getSetPoint();
+            msg += ",ec_auto:";
+            msg += ecUpControl.getAutoMode();
+            // TODO: add more relevant info, find a better way to arrange state
+            websocketCommands.send((char*)msg.c_str());
         } else {
             Serial.printf("[Control] Unknown action type: %s\n", message);
         }
@@ -144,17 +183,53 @@ void setupCommands() {
 
     // Management
     websocketCommands.registerCmd((char*)"management", [](char* message) {
-        String action = String(message);
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index);
 
         if (action == "reboot") {
             resetFunc();
         } else if (action == "update") {
-            Serial.println("Not implemented");
-            // TODO: Update from OTA: https://github.com/JAndrassy/ArduinoOTA/blob/master/examples/Advanced/OTASketchDownloadWifi/OTASketchDownloadWifi.ino
+            WiFiClient client;
+            ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
+            ESPhttpUpdate.onStart(update_started);
+            ESPhttpUpdate.onEnd(update_finished);
+            ESPhttpUpdate.onProgress(update_progress);
+            ESPhttpUpdate.onError(update_error);
+
+            String url;
+            if (value == "latest" || value == "") {
+                url = FIRMWARE_URL;
+            } else {
+                url = value;
+            }
+
+            String msg = "Updating firmware from ";
+            msg += url;
+            Serial.println(msg.c_str());
+            websocketCommands.send((char*)msg.c_str());
+            t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
+
+            switch (ret) {
+                case HTTP_UPDATE_FAILED: {
+                    String msg = "HTTP_UPDATE_FAILED Error: (";
+                    msg += ESPhttpUpdate.getLastError();
+                    msg += "): ";
+                    msg += ESPhttpUpdate.getLastErrorString();
+                    Serial.println(msg.c_str());
+                    websocketCommands.send((char*)msg.c_str());
+                    break;
+                } case HTTP_UPDATE_NO_UPDATES: {
+                    Serial.println("HTTP_UPDATE_NO_UPDATES");
+                    websocketCommands.send((char*)"No update available");
+                    break;
+                }
+            }
         } else if (action == "wifi") {
-            Serial.println("Not implemented");
+            websocketCommands.send((char*)"Not implemented");
             // TODO: Update wifi
-        } else if (action == "configuration") {
+        } else if (action == "info") {
             String response = String();
             response += String("VERSION:");
             response += String(VERSION);
@@ -166,17 +241,15 @@ void setupCommands() {
             response += WiFi.SSID();
             response += String(",RSSI:");
             response += WiFi.RSSI();
-            response += String(",PH_SETPOINT:");
-            response += phControl.getSetPoint();
-            response += String(",EC_SETPOINT:");
-            response += ecUpControl.getSetPoint();
-            // TODO: Add calibration values?
+            response += String(",INFLUXDB_ENABLED:");
+            response += String(INFLUXDB_ENABLED);
             websocketCommands.send((char*)response.c_str());
         } else if (action == "temperature") {
-            sensorDS18B20.requestTemperatures();
-            String temp = String(sensorDS18B20.getTempCByIndex(0));
-            websocketCommands.send((char*)temp.c_str());
-        } else  {
+            // sensorDS18B20.requestTemperatures();
+            // String temp = String(sensorDS18B20.getTempCByIndex(0));
+            // websocketCommands.send((char*)temp.c_str());
+            websocketCommands.send((char*)"Not implemented");
+        } else {
             Serial.printf("[Management] Unknown action type: %s\n", message);
         }
     });
@@ -185,33 +258,31 @@ void setupCommands() {
 void setup() {
     Serial.begin(115200);
 
-    Serial.printf("Connecting to wifi: %s\n", WIFI_SSID);
+    Serial.printf("\n\nWelcome to Arduponico v%s\n", VERSION);
+    Serial.printf("Connecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
+    WiFi.mode(WIFI_STA); // FIXME: needs to be both: STA and AP
     WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
     // Wait some time to connect to wifi
     for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
         Serial.print("x");
         delay(1000);
     }
+    Serial.println();
 
     // Check if connected to wifi
+    // FIXME: Have the AP running to manage WiFi connection
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("No Wifi!");
-        return;
+        Serial.println("No Wifi! Retrying in loop...");
     }
 
     setupCommands();
 
     phSensor.begin();
-    sensorDS18B20.begin();
+    // sensorDS18B20.begin();
     ecSensor.begin(9600);
 
-    phControl.setManualMode(false);
-    phControl.setSetPoint(5.7);  // FIXME: make this setable from websocket (read from EEPROM?)
-    phControl.setReadSetPointFromCMD(true);
-
-    ecUpControl.setManualMode(false);
-    ecUpControl.setSetPoint(3000);  // FIXME: make this setable from websocket (read from EEPROM?)
-    ecUpControl.setReadSetPointFromCMD(true);
+    phControl.setSetPoint(5.8);  // FIXME: make this setable from websocket (store in memory)
+    ecUpControl.setSetPoint(3000);  // FIXME: make this setable from websocket (store in memory)
 
     sensorReadingTimer = millis();
     influxSyncTimer = millis();
@@ -241,7 +312,7 @@ void loop() {
 
     if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL) {
         sensorReadingTimer = millis();
-        sensorDS18B20.requestTemperatures();
+        // sensorDS18B20.requestTemperatures();
 
         float ecReading = ecSensor.getReading();
         float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
@@ -269,15 +340,11 @@ void loop() {
             autoponicoPoint.addField("ec_desired", ecSetpoint);
             autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             autoponicoPoint.addField("ec_control_direction", ec_control_direction);
-            autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
-            writePoints(autoponicoPoint);
+            // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
+            if (!influxClient.writePoint(autoponicoPoint)) {
+                Serial.print("InfluxDB write failed: ");
+                Serial.println(influxClient.getLastErrorMessage());
+            }
         }
-    }
-}
-
-void writePoints(Point point) {
-    if (!influxClient.writePoint(point)) {
-        Serial.print("InfluxDB write failed: ");
-        Serial.println(influxClient.getLastErrorMessage());
     }
 }

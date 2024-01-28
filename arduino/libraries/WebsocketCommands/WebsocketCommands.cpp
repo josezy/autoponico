@@ -25,16 +25,20 @@ void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data) {
             Serial.println("WS_DISCONNECTED");
             break;
         case WebsocketsEvent::GotPing:
+            Serial.println("WS_GOT_PING");
             break;
         case WebsocketsEvent::GotPong:
+            Serial.println("WS_GOT_PONG");
             break;
         default:
+            Serial.println("UNKNOWN");
             break;
     }
 }
 
 void WebsocketCommands::onMessageCallback(WebsocketsMessage message) {
     String inputString = message.data();
+    Serial.printf("Received: %s\n", inputString.c_str());
     int spaceIndex = inputString.indexOf(' ');
 
     String command;
@@ -59,25 +63,40 @@ void WebsocketCommands::onMessageCallback(WebsocketsMessage message) {
 }
 
 void WebsocketCommands::websocketJob() {
-    if (this->websocketState == WS_DISCONNECTED && this->websocketState != WS_CONNECTING && WiFi.waitForConnectResult() == WL_CONNECTED) {
+    // if no wifi, mark ws as disconnected
+    wl_status_t wifiStatus = WiFi.status();
+    if (wifiStatus != WL_CONNECTED) {
+        this->websocketState = WS_DISCONNECTED;
+        Serial.printf("No wifi: %d. Websocket disconnected\n", wifiStatus);
+        delay(1000);
+        return;
+    }
+
+    // if ws disconnected and connected to wifi
+    if (this->websocketState == WS_DISCONNECTED) {
         Serial.print("Connecting to websocket: ");
         Serial.println(this->socketUrl);
-        this->websocketState = WS_CONNECTING;
-        bool connected = this->wsClient.connect(this->socketUrl);
+        bool connected = this->wsClient.connect(this->socketUrl); // This is syncronous
         if (connected) {
             Serial.println("Websocket connected");
         } else {
             Serial.println("Websocket connection failed");
-            this->websocketState = WS_DISCONNECTED;
             delay(1000);
         }
-    } else if (this->websocketState == WS_CONNECTED) {
-        this->wsClient.poll();
+        return;
     }
 
-    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        this->websocketState = WS_DISCONNECTED;
-        Serial.println("Websocket disconnected");
+    // if ws connected and ping interval reached
+    if (millis() - this->lastPing > WS_PING_INTERVAL) {
+        // this->wsClient.send("ping");
+        this->wsClient.ping();
+        this->lastPing = millis();
+        return;
+    }
+
+    // if ws connected and available
+    if (this->wsClient.available()) {
+        this->wsClient.poll();
     }
 }
 
@@ -86,6 +105,7 @@ void WebsocketCommands::init(char* socketUrl) {
     this->wsClient.onEvent(std::bind(&WebsocketCommands::onEventsCallback, this, std::placeholders::_1, std::placeholders::_2));
     this->wsClient.onMessage(std::bind(&WebsocketCommands::onMessageCallback, this, std::placeholders::_1));
     this->wsClient.setInsecure();  // FIXME: use secure connection
+    this->lastPing = millis();
 }
 
 void WebsocketCommands::send(char* message) {
