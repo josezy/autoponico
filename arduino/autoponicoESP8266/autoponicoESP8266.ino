@@ -17,6 +17,7 @@
 #include <AtlasSerialSensor.h>
 #include <Control.h>
 #include <WebsocketCommands.h>
+#include <RemoteFlasher.h>
 
 #include "configuration.h"
 #include "env.h"
@@ -190,42 +191,15 @@ void setupCommands() {
 
         if (action == "reboot") {
             resetFunc();
-        } else if (action == "update") {
-            WiFiClient client;
-            ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
-            ESPhttpUpdate.onStart(update_started);
-            ESPhttpUpdate.onEnd(update_finished);
-            ESPhttpUpdate.onProgress(update_progress);
-            ESPhttpUpdate.onError(update_error);
-
+        } else if (action == "update") {  
             String url;
             if (value == "latest" || value == "") {
                 url = FIRMWARE_URL;
             } else {
                 url = value;
-            }
-
-            String msg = "Updating firmware from ";
-            msg += url;
-            Serial.println(msg.c_str());
-            websocketCommands.send((char*)msg.c_str());
-            t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
-
-            switch (ret) {
-                case HTTP_UPDATE_FAILED: {
-                    String msg = "HTTP_UPDATE_FAILED Error: (";
-                    msg += ESPhttpUpdate.getLastError();
-                    msg += "): ";
-                    msg += ESPhttpUpdate.getLastErrorString();
-                    Serial.println(msg.c_str());
-                    websocketCommands.send((char*)msg.c_str());
-                    break;
-                } case HTTP_UPDATE_NO_UPDATES: {
-                    Serial.println("HTTP_UPDATE_NO_UPDATES");
-                    websocketCommands.send((char*)"No update available");
-                    break;
-                }
-            }
+            }            
+            RemoteFlasher remoteFlasher(websocketCommands);
+            remoteFlasher.updateFirmware(url);
         } else if (action == "wifi") {
             websocketCommands.send((char*)"Not implemented");
             // TODO: Update wifi
