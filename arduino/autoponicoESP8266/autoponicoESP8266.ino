@@ -1,28 +1,23 @@
 // Arduino included libraries
 #include <ESP8266WiFi.h>
-#include <ESP8266httpUpdate.h>
-
 // Download from https://files.atlas-scientific.com/gravity-pH-ardunio-code.pdf
 #include <ph_iso_grav.h>
-
-// Install from library manager
-#include <ArduinoWebsockets.h>
 // #include <DallasTemperature.h>
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
 // #include <OneWire.h>
 #include <SimpleKalmanFilter.h>
-
 // Custom libraries
 #include <AtlasSerialSensor.h>
 #include <Control.h>
 #include <WebsocketCommands.h>
 #include <RemoteFlasher.h>
+#include <FileManager.h>
 
 #include "configuration.h"
 #include "env.h"
 
-void (*resetFunc)(void) = 0;  // create a standard reset function
+void (*resetFunc)(void) = 0; // create a standard reset function
 
 InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
 Point autoponicoPoint("cultivo");
@@ -32,28 +27,28 @@ WebsocketCommands websocketCommands;
 
 // Control
 ControlConfig phConfiguration = {
-    0,            // POT_PIN
-    D1,           // M_UP_PIN
-    D2,           // M_DN_PIN
-    200,          // M_UP_SPEED,
-    200,          // M_DN_SPEED,
-    0,            // ZERO_SPEED,
-    1000,         // DROP_TIME,
-    0.3,          // ERR_MARGIN,
-    10 * MINUTE,  // STABILIZATION_TIME,
-    0.1,          // STABILIZATION_MARGIN
+    0,           // POT_PIN
+    D1,          // M_UP_PIN
+    D2,          // M_DN_PIN
+    200,         // M_UP_SPEED,
+    200,         // M_DN_SPEED,
+    0,           // ZERO_SPEED,
+    1000,        // DROP_TIME,
+    0.3,         // ERR_MARGIN,
+    10 * MINUTE, // STABILIZATION_TIME,
+    0.1,         // STABILIZATION_MARGIN
 };
 ControlConfig ecUpConfiguration = {
-    0,            // POT_PIN
-    D8,           // M_UP_PIN
-    0,            // M_DN_PIN,
-    200,          // M_UP_SPEED,
-    200,          // M_DN_SPEED,
-    0,            // ZERO_SPEED,
-    10000,        // DROP_TIME,
-    300,          // ERR_MARGIN,
-    10 * MINUTE,  // STABILIZATION_TIME,
-    100,          // STABILIZATION_MARGIN
+    0,           // POT_PIN
+    D8,          // M_UP_PIN
+    0,           // M_DN_PIN,
+    200,         // M_UP_SPEED,
+    200,         // M_DN_SPEED,
+    0,           // ZERO_SPEED,
+    10000,       // DROP_TIME,
+    300,         // ERR_MARGIN,
+    10 * MINUTE, // STABILIZATION_TIME,
+    100,         // STABILIZATION_MARGIN
 };
 
 Control phControl = Control(&phConfiguration);
@@ -74,39 +69,13 @@ SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 // Timers
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
+// Remote flasher
+RemoteFlasher remoteFlasher(websocketCommands);
+FileManager fileManager(websocketCommands);
 
-
-void update_started() {
-    String msg = "CALLBACK:  HTTP update process started";
-    Serial.println(msg.c_str());
-    websocketCommands.send((char*)msg.c_str());
-}
-
-void update_finished() {
-    String msg = "CALLBACK:  HTTP update process finished";
-    Serial.println(msg.c_str());
-    websocketCommands.send((char*)msg.c_str());
-}
-
-void update_progress(int cur, int total) {
-    String msg = "CALLBACK:  HTTP update process at ";
-    msg += cur;
-    msg += " of ";
-    msg += total;
-    msg += " bytes...";
-    Serial.println(msg.c_str());
-    websocketCommands.send((char*)msg.c_str());
-}
-
-void update_error(int err) {
-    String msg = "CALLBACK:  HTTP update fatal error code ";
-    msg += err;
-    Serial.println(msg.c_str());
-    websocketCommands.send((char*)msg.c_str());
-}
-
-void setupCommands() {
-    websocketCommands.init((char*)WEBSOCKET_URL);
+void setupCommands()
+{
+    websocketCommands.init((char *)WEBSOCKET_URL);
 
     pinMode(LED_BUILTIN, OUTPUT);
     websocketCommands.registerCmd((char*)"ping", [](char* message) {
@@ -179,11 +148,11 @@ void setupCommands() {
             websocketCommands.send((char*)msg.c_str());
         } else {
             Serial.printf("[Control] Unknown action type: %s\n", message);
-        }
-    });
+        } });
 
     // Management
-    websocketCommands.registerCmd((char*)"management", [](char* message) {
+    websocketCommands.registerCmd((char *)"management", [](char *message)
+                                  {
         String strMessage = String(message);
         int index = strMessage.indexOf(' ');
         String action = strMessage.substring(0, index);
@@ -198,9 +167,17 @@ void setupCommands() {
             } else {
                 url = value;
             }            
-            RemoteFlasher remoteFlasher(websocketCommands);
             remoteFlasher.updateFirmware(url);
-        } else if (action == "wifi") {
+        } else if (action == "update_files") {
+            for(int i=0; i<sizeof(&LOCAL_WEB_SITE_PATH_FILES); i++) {  
+                Serial.printf("Updating file: %s\n", LOCAL_WEB_SITE_PATH_FILES[i]);
+                fileManager.streamToFile(FILES_HOST, LOCAL_WEB_SITE_PATH_FILES[i]);                
+            }            
+        } else if(action == "list_files"){
+            Serial.printf("Listing files: %s\n", value.c_str());
+            fileManager.listDir(value.c_str());            
+        } 
+        else if (action == "wifi") {
             websocketCommands.send((char*)"Not implemented");
             // TODO: Update wifi
         } else if (action == "info") {
@@ -225,19 +202,20 @@ void setupCommands() {
             websocketCommands.send((char*)"Not implemented");
         } else {
             Serial.printf("[Management] Unknown action type: %s\n", message);
-        }
-    });
+        } });
 }
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
 
     Serial.printf("\n\nWelcome to Arduponico v%s\n", VERSION);
     Serial.printf("Connecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
     WiFi.mode(WIFI_STA); // FIXME: needs to be both: STA and AP
-    WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
+    WiFi.begin((char *)WIFI_SSID, (char *)WIFI_PASSWORD);
     // Wait some time to connect to wifi
-    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
+    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++)
+    {
         Serial.print("x");
         delay(1000);
     }
@@ -245,7 +223,8 @@ void setup() {
 
     // Check if connected to wifi
     // FIXME: Have the AP running to manage WiFi connection
-    if (WiFi.status() != WL_CONNECTED) {
+    if (WiFi.status() != WL_CONNECTED)
+    {
         Serial.println("No Wifi! Retrying in loop...");
     }
 
@@ -255,36 +234,45 @@ void setup() {
     // sensorDS18B20.begin();
     ecSensor.begin(9600);
 
-    phControl.setSetPoint(5.8);  // FIXME: make this setable from websocket (store in memory)
-    ecUpControl.setSetPoint(3000);  // FIXME: make this setable from websocket (store in memory)
+    phControl.setSetPoint(5.8);    // FIXME: make this setable from websocket (store in memory)
+    ecUpControl.setSetPoint(3000); // FIXME: make this setable from websocket (store in memory)
 
     sensorReadingTimer = millis();
     influxSyncTimer = millis();
 
     // Influx clock sync
-    if (INFLUXDB_ENABLED) {
+    if (INFLUXDB_ENABLED)
+    {
         timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
-        if (influxClient.validateConnection()) {
+        if (influxClient.validateConnection())
+        {
             Serial.print("Connected to InfluxDB: ");
             Serial.println(influxClient.getServerUrl());
-        } else {
+        }
+        else
+        {
             Serial.print("InfluxDB connection failed: ");
             Serial.println(influxClient.getLastErrorMessage());
         }
-    } else {
+    }
+    else
+    {
         Serial.println("InfluxDB disabled");
     }
 }
 
-void loop() {
+void loop()
+{
     websocketCommands.websocketJob();
     ecSensor.readSerial();
-    if (ecSensor.sensorStringToWebsocket.length() > 0) {
-        websocketCommands.send((char*)ecSensor.sensorStringToWebsocket.c_str());
+    if (ecSensor.sensorStringToWebsocket.length() > 0)
+    {
+        websocketCommands.send((char *)ecSensor.sensorStringToWebsocket.c_str());
         ecSensor.sensorStringToWebsocket = "";
     }
 
-    if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL) {
+    if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL)
+    {
         sensorReadingTimer = millis();
         // sensorDS18B20.requestTemperatures();
 
@@ -303,7 +291,8 @@ void loop() {
         int ec_control_direction = ecUpControl.doControl();
 
         // Sync with influx
-        if (INFLUXDB_ENABLED && (millis() - influxSyncTimer) > INFLUXDB_SYNC_COLD_DOWN) {
+        if (INFLUXDB_ENABLED && (millis() - influxSyncTimer) > INFLUXDB_SYNC_COLD_DOWN)
+        {
             influxSyncTimer = millis();
             autoponicoPoint.clearFields();
             autoponicoPoint.addField("ph_raw", phReading);
@@ -315,7 +304,8 @@ void loop() {
             autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             autoponicoPoint.addField("ec_control_direction", ec_control_direction);
             // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
-            if (!influxClient.writePoint(autoponicoPoint)) {
+            if (!influxClient.writePoint(autoponicoPoint))
+            {
                 Serial.print("InfluxDB write failed: ");
                 Serial.println(influxClient.getLastErrorMessage());
             }

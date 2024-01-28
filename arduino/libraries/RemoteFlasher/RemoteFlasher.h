@@ -5,7 +5,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266httpUpdate.h>
 // Install from library manager
-#include <ArduinoWebsockets.h>
 #include <Arduino.h>
 #include <WebsocketCommands.h>
 
