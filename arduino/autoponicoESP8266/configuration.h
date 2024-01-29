@@ -16,8 +16,6 @@ enum influxdbState
     INFLUXDB_CONNECTED
 } influxdbState = INFLUXDB_DISCONNECTED;
 
-// GPIO PINS
-#define D0 16
 #define D1 5
 #define D2 4
 #define D3 0
@@ -26,10 +24,6 @@ enum influxdbState
 #define D6 12
 #define D7 13
 #define D8 15
-#define SD2 9
-#define SD3 10
-#define RX 3
-#define TX 1
 
 const char *LOCAL_WEB_SITE_PATH_FILES[] = {
     "/localwebapp/index.html",

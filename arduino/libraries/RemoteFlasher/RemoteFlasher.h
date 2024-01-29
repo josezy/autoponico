@@ -12,10 +12,10 @@ class RemoteFlasher
 {
 private:
   String url;
-  WebsocketCommands websocketCommands;
+  WebsocketCommands *websocketCommands;
 
 public:
-  RemoteFlasher(WebsocketCommands &websocketCommands) : websocketCommands(websocketCommands)
+  RemoteFlasher(WebsocketCommands *websocketCommands) : websocketCommands(websocketCommands)
   {
     ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
     ESPhttpUpdate.onStart(std::bind(&RemoteFlasher::update_started, this));
@@ -32,7 +32,7 @@ public:
 
     Serial.println(msg.c_str());
 
-    websocketCommands.send((char *)msg.c_str());
+    websocketCommands->send((char *)msg.c_str());
     t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
 
     switch (ret)
@@ -44,13 +44,13 @@ public:
       msg += "): ";
       msg += ESPhttpUpdate.getLastErrorString();
       Serial.println(msg.c_str());
-      websocketCommands.send((char *)msg.c_str());
+      websocketCommands->send((char *)msg.c_str());
       break;
     }
     case HTTP_UPDATE_NO_UPDATES:
     {
       Serial.println("HTTP_UPDATE_NO_UPDATES");
-      websocketCommands.send((char *)"No update available");
+      websocketCommands->send((char *)"No update available");
       break;
     }
     }
@@ -59,14 +59,14 @@ public:
   {
     String msg = "CALLBACK:  HTTP update process started";
     Serial.println(msg.c_str());
-    websocketCommands.send((char *)msg.c_str());
+    websocketCommands->send((char *)msg.c_str());
   }
 
   void update_finished()
   {
     String msg = "CALLBACK:  HTTP update process finished";
     Serial.println(msg.c_str());
-    websocketCommands.send((char *)msg.c_str());
+    websocketCommands->send((char *)msg.c_str());
   }
 
   void update_progress(int cur, int total)
@@ -77,7 +77,7 @@ public:
     msg += total;
     msg += " bytes...";
     Serial.println(msg.c_str());
-    websocketCommands.send((char *)msg.c_str());
+    websocketCommands->send((char *)msg.c_str());
   }
 
   void update_error(int err)
@@ -85,7 +85,7 @@ public:
     String msg = "CALLBACK:  HTTP update fatal error code ";
     msg += err;
     Serial.println(msg.c_str());
-    websocketCommands.send((char *)msg.c_str());
+    websocketCommands->send((char *)msg.c_str());
   }
 };
 

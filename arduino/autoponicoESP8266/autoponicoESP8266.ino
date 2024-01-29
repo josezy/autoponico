@@ -70,8 +70,8 @@ SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 // Remote flasher
-RemoteFlasher remoteFlasher(websocketCommands);
-FileManager fileManager(websocketCommands);
+RemoteFlasher remoteFlasher(&websocketCommands);
+FileManager fileManager(&websocketCommands);
 
 void setupCommands()
 {
@@ -167,8 +167,9 @@ void setupCommands()
             } else {
                 url = value;
             }            
-            remoteFlasher.updateFirmware(url);
-        } else if (action == "update_files") {
+            remoteFlasher.updateFirmware(url);        
+        }
+        else if (action == "update_files") {
             for(int i=0; i<sizeof(&LOCAL_WEB_SITE_PATH_FILES); i++) {  
                 Serial.printf("Updating file: %s\n", LOCAL_WEB_SITE_PATH_FILES[i]);
                 fileManager.streamToFile(FILES_HOST, LOCAL_WEB_SITE_PATH_FILES[i]);                
@@ -176,7 +177,7 @@ void setupCommands()
         } else if(action == "list_files"){
             Serial.printf("Listing files: %s\n", value.c_str());
             fileManager.listDir(value.c_str());            
-        } 
+        }  
         else if (action == "wifi") {
             websocketCommands.send((char*)"Not implemented");
             // TODO: Update wifi

@@ -8,10 +8,10 @@
 class FileManager
 {
 private:
-    WebsocketCommands websocketCommands;
+    WebsocketCommands *websocketCommands;
 
 public:
-    FileManager(WebsocketCommands &websocketCommands) : websocketCommands(websocketCommands)
+    FileManager(WebsocketCommands *websocketCommands) : websocketCommands(websocketCommands)
     {
         if (!LittleFS.begin())
         {
