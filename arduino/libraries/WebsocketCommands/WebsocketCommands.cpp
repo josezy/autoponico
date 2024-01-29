@@ -47,6 +47,7 @@ void WebsocketCommands::onMessageCallback(WebsocketsMessage message) {
     if (spaceIndex != -1) {
         command = inputString.substring(0, spaceIndex);
         data = inputString.substring(spaceIndex + 1);
+        data.trim();
     } else {
         command = inputString;
         data = "";

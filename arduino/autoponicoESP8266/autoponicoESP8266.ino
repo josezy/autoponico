@@ -260,6 +260,8 @@ void setup()
     {
         Serial.println("InfluxDB disabled");
     }
+
+    fileManager.begin();
 }
 
 void loop()

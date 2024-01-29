@@ -13,13 +13,17 @@ private:
 public:
     FileManager(WebsocketCommands *websocketCommands) : websocketCommands(websocketCommands)
     {
+    }
+
+    void begin()
+    {
         if (!LittleFS.begin())
         {
             Serial.println("An Error has occurred while mounting LittleFS");
             return;
         }
     }
-
+    
     void listDir(const char *dirname)
     {
         Serial.printf("Listing directory: %s\n", dirname);
