@@ -30,7 +30,7 @@ struct ControlConfig {
 
 class Control {
     ControlConfig* configuration;
-    bool autoMode = true;
+    bool autoMode = false;
     int state = STABLE;
     float error;
     float current = 0;
