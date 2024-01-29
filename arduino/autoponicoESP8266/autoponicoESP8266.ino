@@ -241,14 +241,20 @@ void setupCommands() {
             response += WiFi.SSID();
             response += String(",RSSI:");
             response += WiFi.RSSI();
-            response += String(",INFLUXDB_ENABLED:");
-            response += String(INFLUXDB_ENABLED);
             websocketCommands.send((char*)response.c_str());
-        } else if (action == "temperature") {
-            // sensorDS18B20.requestTemperatures();
-            // String temp = String(sensorDS18B20.getTempCByIndex(0));
-            // websocketCommands.send((char*)temp.c_str());
-            websocketCommands.send((char*)"Not implemented");
+        } else if (action == "influxdb") {
+            String response = String();
+            response += String("INFLUXDB_ENABLED:");
+            response += String(INFLUXDB_ENABLED);
+            response += String(",INFLUXDB_URL:");
+            response += String(INFLUXDB_URL);
+            response += String(",INFLUXDB_ORG:");
+            response += String(INFLUXDB_ORG);
+            response += String(",INFLUXDB_BUCKET:");
+            response += String(INFLUXDB_BUCKET);
+            response += String(",INFLUXDB_TOKEN:");
+            response += String(INFLUXDB_TOKEN);
+            websocketCommands.send((char*)response.c_str());
         } else {
             Serial.printf("[Management] Unknown action type: %s\n", message);
         }
@@ -338,8 +344,12 @@ void loop() {
             autoponicoPoint.addField("ec_raw", ecReading);
             autoponicoPoint.addField("ec_kalman", ecKalman);
             autoponicoPoint.addField("ec_desired", ecSetpoint);
-            autoponicoPoint.addField("ph_control_direction", ph_control_direction);
-            autoponicoPoint.addField("ec_control_direction", ec_control_direction);
+            if (ph_control_direction != GOING_NONE) {
+                autoponicoPoint.addField("ph_control_direction", ph_control_direction);
+            }
+            if (ec_control_direction != GOING_NONE) {
+                autoponicoPoint.addField("ec_control_direction", ec_control_direction);
+            }
             // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
             if (!influxClient.writePoint(autoponicoPoint)) {
                 Serial.print("InfluxDB write failed: ");
