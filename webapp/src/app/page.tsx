@@ -44,7 +44,7 @@ const WebsocketCommander = () => {
   }, [messages.length])
 
   const connect = () => {
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WSSERVER_URL}?id=webapp`)
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WSSERVER_URL}/ws?label=webapp&channel=hidroponia-industrial`)
     ws.onopen = () => {
       setIsConnected(true)
     }

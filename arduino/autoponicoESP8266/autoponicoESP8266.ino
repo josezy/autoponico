@@ -54,17 +54,13 @@ ControlConfig ecUpConfiguration = {
 Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
-// Temp sensor
-// OneWire oneWireObject(D8);
-// DallasTemperature sensorDS18B20(&oneWireObject);
+// Ph sensor
+Gravity_pH phSensor = Gravity_pH(D5);
+SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 // EC Sensor
 AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
 SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
-
-// Ph sensor
-Gravity_pH phSensor = Gravity_pH(D5);
-SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 // Timers
 unsigned long sensorReadingTimer;
@@ -117,7 +113,7 @@ void setupCommands()
         String strMessage = String(message);
         int index = strMessage.indexOf(' ');
         String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index);
+        String value = strMessage.substring(index + 1);
 
         if (action == "ph_up") {
             phControl.up(value.toInt());
@@ -126,7 +122,7 @@ void setupCommands()
         } else if (action == "ph_setpoint") {
             phControl.setSetPoint(value.toFloat());
         } else if (action == "ph_auto") {
-            phControl.setAutoMode(value == "true");
+            phControl.setAutoMode(value.toInt());
         } else if (action == "ec_up") {
             ecUpControl.up(value.toInt());
         } else if (action == "ec_down") {
@@ -134,7 +130,7 @@ void setupCommands()
         } else if (action == "ec_setpoint") {
             ecUpControl.setSetPoint(value.toFloat());
         } else if (action == "ec_auto") {
-            ecUpControl.setAutoMode(value == "true");
+            ecUpControl.setAutoMode(value.toInt());
         } else if (action == "info") {
             String msg = "ph_setpoint:";
             msg += phControl.getSetPoint();
@@ -156,7 +152,7 @@ void setupCommands()
         String strMessage = String(message);
         int index = strMessage.indexOf(' ');
         String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index);
+        String value = strMessage.substring(index + 1);
 
         if (action == "reboot") {
             resetFunc();
@@ -193,14 +189,20 @@ void setupCommands()
             response += WiFi.SSID();
             response += String(",RSSI:");
             response += WiFi.RSSI();
-            response += String(",INFLUXDB_ENABLED:");
-            response += String(INFLUXDB_ENABLED);
             websocketCommands.send((char*)response.c_str());
-        } else if (action == "temperature") {
-            // sensorDS18B20.requestTemperatures();
-            // String temp = String(sensorDS18B20.getTempCByIndex(0));
-            // websocketCommands.send((char*)temp.c_str());
-            websocketCommands.send((char*)"Not implemented");
+        } else if (action == "influxdb") {
+            String response = String();
+            response += String("INFLUXDB_ENABLED:");
+            response += String(INFLUXDB_ENABLED);
+            response += String(",INFLUXDB_URL:");
+            response += String(INFLUXDB_URL);
+            response += String(",INFLUXDB_ORG:");
+            response += String(INFLUXDB_ORG);
+            response += String(",INFLUXDB_BUCKET:");
+            response += String(INFLUXDB_BUCKET);
+            response += String(",INFLUXDB_TOKEN:");
+            response += String(INFLUXDB_TOKEN);
+            websocketCommands.send((char*)response.c_str());
         } else {
             Serial.printf("[Management] Unknown action type: %s\n", message);
         } });
@@ -304,8 +306,12 @@ void loop()
             autoponicoPoint.addField("ec_raw", ecReading);
             autoponicoPoint.addField("ec_kalman", ecKalman);
             autoponicoPoint.addField("ec_desired", ecSetpoint);
-            autoponicoPoint.addField("ph_control_direction", ph_control_direction);
-            autoponicoPoint.addField("ec_control_direction", ec_control_direction);
+            if (ph_control_direction != GOING_NONE) {
+                autoponicoPoint.addField("ph_control_direction", ph_control_direction);
+            }
+            if (ec_control_direction != GOING_NONE) {
+                autoponicoPoint.addField("ec_control_direction", ec_control_direction);
+            }
             // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
             if (!influxClient.writePoint(autoponicoPoint))
             {
