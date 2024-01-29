@@ -58,17 +58,13 @@ ControlConfig ecUpConfiguration = {
 Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
-// Temp sensor
-// OneWire oneWireObject(D8);
-// DallasTemperature sensorDS18B20(&oneWireObject);
+// Ph sensor
+Gravity_pH phSensor = Gravity_pH(D5);
+SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 // EC Sensor
 AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
 SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
-
-// Ph sensor
-Gravity_pH phSensor = Gravity_pH(D5);
-SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
 
 // Timers
 unsigned long sensorReadingTimer;
@@ -147,7 +143,7 @@ void setupCommands() {
         String strMessage = String(message);
         int index = strMessage.indexOf(' ');
         String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index);
+        String value = strMessage.substring(index + 1);
 
         if (action == "ph_up") {
             phControl.up(value.toInt());
@@ -186,7 +182,7 @@ void setupCommands() {
         String strMessage = String(message);
         int index = strMessage.indexOf(' ');
         String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index);
+        String value = strMessage.substring(index + 1);
 
         if (action == "reboot") {
             resetFunc();
