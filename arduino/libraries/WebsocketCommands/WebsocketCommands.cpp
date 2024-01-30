@@ -17,11 +17,11 @@ void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data) {
 
     switch (event) {
         case WebsocketsEvent::ConnectionOpened:
-            this->websocketState = WS_CONNECTED;
+            this->websocketState = WS_STATE_CONNECTED;
             Serial.println("WS_CONNECTED");
             break;
         case WebsocketsEvent::ConnectionClosed:
-            this->websocketState = WS_DISCONNECTED;
+            this->websocketState = WS_STATE_DISCONNECTED;
             Serial.println("WS_DISCONNECTED");
             break;
         case WebsocketsEvent::GotPing:
@@ -67,14 +67,14 @@ void WebsocketCommands::websocketJob() {
     // if no wifi, mark ws as disconnected
     wl_status_t wifiStatus = WiFi.status();
     if (wifiStatus != WL_CONNECTED) {
-        this->websocketState = WS_DISCONNECTED;
+        this->websocketState = WS_STATE_DISCONNECTED;
         Serial.printf("No wifi: %d. Websocket disconnected\n", wifiStatus);
         delay(1000);
         return;
     }
 
     // if ws disconnected and connected to wifi
-    if (this->websocketState == WS_DISCONNECTED) {
+    if (this->websocketState == WS_STATE_DISCONNECTED) {
         Serial.print("Connecting to websocket: ");
         Serial.println(this->socketUrl);
         bool connected = this->wsClient.connect(this->socketUrl); // This is syncronous
