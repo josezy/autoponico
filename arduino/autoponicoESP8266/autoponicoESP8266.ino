@@ -13,6 +13,7 @@
 #include <WebsocketCommands.h>
 #include <RemoteFlasher.h>
 #include <FileManager.h>
+#include <LocalServerManagement.h>
 
 #include "configuration.h"
 #include "env.h"
@@ -67,7 +68,8 @@ unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 // Remote flasher
 RemoteFlasher remoteFlasher(&websocketCommands);
-FileManager fileManager(&websocketCommands);
+FileManager fileManager;
+LocalServerManagement localServerManagement(&fileManager);  
 
 void setupCommands()
 {

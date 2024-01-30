@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ESP Input Form</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      function submitMessage() {
+        alert("Saved value to ESP SPIFFS");
+        setTimeout(function () {
+          document.location.reload(false);
+        }, 500);
+      }
+    </script>
+  </head>
+  <body>
+    <form action="/save" target="hidden-form">
+      SSID (current value %WIFI_SSID%):
+      <input type="text" name="WIFI_SSID" value="%WIFI_SSID%" />
+      <br />
+      Password:
+      <input type="password" name="WIFI_PASSWORD" value="%WIFI_PASSWORD%" />
+      <input type="submit" value="Submit" onclick="submitMessage()" />
+    </form>
+  </body>
+</html>

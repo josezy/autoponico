@@ -2,17 +2,15 @@
 #define FILE_MANAGER_H
 
 #include <Arduino.h>
-#include <WebsocketCommands.h>
 #include <LittleFS.h>
 
 class FileManager
 {
 private:
-    WebsocketCommands *websocketCommands;
-
 public:
-    FileManager(WebsocketCommands *websocketCommands) : websocketCommands(websocketCommands)
+    FileManager()
     {
+        this->begin();
     }
 
     void begin()
@@ -23,7 +21,7 @@ public:
             return;
         }
     }
-    
+
     void listDir(const char *dirname)
     {
         Serial.printf("Listing directory: %s\n", dirname);
@@ -47,22 +45,22 @@ public:
         }
     }
 
-    void readFile(const char *path)
+    String readFile(const char *path)
     {
         Serial.printf("Reading file: %s\n", path);
         File file = LittleFS.open(path, "r");
-        Serial.println("File  is Dir: " + String(file.isDirectory()));
-        if (!file || file.isDirectory())
+        if (!file)
         {
-            Serial.println("- empty file or failed to open file");
-            return;
+            Serial.println("- failed to open file for reading");
+            return "";
         }
-        Serial.println("- read from file:");
+        String fileContent;
         while (file.available())
         {
-            Serial.write(file.read());
+            fileContent += String((char)file.read());
         }
         file.close();
+        return fileContent;
     }
 
     void writeFile(const char *path, const char *message)
