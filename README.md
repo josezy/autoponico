@@ -15,8 +15,34 @@ or create a symlink 😏
 
 Open the `.ino` file with Arduino IDE, compile and happy upload :fire:
 
-> [!NOTE]  
+> [!NOTE]
 > To update from webapp, generate the `.bin` file from Arduino IDE, rsync it to the ws-server and send command `management update` from webapp, it will tell the Arduino to download that file and apply updated firmware.
+
+#### Commands
+- `ping`
+- `ph`
+    - `cal_low`
+    - `cal_mid`
+    - `cal_high`
+    - `cal_clear`
+    - `read_ph`
+- `ec`: bypass AT commands to Atlas sensor eg: `ec R` sends `R` to sensor serial
+- `control`
+    - `ph_up`
+    - `ph_down`
+    - `ph_setpoint`
+    - `ph_auto`
+    - `ec_up`
+    - `ec_down`
+    - `ec_setpoint`
+    - `ec_auto`
+    - `info`
+- `management`
+    - `reboot`
+    - `update`
+    - `wifi`: Set SSID and password: `management wifi <SSID>,<password>`
+    - `info`
+    - `influxdb`: Get influxdb info
 
 ## WebSocket server
 NodeJS program using typescript to handle websockets between webapp and Arduino boards

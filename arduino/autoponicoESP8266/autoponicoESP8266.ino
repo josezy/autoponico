@@ -31,28 +31,16 @@ WebsocketCommands websocketCommands;
 
 // Control
 ControlConfig phConfiguration = {
-    0,            // POT_PIN
     D1,           // M_UP_PIN
     D2,           // M_DN_PIN
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
-    0,            // ZERO_SPEED,
-    1000,         // DROP_TIME,
-    0.3,          // ERR_MARGIN,
-    10 * MINUTE,  // STABILIZATION_TIME,
-    0.1,          // STABILIZATION_MARGIN
 };
 ControlConfig ecUpConfiguration = {
-    0,            // POT_PIN
     D8,           // M_UP_PIN
     0,            // M_DN_PIN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
-    0,            // ZERO_SPEED,
-    10000,        // DROP_TIME,
-    300,          // ERR_MARGIN,
-    10 * MINUTE,  // STABILIZATION_TIME,
-    100,          // STABILIZATION_MARGIN
 };
 
 Control phControl = Control(&phConfiguration);
@@ -150,26 +138,26 @@ void setupCommands() {
         } else if (action == "ph_down") {
             phControl.down(value.toInt());
         } else if (action == "ph_setpoint") {
-            phControl.setSetPoint(value.toFloat());
+            phControl.setpoint = value.toFloat();
         } else if (action == "ph_auto") {
-            phControl.setAutoMode(value.toInt());
+            phControl.autoMode = value.toInt();
         } else if (action == "ec_up") {
             ecUpControl.up(value.toInt());
         } else if (action == "ec_down") {
             ecUpControl.down(value.toInt());
         } else if (action == "ec_setpoint") {
-            ecUpControl.setSetPoint(value.toFloat());
+            ecUpControl.setpoint = value.toFloat();
         } else if (action == "ec_auto") {
-            ecUpControl.setAutoMode(value.toInt());
+            ecUpControl.autoMode = value.toInt();
         } else if (action == "info") {
             String msg = "ph_setpoint:";
-            msg += phControl.getSetPoint();
+            msg += phControl.setpoint;
             msg += ",ph_auto:";
-            msg += phControl.getAutoMode();
+            msg += phControl.autoMode;
             msg += ",ec_setpoint:";
-            msg += ecUpControl.getSetPoint();
+            msg += ecUpControl.setpoint;
             msg += ",ec_auto:";
-            msg += ecUpControl.getAutoMode();
+            msg += ecUpControl.autoMode;
             // TODO: add more relevant info, find a better way to arrange state
             websocketCommands.send((char*)msg.c_str());
         } else {
@@ -295,11 +283,18 @@ void setup() {
     setupCommands();
 
     phSensor.begin();
-    // sensorDS18B20.begin();
     ecSensor.begin(9600);
 
-    phControl.setSetPoint(5.8);  // FIXME: make this setable from websocket (store in memory)
-    ecUpControl.setSetPoint(3000);  // FIXME: make this setable from websocket (store in memory)
+    phControl.DROP_TIME = 1000;
+    phControl.ERR_MARGIN = 0.3;
+    phControl.STABILIZATION_TIME = 10 * MINUTE;
+    phControl.STABILIZATION_MARGIN = 0.1;
+    phControl.setpoint = 5.8;
+    ecUpControl.DROP_TIME = 10000;
+    ecUpControl.ERR_MARGIN = 300;
+    ecUpControl.STABILIZATION_TIME = 10 * MINUTE;
+    ecUpControl.STABILIZATION_MARGIN = 100;
+    ecUpControl.setpoint = 2000;
 
     sensorReadingTimer = millis();
     influxSyncTimer = millis();
@@ -329,17 +324,14 @@ void loop() {
 
     if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL) {
         sensorReadingTimer = millis();
-        // sensorDS18B20.requestTemperatures();
-
-        float ecReading = ecSensor.getReading();
-        float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
-        ecUpControl.setCurrent(ecKalman);
-        float ecSetpoint = ecUpControl.getSetPoint();
 
         float phReading = phSensor.read_ph();
         float phKalman = simpleKalmanPh.updateEstimate(phReading);
-        phControl.setCurrent(phKalman);
-        float phSetpoint = phControl.getSetPoint();
+        phControl.current = phKalman;
+
+        float ecReading = ecSensor.getReading();
+        float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
+        ecUpControl.current = ecKalman;
 
         // Perform actual control
         int ph_control_direction = phControl.doControl();
@@ -351,17 +343,16 @@ void loop() {
             autoponicoPoint.clearFields();
             autoponicoPoint.addField("ph_raw", phReading);
             autoponicoPoint.addField("ph_kalman", phKalman);
-            autoponicoPoint.addField("ph_desired", phSetpoint);
+            autoponicoPoint.addField("ph_desired", phControl.setpoint);
             autoponicoPoint.addField("ec_raw", ecReading);
             autoponicoPoint.addField("ec_kalman", ecKalman);
-            autoponicoPoint.addField("ec_desired", ecSetpoint);
+            autoponicoPoint.addField("ec_desired", ecUpControl.setpoint);
             if (ph_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             }
             if (ec_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ec_control_direction", ec_control_direction);
             }
-            // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
             if (!influxClient.writePoint(autoponicoPoint)) {
                 Serial.print("InfluxDB write failed: ");
                 Serial.println(influxClient.getLastErrorMessage());
