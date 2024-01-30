@@ -223,8 +223,23 @@ void setupCommands() {
                 }
             }
         } else if (action == "wifi") {
-            websocketCommands.send((char*)"Not implemented");
-            // TODO: Update wifi
+            Serial.print("Updating wifi: ");
+            int idx = value.indexOf(',');
+            String ssid = value.substring(0, idx);
+            String password = value.substring(idx + 1);
+            Serial.printf("ssid=%s, password=%s\n", ssid.c_str(), password.c_str());
+            WiFi.begin(ssid, password);
+
+            // Wait some time to connect to wifi
+            for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
+                Serial.print("x");
+                delay(1000);
+            }
+            Serial.println();
+
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println("No Wifi! Retrying in loop...");
+            }
         } else if (action == "info") {
             String response = String();
             response += String("VERSION:");
