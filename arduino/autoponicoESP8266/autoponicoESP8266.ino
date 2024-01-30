@@ -165,6 +165,31 @@ void setupCommands() {
         }
     });
 
+    // Kalman filters
+    websocketCommands.registerCmd((char*)"kalman", [](char* message) {
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index + 1);
+
+        if (action == "ph_mea_error") {
+            phKalman.setMeasurementError(value.toFloat());
+        } else if (action == "ph_est_error") {
+            phKalman.setEstimateError(value.toFloat());
+        } else if (action == "ph_proc_noise") {
+            phKalman.setProcessNoise(value.toFloat());
+        } else if (action == "ec_mea_error") {
+            ecKalman.setMeasurementError(value.toFloat());
+        } else if (action == "ec_est_error") {
+            ecKalman.setEstimateError(value.toFloat());
+        } else if (action == "ec_proc_noise") {
+            ecKalman.setProcessNoise(value.toFloat());
+        } else {
+            Serial.printf("[Kalman] Unknown action type: %s\n", message);
+            websocketCommands.send((char*)"[Kalman] Unknown action type");
+        }
+    });
+
     // Management
     websocketCommands.registerCmd((char*)"management", [](char* message) {
         String strMessage = String(message);
