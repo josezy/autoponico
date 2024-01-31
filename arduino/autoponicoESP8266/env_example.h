@@ -2,6 +2,8 @@
 
 #define WIFI_SSID "AGROTUCANO"
 #define WIFI_PASSWORD "robotics"
+#define AP_SSID "AUTOPONICO"
+#define AP_PASSWORD "autoponico"
 
 #define INFLUXDB_URL "https://autoponico.tucanorobotics.co/influxdb" // FIXME: point to local influxdb, set up container?
 #define INFLUXDB_ORG ""

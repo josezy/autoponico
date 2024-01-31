@@ -215,23 +215,11 @@ void setup()
     Serial.begin(115200);
 
     Serial.printf("\n\nWelcome to Arduponico v%s\n", VERSION);
-    Serial.printf("Connecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
-    WiFi.mode(WIFI_STA); // FIXME: needs to be both: STA and AP
-    WiFi.begin((char *)WIFI_SSID, (char *)WIFI_PASSWORD);
-    // Wait some time to connect to wifi
-    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++)
-    {
-        Serial.print("x");
-        delay(1000);
-    }
-    Serial.println();
-
-    // Check if connected to wifi
-    // FIXME: Have the AP running to manage WiFi connection
-    if (WiFi.status() != WL_CONNECTED)
-    {
-        Serial.println("No Wifi! Retrying in loop...");
-    }
+    Serial.printf("Hotspot credentials: %s (%s)\n", AP_SSID, AP_PASSWORD);
+    
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAP(AP_SSID, AP_PASSWORD);
+    WiFi.persistent(true);     
 
     setupCommands();
 

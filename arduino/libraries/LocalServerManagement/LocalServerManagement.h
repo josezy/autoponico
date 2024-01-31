@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
+#include <ESP8266WiFi.h>
 
 class LocalServerManagement
 {
@@ -44,26 +45,25 @@ public:
 
     void saveWifiForm(AsyncWebServerRequest *request)
     {
-        String inputMessage;
-        // GET inputString value on <ESP_IP>/get?inputString=<inputMessage>
+        String responseMessage = "Error: No data received";
+        String ssid;
+        String password;
         if (request->hasParam("WIFI_SSID"))
         {
-            inputMessage = request->getParam("WIFI_SSID")->value();
-            this->fileManager->writeFile("/wifi/ssid.txt", inputMessage.c_str());
-            Serial.println(inputMessage);
+            ssid = request->getParam("WIFI_SSID")->value();
         }
-        // GET inputInt value on <ESP_IP>/get?inputInt=<inputMessage>
-        else if (request->hasParam("WIFI_PASSWORD"))
+
+        if (request->hasParam("WIFI_PASSWORD"))
         {
-            inputMessage = request->getParam("WIFI_PASSWORD")->value();
-            this->fileManager->writeFile("/wifi/password.txt", inputMessage.c_str());
-            Serial.println(inputMessage);
+            password = request->getParam("WIFI_PASSWORD")->value();
         }
-        else
+
+        if (ssid != NULL && password != NULL)
         {
-            inputMessage = "No message sent";
+            WiFi.begin(ssid, password);
+            responseMessage = "Wifi credentials saved";
         }
-        request->send(200, "text/text", inputMessage);
+        request->send(200, "text/text", responseMessage);
     }
 };
 
