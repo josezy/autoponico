@@ -12,6 +12,7 @@
 #include <InfluxDbCloud.h>
 // #include <OneWire.h>
 #include <SimpleKalmanFilter.h>
+#include <ArduinoJson.h>
 
 // Custom libraries
 #include <AtlasSerialSensor.h>
@@ -23,7 +24,21 @@
 
 void (*resetFunc)(void) = 0;  // create a standard reset function
 
-InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
+// InfluxDB
+bool INFLUXDB_ENABLED = false;
+#ifdef _INFLUXDB_URL
+String INFLUXDB_URL = _INFLUXDB_URL;
+String INFLUXDB_ORG = _INFLUXDB_ORG;
+String INFLUXDB_BUCKET = _INFLUXDB_BUCKET;
+String INFLUXDB_TOKEN = _INFLUXDB_TOKEN;
+#else
+String INFLUXDB_URL = "";
+String INFLUXDB_ORG = "";
+String INFLUXDB_BUCKET = "";
+String INFLUXDB_TOKEN = "";
+#endif
+
+InfluxDBClient* influxClient;
 Point autoponicoPoint("cultivo");
 
 // Websockets
@@ -190,6 +205,53 @@ void setupCommands() {
         }
     });
 
+    // InfluxDB
+    websocketCommands.registerCmd((char*)"influxdb", [](char* message) {
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index + 1);
+        if (action == "info") {
+            String response = String();
+            JsonDocument doc;
+            doc["enabled"] = INFLUXDB_ENABLED;
+            doc["url"] = INFLUXDB_URL;
+            doc["org"] = INFLUXDB_ORG;
+            doc["bucket"] = INFLUXDB_BUCKET;
+            doc["token"] = INFLUXDB_TOKEN;
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
+            return;
+        } else if (action == "enabled") {
+            INFLUXDB_ENABLED = value.toInt();
+        } else if (action == "update") {
+            JsonDocument doc;
+            deserializeJson(doc, value);
+            delete influxClient;
+            influxClient = NULL;
+            INFLUXDB_URL = doc["url"].as<String>();
+            INFLUXDB_ORG = doc["org"].as<String>();
+            INFLUXDB_BUCKET = doc["bucket"].as<String>();
+            INFLUXDB_TOKEN = doc["token"].as<String>();
+        } else {
+            Serial.printf("[InfluxDB] Unknown action type: %s\n", message);
+            websocketCommands.send((char*)"[InfluxDB] Unknown action type");
+            return;
+        }
+
+        if (INFLUXDB_ENABLED) {
+            influxClient = new InfluxDBClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
+            timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
+            if (influxClient->validateConnection()) {
+                websocketCommands.send((char*)"InfluxDB connection successful");
+            } else {
+                websocketCommands.send((char*)"InfluxDB connection failed");
+                websocketCommands.send((char*)influxClient->getLastErrorMessage().c_str());
+            }
+        }
+    });
+
+
     // Management
     websocketCommands.registerCmd((char*)"management", [](char* message) {
         String strMessage = String(message);
@@ -266,20 +328,7 @@ void setupCommands() {
             response += String(",RSSI:");
             response += WiFi.RSSI();
             websocketCommands.send((char*)response.c_str());
-        } else if (action == "influxdb") {
-            String response = String();
-            response += String("INFLUXDB_ENABLED:");
-            response += String(INFLUXDB_ENABLED);
-            response += String(",INFLUXDB_URL:");
-            response += String(INFLUXDB_URL);
-            response += String(",INFLUXDB_ORG:");
-            response += String(INFLUXDB_ORG);
-            response += String(",INFLUXDB_BUCKET:");
-            response += String(INFLUXDB_BUCKET);
-            response += String(",INFLUXDB_TOKEN:");
-            response += String(INFLUXDB_TOKEN);
-            websocketCommands.send((char*)response.c_str());
-        } else {
+        } else  {
             Serial.printf("[Management] Unknown action type: %s\n", message);
         }
     });
@@ -323,13 +372,14 @@ void setup() {
 
     // Influx clock sync
     if (INFLUXDB_ENABLED) {
+        influxClient = new InfluxDBClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
         timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
-        if (influxClient.validateConnection()) {
+        if (influxClient->validateConnection()) {
             Serial.print("Connected to InfluxDB: ");
-            Serial.println(influxClient.getServerUrl());
+            Serial.println(influxClient->getServerUrl());
         } else {
             Serial.print("InfluxDB connection failed: ");
-            Serial.println(influxClient.getLastErrorMessage());
+            Serial.println(influxClient->getLastErrorMessage());
         }
     } else {
         Serial.println("InfluxDB disabled");
@@ -378,9 +428,10 @@ void loop() {
             if (ec_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ec_control_direction", ec_control_direction);
             }
-            if (!influxClient.writePoint(autoponicoPoint)) {
+            Serial.println("Writing to InfluxDB");
+            if (!influxClient->writePoint(autoponicoPoint)) {
                 Serial.print("InfluxDB write failed: ");
-                Serial.println(influxClient.getLastErrorMessage());
+                Serial.println(influxClient->getLastErrorMessage());
             }
         }
     }
