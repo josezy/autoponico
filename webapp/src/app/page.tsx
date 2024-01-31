@@ -18,7 +18,7 @@ const Footer = () => (
 
 const WebsocketCommander = () => {
   const [ws, setWs] = React.useState<WebSocket | null>(null)
-  const [messages, setMessages] = React.useState<string[]>([])
+  const [messages, setMessages] = React.useState<React.ReactNode[]>([])
   const [message, setMessage] = React.useState<string>("")
   const [isConnected, setIsConnected] = React.useState<boolean>(false)
 
@@ -44,12 +44,14 @@ const WebsocketCommander = () => {
   }, [messages.length])
 
   const connect = () => {
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WSSERVER_URL}/ws?label=webapp&channel=hidroponia-industrial`)
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WSSERVER_URL}/ws${window.location.search}`)
     ws.onopen = () => {
       setIsConnected(true)
     }
     ws.onmessage = (event) => {
-      const line = `[${new Date().toISOString()}]: ${event.data}`
+      const line = <span>
+        <span className="text-slate-400">[{new Date().toISOString()}]:</span> {event.data}
+      </span>
       setMessages((messages) => [...messages, line])
     }
     ws.onclose = () => {
