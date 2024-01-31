@@ -173,17 +173,17 @@ void setupCommands() {
         String value = strMessage.substring(index + 1);
 
         if (action == "ph_mea_error") {
-            phKalman.setMeasurementError(value.toFloat());
+            simpleKalmanPh.setMeasurementError(value.toFloat());
         } else if (action == "ph_est_error") {
-            phKalman.setEstimateError(value.toFloat());
+            simpleKalmanPh.setEstimateError(value.toFloat());
         } else if (action == "ph_proc_noise") {
-            phKalman.setProcessNoise(value.toFloat());
+            simpleKalmanPh.setProcessNoise(value.toFloat());
         } else if (action == "ec_mea_error") {
-            ecKalman.setMeasurementError(value.toFloat());
+            simpleKalmanEc.setMeasurementError(value.toFloat());
         } else if (action == "ec_est_error") {
-            ecKalman.setEstimateError(value.toFloat());
+            simpleKalmanEc.setEstimateError(value.toFloat());
         } else if (action == "ec_proc_noise") {
-            ecKalman.setProcessNoise(value.toFloat());
+            simpleKalmanEc.setProcessNoise(value.toFloat());
         } else {
             Serial.printf("[Kalman] Unknown action type: %s\n", message);
             websocketCommands.send((char*)"[Kalman] Unknown action type");
@@ -321,9 +321,6 @@ void setup() {
     ecUpControl.STABILIZATION_MARGIN = 100;
     ecUpControl.setpoint = 2000;
 
-    sensorReadingTimer = millis();
-    influxSyncTimer = millis();
-
     // Influx clock sync
     if (INFLUXDB_ENABLED) {
         timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
@@ -337,6 +334,9 @@ void setup() {
     } else {
         Serial.println("InfluxDB disabled");
     }
+
+    sensorReadingTimer = millis();
+    influxSyncTimer = millis();
 }
 
 void loop() {
