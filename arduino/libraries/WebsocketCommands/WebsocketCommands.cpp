@@ -18,6 +18,7 @@ void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data) {
     switch (event) {
         case WebsocketsEvent::ConnectionOpened:
             this->websocketState = WS_CONNECTED;
+            this->send((char*)"Autoponico connected");
             Serial.println("WS_CONNECTED");
             break;
         case WebsocketsEvent::ConnectionClosed:
