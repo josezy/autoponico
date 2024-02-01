@@ -15,7 +15,7 @@
 #include <WebsocketCommands.h>
 #include <RemoteFlasher.h>
 #include <FileManager.h>
-#include <LocalServerManagement.h>
+#include <LocalServer.h>
 
 #include "configuration.h"
 #include "env.h"
@@ -73,10 +73,13 @@ unsigned long influxSyncTimer;
 // Remote flasher
 RemoteFlasher remoteFlasher(&websocketCommands);
 FileManager fileManager;
-LocalServerManagement localServerManagement(&fileManager);
-
 void setupCommands()
-{
+{      
+    LocalServer::ecControl = &ecUpControl;
+    LocalServer::phControl = &phControl;
+    LocalServer::fileManager = &fileManager;
+    LocalServer::initLocalServer();
+    
     websocketCommands.init((char *)WEBSOCKET_URL);
 
     pinMode(LED_BUILTIN, OUTPUT);
@@ -297,6 +300,7 @@ void setup()
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(AP_SSID, AP_PASSWORD);
     WiFi.persistent(true);
+    WiFi.begin(WIFI_SSID,WIFI_PASSWORD);
 
     setupCommands();
 

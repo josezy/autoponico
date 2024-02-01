@@ -1,4 +1,4 @@
-#define VERSION "0.4.3-cota"
+  #define VERSION "0.4.3-cota"
 
 #define MINUTE 1000L * 60
 #define USE_PULSE_OUT  // Comment if NOT using isolation board
