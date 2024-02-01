@@ -10,55 +10,28 @@ Control::Control(ControlConfig* configuration) {
         pinMode(configuration->M_DN_PIN, OUTPUT);
 }
 
-const char* Control::getControlText(int control_type) {
-    switch (control_type) {
-        case GOING_UP:
-            return "UP";
-        case GOING_DOWN:
-            return "DOWN";
-        default:
-            return "NONE";
-    }
-}
-
-float Control::getSetPoint() {
-    return this->setPoint;
-}
-
-void Control::setSetPoint(float setPoint) {
-    this->setPoint = setPoint;
-}
-
-float Control::getCurrent() {
-    return this->current;
-}
-
-void Control::setCurrent(float current) {
-    this->current = current;
-}
-
 int Control::doControl() {
     int going = GOING_NONE;
 
-    this->error = this->current - this->setPoint;
+    this->error = this->current - this->setpoint;
 
     if (this->autoMode) {
         switch (this->state) {
             case STABLE:
                 if (
-                    abs(this->error) >= this->configuration->ERR_MARGIN &&
+                    abs(this->error) >= this->ERR_MARGIN &&
                     this->current != 0) {
-                    this->state = CONTROLING;
+                    this->state = CONTROLLING;
                 }
                 break;
-            case CONTROLING:
+            case CONTROLLING:
                 if (
-                    abs(this->error) >= this->configuration->STABILIZATION_MARGIN) {
+                    abs(this->error) >= this->STABILIZATION_MARGIN) {
                     if (this->error > 0 && this->current != 0 && this->configuration->M_DN_PIN > 0) {
-                        this->down(this->configuration->DROP_TIME);
+                        this->down(this->DROP_TIME);
                         going = GOING_DOWN;
                     } else if (this->error < 0 && this->current != 0 && this->configuration->M_UP_PIN > 0) {
-                        this->up(this->configuration->DROP_TIME);
+                        this->up(this->DROP_TIME);
                         going = GOING_UP;
                     }
                     this->state = STABILIZING;
@@ -70,8 +43,8 @@ int Control::doControl() {
                 break;
             case STABILIZING:
                 if (
-                    millis() - this->stabilizationTimer > this->configuration->STABILIZATION_TIME) {
-                    this->state = CONTROLING;
+                    millis() - this->stabilizationTimer > this->STABILIZATION_TIME) {
+                    this->state = CONTROLLING;
                 }
                 break;
             default:
@@ -84,19 +57,11 @@ int Control::doControl() {
     return going;
 }
 
-void Control::setAutoMode(bool flag) {
-    this->autoMode = flag;
-}
-
-bool Control::getAutoMode() {
-    return this->autoMode;
-}
-
 void Control::down(int dropTime) {
     if (this->configuration->M_DN_PIN > 0) {
         analogWrite(this->configuration->M_DN_PIN, this->configuration->M_DN_SPEED);
         delay(dropTime);
-        analogWrite(this->configuration->M_DN_PIN, this->configuration->ZERO_SPEED);
+        analogWrite(this->configuration->M_DN_PIN, ZERO_SPEED);
     }
 }
 
@@ -104,6 +69,6 @@ void Control::up(int dropTime) {
     if (this->configuration->M_UP_PIN > 0) {
         analogWrite(this->configuration->M_UP_PIN, this->configuration->M_UP_SPEED);
         delay(dropTime);
-        analogWrite(this->configuration->M_UP_PIN, this->configuration->ZERO_SPEED);
+        analogWrite(this->configuration->M_UP_PIN, ZERO_SPEED);
     }
 }

@@ -7,6 +7,8 @@
 #include <InfluxDbCloud.h>
 // #include <OneWire.h>
 #include <SimpleKalmanFilter.h>
+#include <ArduinoJson.h>
+
 // Custom libraries
 #include <AtlasSerialSensor.h>
 #include <Control.h>
@@ -20,7 +22,21 @@
 
 void (*resetFunc)(void) = 0; // create a standard reset function
 
-InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
+// InfluxDB
+bool INFLUXDB_ENABLED = false;
+#ifdef _INFLUXDB_URL
+String INFLUXDB_URL = _INFLUXDB_URL;
+String INFLUXDB_ORG = _INFLUXDB_ORG;
+String INFLUXDB_BUCKET = _INFLUXDB_BUCKET;
+String INFLUXDB_TOKEN = _INFLUXDB_TOKEN;
+#else
+String INFLUXDB_URL = "";
+String INFLUXDB_ORG = "";
+String INFLUXDB_BUCKET = "";
+String INFLUXDB_TOKEN = "";
+#endif
+
+InfluxDBClient* influxClient;
 Point autoponicoPoint("cultivo");
 
 // Websockets
@@ -28,28 +44,16 @@ WebsocketCommands websocketCommands;
 
 // Control
 ControlConfig phConfiguration = {
-    0,           // POT_PIN
-    D1,          // M_UP_PIN
-    D2,          // M_DN_PIN
-    200,         // M_UP_SPEED,
-    200,         // M_DN_SPEED,
-    0,           // ZERO_SPEED,
-    1000,        // DROP_TIME,
-    0.3,         // ERR_MARGIN,
-    10 * MINUTE, // STABILIZATION_TIME,
-    0.1,         // STABILIZATION_MARGIN
+    D1,           // M_UP_PIN
+    D2,           // M_DN_PIN
+    200,          // M_UP_SPEED,
+    200,          // M_DN_SPEED,
 };
 ControlConfig ecUpConfiguration = {
-    0,           // POT_PIN
-    D8,          // M_UP_PIN
-    0,           // M_DN_PIN,
-    200,         // M_UP_SPEED,
-    200,         // M_DN_SPEED,
-    0,           // ZERO_SPEED,
-    10000,       // DROP_TIME,
-    300,         // ERR_MARGIN,
-    10 * MINUTE, // STABILIZATION_TIME,
-    100,         // STABILIZATION_MARGIN
+    D8,           // M_UP_PIN
+    0,            // M_DN_PIN,
+    200,          // M_UP_SPEED,
+    200,          // M_DN_SPEED,
 };
 
 Control phControl = Control(&phConfiguration);
@@ -122,31 +126,104 @@ void setupCommands()
         } else if (action == "ph_down") {
             phControl.down(value.toInt());
         } else if (action == "ph_setpoint") {
-            phControl.setSetPoint(value.toFloat());
+            phControl.setpoint = value.toFloat();
         } else if (action == "ph_auto") {
-            phControl.setAutoMode(value.toInt());
+            phControl.autoMode = value.toInt();
         } else if (action == "ec_up") {
             ecUpControl.up(value.toInt());
         } else if (action == "ec_down") {
             ecUpControl.down(value.toInt());
         } else if (action == "ec_setpoint") {
-            ecUpControl.setSetPoint(value.toFloat());
+            ecUpControl.setpoint = value.toFloat();
         } else if (action == "ec_auto") {
-            ecUpControl.setAutoMode(value.toInt());
+            ecUpControl.autoMode = value.toInt();
         } else if (action == "info") {
             String msg = "ph_setpoint:";
-            msg += phControl.getSetPoint();
+            msg += phControl.setpoint;
             msg += ",ph_auto:";
-            msg += phControl.getAutoMode();
+            msg += phControl.autoMode;
             msg += ",ec_setpoint:";
-            msg += ecUpControl.getSetPoint();
+            msg += ecUpControl.setpoint;
             msg += ",ec_auto:";
-            msg += ecUpControl.getAutoMode();
+            msg += ecUpControl.autoMode;
             // TODO: add more relevant info, find a better way to arrange state
             websocketCommands.send((char*)msg.c_str());
         } else {
             Serial.printf("[Control] Unknown action type: %s\n", message);
-        } });
+        }
+    });
+
+    // Kalman filters
+    websocketCommands.registerCmd((char*)"kalman", [](char* message) {
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index + 1);
+
+        if (action == "ph_mea_error") {
+            simpleKalmanPh.setMeasurementError(value.toFloat());
+        } else if (action == "ph_est_error") {
+            simpleKalmanPh.setEstimateError(value.toFloat());
+        } else if (action == "ph_proc_noise") {
+            simpleKalmanPh.setProcessNoise(value.toFloat());
+        } else if (action == "ec_mea_error") {
+            simpleKalmanEc.setMeasurementError(value.toFloat());
+        } else if (action == "ec_est_error") {
+            simpleKalmanEc.setEstimateError(value.toFloat());
+        } else if (action == "ec_proc_noise") {
+            simpleKalmanEc.setProcessNoise(value.toFloat());
+        } else {
+            Serial.printf("[Kalman] Unknown action type: %s\n", message);
+            websocketCommands.send((char*)"[Kalman] Unknown action type");
+        }
+    });
+
+    // InfluxDB
+    websocketCommands.registerCmd((char*)"influxdb", [](char* message) {
+        String strMessage = String(message);
+        int index = strMessage.indexOf(' ');
+        String action = strMessage.substring(0, index);
+        String value = strMessage.substring(index + 1);
+        if (action == "info") {
+            String response = String();
+            JsonDocument doc;
+            doc["enabled"] = INFLUXDB_ENABLED;
+            doc["url"] = INFLUXDB_URL;
+            doc["org"] = INFLUXDB_ORG;
+            doc["bucket"] = INFLUXDB_BUCKET;
+            doc["token"] = INFLUXDB_TOKEN;
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
+            return;
+        } else if (action == "enabled") {
+            INFLUXDB_ENABLED = value.toInt();
+        } else if (action == "update") {
+            JsonDocument doc;
+            deserializeJson(doc, value);
+            delete influxClient;
+            influxClient = NULL;
+            INFLUXDB_URL = doc["url"].as<String>();
+            INFLUXDB_ORG = doc["org"].as<String>();
+            INFLUXDB_BUCKET = doc["bucket"].as<String>();
+            INFLUXDB_TOKEN = doc["token"].as<String>();
+        } else {
+            Serial.printf("[InfluxDB] Unknown action type: %s\n", message);
+            websocketCommands.send((char*)"[InfluxDB] Unknown action type");
+            return;
+        }
+
+        if (INFLUXDB_ENABLED) {
+            influxClient = new InfluxDBClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
+            timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
+            if (influxClient->validateConnection()) {
+                websocketCommands.send((char*)"InfluxDB connection successful");
+            } else {
+                websocketCommands.send((char*)"InfluxDB connection failed");
+                websocketCommands.send((char*)influxClient->getLastErrorMessage().c_str());
+            }
+        }
+    });
+
 
     // Management
     websocketCommands.registerCmd((char *)"management", [](char *message)
@@ -177,8 +254,23 @@ void setupCommands()
             fileManager.listDir(value.c_str());            
         }  
         else if (action == "wifi") {
-            websocketCommands.send((char*)"Not implemented");
-            // TODO: Update wifi
+            Serial.print("Updating wifi: ");
+            int idx = value.indexOf(',');
+            String ssid = value.substring(0, idx);
+            String password = value.substring(idx + 1);
+            Serial.printf("ssid=%s, password=%s\n", ssid.c_str(), password.c_str());
+            WiFi.begin(ssid, password);
+
+            // Wait some time to connect to wifi
+            for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
+                Serial.print("x");
+                delay(1000);
+            }
+            Serial.println();
+
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println("No Wifi! Retrying in loop...");
+            }
         } else if (action == "info") {
             String response = String();
             response += String("VERSION:");
@@ -192,20 +284,7 @@ void setupCommands()
             response += String(",RSSI:");
             response += WiFi.RSSI();
             websocketCommands.send((char*)response.c_str());
-        } else if (action == "influxdb") {
-            String response = String();
-            response += String("INFLUXDB_ENABLED:");
-            response += String(INFLUXDB_ENABLED);
-            response += String(",INFLUXDB_URL:");
-            response += String(INFLUXDB_URL);
-            response += String(",INFLUXDB_ORG:");
-            response += String(INFLUXDB_ORG);
-            response += String(",INFLUXDB_BUCKET:");
-            response += String(INFLUXDB_BUCKET);
-            response += String(",INFLUXDB_TOKEN:");
-            response += String(INFLUXDB_TOKEN);
-            websocketCommands.send((char*)response.c_str());
-        } else {
+        } else  {
             Serial.printf("[Management] Unknown action type: %s\n", message);
         } });
 }
@@ -224,28 +303,29 @@ void setup()
     setupCommands();
 
     phSensor.begin();
-    // sensorDS18B20.begin();
     ecSensor.begin(9600);
 
-    phControl.setSetPoint(5.8);    // FIXME: make this setable from websocket (store in memory)
-    ecUpControl.setSetPoint(3000); // FIXME: make this setable from websocket (store in memory)
-
-    sensorReadingTimer = millis();
-    influxSyncTimer = millis();
+    phControl.DROP_TIME = 1000;
+    phControl.ERR_MARGIN = 0.3;
+    phControl.STABILIZATION_TIME = 10 * MINUTE;
+    phControl.STABILIZATION_MARGIN = 0.1;
+    phControl.setpoint = 5.8;
+    ecUpControl.DROP_TIME = 10000;
+    ecUpControl.ERR_MARGIN = 300;
+    ecUpControl.STABILIZATION_TIME = 10 * MINUTE;
+    ecUpControl.STABILIZATION_MARGIN = 100;
+    ecUpControl.setpoint = 2000;
 
     // Influx clock sync
-    if (INFLUXDB_ENABLED)
-    {
+    if (INFLUXDB_ENABLED) {
+        influxClient = new InfluxDBClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN, InfluxDbCloud2CACert);
         timeSync("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nis.gov");
-        if (influxClient.validateConnection())
-        {
+        if (influxClient->validateConnection()) {
             Serial.print("Connected to InfluxDB: ");
-            Serial.println(influxClient.getServerUrl());
-        }
-        else
-        {
+            Serial.println(influxClient->getServerUrl());
+        } else {
             Serial.print("InfluxDB connection failed: ");
-            Serial.println(influxClient.getLastErrorMessage());
+            Serial.println(influxClient->getLastErrorMessage());
         }
     }
     else
@@ -253,7 +333,8 @@ void setup()
         Serial.println("InfluxDB disabled");
     }
 
-    fileManager.begin();
+    sensorReadingTimer = millis();
+    influxSyncTimer = millis();
 }
 
 void loop()
@@ -269,17 +350,14 @@ void loop()
     if ((millis() - sensorReadingTimer) > SENSOR_READING_INTERVAL)
     {
         sensorReadingTimer = millis();
-        // sensorDS18B20.requestTemperatures();
-
-        float ecReading = ecSensor.getReading();
-        float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
-        ecUpControl.setCurrent(ecKalman);
-        float ecSetpoint = ecUpControl.getSetPoint();
 
         float phReading = phSensor.read_ph();
         float phKalman = simpleKalmanPh.updateEstimate(phReading);
-        phControl.setCurrent(phKalman);
-        float phSetpoint = phControl.getSetPoint();
+        phControl.current = phKalman;
+
+        float ecReading = ecSensor.getReading();
+        float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
+        ecUpControl.current = ecKalman;
 
         // Perform actual control
         int ph_control_direction = phControl.doControl();
@@ -292,21 +370,20 @@ void loop()
             autoponicoPoint.clearFields();
             autoponicoPoint.addField("ph_raw", phReading);
             autoponicoPoint.addField("ph_kalman", phKalman);
-            autoponicoPoint.addField("ph_desired", phSetpoint);
+            autoponicoPoint.addField("ph_desired", phControl.setpoint);
             autoponicoPoint.addField("ec_raw", ecReading);
             autoponicoPoint.addField("ec_kalman", ecKalman);
-            autoponicoPoint.addField("ec_desired", ecSetpoint);
+            autoponicoPoint.addField("ec_desired", ecUpControl.setpoint);
             if (ph_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             }
             if (ec_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ec_control_direction", ec_control_direction);
             }
-            // autoponicoPoint.addField("temp", sensorDS18B20.getTempCByIndex(0));
-            if (!influxClient.writePoint(autoponicoPoint))
-            {
+            Serial.println("Writing to InfluxDB");
+            if (!influxClient->writePoint(autoponicoPoint)) {
                 Serial.print("InfluxDB write failed: ");
-                Serial.println(influxClient.getLastErrorMessage());
+                Serial.println(influxClient->getLastErrorMessage());
             }
         }
     }
