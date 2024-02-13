@@ -12,9 +12,17 @@ export default function Home() {
 }
 
 const Footer = () => (
-  <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">      
+  <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
   </div>
 )
+
+const assembleLine = (message: string, isMe: boolean = false) => {
+  return (
+    <span>
+      <span className="text-slate-400">[{new Date().toISOString()}]:</span> {isMe ? "> " : ""}{message}
+    </span>
+  )
+}
 
 const WebsocketCommander = () => {
   const [ws, setWs] = React.useState<WebSocket | null>(null)
@@ -49,9 +57,7 @@ const WebsocketCommander = () => {
       setIsConnected(true)
     }
     ws.onmessage = (event) => {
-      const line = <span>
-        <span className="text-slate-400">[{new Date().toISOString()}]:</span> {event.data}
-      </span>
+      const line = assembleLine(event.data)
       setMessages((messages) => [...messages, line])
     }
     ws.onclose = () => {
@@ -66,6 +72,8 @@ const WebsocketCommander = () => {
 
   const send = () => {
     ws?.send(message)
+    const line = assembleLine(message, true)
+    setMessages((messages) => [...messages, line])
     setMessage("")
   }
 
