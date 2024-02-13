@@ -8,7 +8,7 @@
 
 #define WS_PING_INTERVAL 10000
 
-typedef void (*CommandHanndler)(char*);
+typedef void (*CommandHandler)(char*);
 
 enum WebsocketState {
     WS_DISCONNECTED,
@@ -19,7 +19,7 @@ using namespace websockets;
 using namespace std::placeholders;
 struct CommandStruct {
     const char* command;
-    CommandHanndler handler;
+    CommandHandler handler;
     const char* message;
 };
 
@@ -39,7 +39,7 @@ class WebsocketCommands {
     };
     void websocketJob();
     void init(char* socketUrl);
-    bool registerCmd(char* command, CommandHanndler handler, char* message = NULL);
+    bool registerCmd(char* command, CommandHandler handler, char* message = NULL);
     void send(char* message);
 };
 

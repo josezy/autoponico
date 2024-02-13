@@ -1,6 +1,6 @@
 #include "WebsocketCommands.h"
 
-bool WebsocketCommands::registerCmd(char* command, CommandHanndler handler, char* message) {
+bool WebsocketCommands::registerCmd(char* command, CommandHandler handler, char* message) {
     for (int i = 0; i < MAX_CMDS; i++) {
         if (!m_commands[i].command) {
             m_commands[i].command = command;
@@ -89,7 +89,6 @@ void WebsocketCommands::websocketJob() {
 
     // if ws connected and ping interval reached
     if (millis() - this->lastPing > WS_PING_INTERVAL) {
-        // this->wsClient.send("ping");
         this->wsClient.ping();
         this->lastPing = millis();
         return;
