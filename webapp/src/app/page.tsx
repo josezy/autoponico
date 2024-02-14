@@ -113,8 +113,14 @@ const WebsocketCommander = () => {
         </button>
       </div>
       <div className="flex flex-col items-center justify-center w-full mt-3">
-        <div className="flex flex-col items-center justify-center w-full">
+        <div className="flex gap-3 items-center justify-center w-full">
           <span className="text-xl font-bold">Messages</span>
+          <span
+            className="text-sm text-gray-500 hover:underline cursor-pointer"
+            onClick={() => setMessages([])}
+          >
+            clear
+          </span>
         </div>
         <div className="flex flex-col items-start px-5 py-2 justify-start w-full mt-3 h-96 overflow-y-auto border border-gray-300 rounded-md">
           {messages.map((message, index) => (
