@@ -8,7 +8,7 @@
 
 #define WS_PING_INTERVAL 10000
 
-typedef void (*CommandHandler)(char*);
+typedef void (*CommandHandler)(const char*, const char*);
 
 enum WebsocketState {
     WS_DISCONNECTED,
@@ -25,7 +25,7 @@ struct CommandStruct {
 
 class WebsocketCommands {
    private:
-    char* socketUrl;
+    String socketUrl;
     WebsocketState websocketState = WS_DISCONNECTED;
     CommandStruct m_commands[MAX_CMDS];
     WebsocketsClient wsClient;
@@ -38,7 +38,7 @@ class WebsocketCommands {
         memset(this->m_commands, 0, sizeof(this->m_commands));
     };
     void websocketJob();
-    void init(char* socketUrl);
+    void init(String socketUrl);
     bool registerCmd(char* command, CommandHandler handler, char* message = NULL);
     void send(char* message);
 };

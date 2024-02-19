@@ -104,23 +104,23 @@ void update_error(int err) {
 }
 
 void setupCommands() {
-    websocketCommands.init((char*)WEBSOCKET_URL);
+    websocketCommands.init(WEBSOCKET_URL);
 
     pinMode(LED_BUILTIN, OUTPUT);
-    websocketCommands.registerCmd((char*)"ping", [](char* message) {
-        Serial.printf("Sending pong: %s\n", message);
-        websocketCommands.send((char*)"pong");
-        if (strcmp(message, "on") == 0) {
+    websocketCommands.registerCmd((char*)"ping", [](const char* action, const char* value) {
+        if (strcmp(action, "on") == 0) {
             digitalWrite(LED_BUILTIN, LOW);
-        } else if (strcmp(message, "off") == 0) {
+        } else if (strcmp(action, "off") == 0) {
             digitalWrite(LED_BUILTIN, HIGH);
         }
+        Serial.print("Sending pong...");
+        websocketCommands.send((char*)"pong");
+        Serial.println("sent");
     });
 
     // Manage Analog Gravity pH
-    websocketCommands.registerCmd((char*)"ph", [](char* message) {
-        String action = String(message);
-
+    websocketCommands.registerCmd((char*)"ph", [](const char* _action, const char* _value) {
+        String action = String(_action);
         if (action == "cal_low") {
             phSensor.cal_low();
         } else if (action == "cal_mid") {
@@ -132,22 +132,22 @@ void setupCommands() {
         } else if (action == "read_ph") {
             websocketCommands.send((char*)String(phSensor.read_ph()).c_str());
         } else {
-            Serial.printf("[Atlas Gravity] Unknown action type: %s\n", message);
+            Serial.printf("[Atlas Gravity] Unknown action type: %s\n", action);
+            websocketCommands.send((char*)"[Atlas Gravity] Unknown action type");
         }
     });
 
-    // Bypass websocket message to atlas' EZO UART eg "ec-serial Cal,n"
-    websocketCommands.registerCmd((char*)"ec", [](char* message) {
-        ecSensor.sendSerial(String(message));
+    // Bypass websocket message to atlas' EZO UART eg "ec Cal,n"
+    websocketCommands.registerCmd((char*)"ec", [](const char* _action, const char* _value) {
+        String action = String(_action);
+        String value = String(_value);
+        ecSensor.sendSerial(action + " " + value);
     });
 
     // Control
-    websocketCommands.registerCmd((char*)"control", [](char* message) {
-        String strMessage = String(message);
-        int index = strMessage.indexOf(' ');
-        String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index + 1);
-
+    websocketCommands.registerCmd((char*)"control", [](const char* _action, const char* _value) {
+        String action = String(_action);
+        String value = String(_value);
         if (action == "ph_up") {
             phControl.up(value.toInt());
         } else if (action == "ph_down") {
@@ -165,28 +165,24 @@ void setupCommands() {
         } else if (action == "ec_auto") {
             ecUpControl.autoMode = value.toInt();
         } else if (action == "info") {
-            String msg = "ph_setpoint:";
-            msg += phControl.setpoint;
-            msg += ",ph_auto:";
-            msg += phControl.autoMode;
-            msg += ",ec_setpoint:";
-            msg += ecUpControl.setpoint;
-            msg += ",ec_auto:";
-            msg += ecUpControl.autoMode;
-            // TODO: add more relevant info, find a better way to arrange state
-            websocketCommands.send((char*)msg.c_str());
+            String response = String();
+            JsonDocument doc;
+            doc["ph_setpoint"] = phControl.setpoint;
+            doc["ph_auto"] = phControl.autoMode;
+            doc["ec_setpoint"] = ecUpControl.setpoint;
+            doc["ec_auto"] = ecUpControl.autoMode;
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
         } else {
-            Serial.printf("[Control] Unknown action type: %s\n", message);
+            Serial.printf("[Control] Unknown action type: %s\n", action);
+            websocketCommands.send((char*)"[Control] Unknown action type");
         }
     });
 
     // Kalman filters
-    websocketCommands.registerCmd((char*)"kalman", [](char* message) {
-        String strMessage = String(message);
-        int index = strMessage.indexOf(' ');
-        String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index + 1);
-
+    websocketCommands.registerCmd((char*)"kalman", [](const char* _action, const char* _value) {
+        String action = String(_action);
+        String value = String(_value);
         if (action == "ph_mea_error") {
             simpleKalmanPh.setMeasurementError(value.toFloat());
         } else if (action == "ph_est_error") {
@@ -200,17 +196,15 @@ void setupCommands() {
         } else if (action == "ec_proc_noise") {
             simpleKalmanEc.setProcessNoise(value.toFloat());
         } else {
-            Serial.printf("[Kalman] Unknown action type: %s\n", message);
+            Serial.printf("[Kalman] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[Kalman] Unknown action type");
         }
     });
 
     // InfluxDB
-    websocketCommands.registerCmd((char*)"influxdb", [](char* message) {
-        String strMessage = String(message);
-        int index = strMessage.indexOf(' ');
-        String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index + 1);
+    websocketCommands.registerCmd((char*)"influxdb", [](const char* _action, const char* _value) {
+        String action = String(_action);
+        String value = String(_value);
         if (action == "info") {
             String response = String();
             JsonDocument doc;
@@ -234,7 +228,7 @@ void setupCommands() {
             INFLUXDB_BUCKET = doc["bucket"].as<String>();
             INFLUXDB_TOKEN = doc["token"].as<String>();
         } else {
-            Serial.printf("[InfluxDB] Unknown action type: %s\n", message);
+            Serial.printf("[InfluxDB] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[InfluxDB] Unknown action type");
             return;
         }
@@ -251,14 +245,10 @@ void setupCommands() {
         }
     });
 
-
     // Management
-    websocketCommands.registerCmd((char*)"management", [](char* message) {
-        String strMessage = String(message);
-        int index = strMessage.indexOf(' ');
-        String action = strMessage.substring(0, index);
-        String value = strMessage.substring(index + 1);
-
+    websocketCommands.registerCmd((char*)"management", [](const char* _action, const char* _value) {
+        String action = String(_action);
+        String value = String(_value);
         if (action == "reboot") {
             resetFunc();
         } else if (action == "update") {
@@ -317,19 +307,18 @@ void setupCommands() {
             }
         } else if (action == "info") {
             String response = String();
-            response += String("VERSION:");
-            response += String(VERSION);
-            response += String(",IP:");
-            response += WiFi.localIP().toString();
-            response += String(",MAC:");
-            response += WiFi.macAddress();
-            response += String(",SSID:");
-            response += WiFi.SSID();
-            response += String(",RSSI:");
-            response += WiFi.RSSI();
+            JsonDocument doc;
+            doc["version"] = VERSION;
+            doc["ip"] = WiFi.localIP().toString();
+            doc["mac"] = WiFi.macAddress();
+            doc["ssid"] = WiFi.SSID();
+            doc["rssi"] = WiFi.RSSI();
+            doc["uptime"] = millis() / 1000;
+            serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
         } else  {
-            Serial.printf("[Management] Unknown action type: %s\n", message);
+            Serial.printf("[Management] Unknown action type: %s\n", action);
+            websocketCommands.send((char*)"[Management] Unknown action type");
         }
     });
 }

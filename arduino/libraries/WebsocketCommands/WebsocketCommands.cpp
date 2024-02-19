@@ -39,18 +39,25 @@ void WebsocketCommands::onEventsCallback(WebsocketsEvent event, String data) {
 
 void WebsocketCommands::onMessageCallback(WebsocketsMessage message) {
     String inputString = message.data();
-    Serial.printf("Received: %s\n", inputString.c_str());
+    Serial.println("Received: " + inputString);
     int spaceIndex = inputString.indexOf(' ');
 
-    String command;
-    String data;
+    String command = inputString;
+    String action = "";
+    String value = "";
 
     if (spaceIndex != -1) {
         command = inputString.substring(0, spaceIndex);
-        data = inputString.substring(spaceIndex + 1);
+        String payload = inputString.substring(spaceIndex + 1);
+        spaceIndex = payload.indexOf(' ');
+        if (spaceIndex != -1) {
+            action = payload.substring(0, spaceIndex);
+            value = payload.substring(spaceIndex + 1);
+        } else {
+            action = payload;
+        }
     } else {
         command = inputString;
-        data = "";
     }
 
     for (int i = 0; i < MAX_CMDS; i++) {
@@ -58,7 +65,7 @@ void WebsocketCommands::onMessageCallback(WebsocketsMessage message) {
             continue;
         }
         if (String(m_commands[i].command) == command) {
-            m_commands[i].handler((char*)data.c_str());
+            m_commands[i].handler(action.c_str(), value.c_str());
         }
     }
 }
@@ -100,7 +107,7 @@ void WebsocketCommands::websocketJob() {
     }
 }
 
-void WebsocketCommands::init(char* socketUrl) {
+void WebsocketCommands::init(String socketUrl) {
     this->socketUrl = socketUrl;
     this->wsClient.onEvent(std::bind(&WebsocketCommands::onEventsCallback, this, std::placeholders::_1, std::placeholders::_2));
     this->wsClient.onMessage(std::bind(&WebsocketCommands::onMessageCallback, this, std::placeholders::_1));
