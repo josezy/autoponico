@@ -1,16 +1,12 @@
 // Arduino included libraries
 #include <ESP8266WiFi.h>
-#include <ESP8266httpUpdate.h>
 
 // Download from https://files.atlas-scientific.com/gravity-pH-ardunio-code.pdf
 #include <ph_iso_grav.h>
 
 // Install from library manager
-#include <ArduinoWebsockets.h>
-// #include <DallasTemperature.h>
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
-// #include <OneWire.h>
 #include <SimpleKalmanFilter.h>
 #include <ArduinoJson.h>
 
@@ -19,6 +15,7 @@
 #include <Control.h>
 #include <WebsocketCommands.h>
 
+#include "custom_libraries/RemoteFlasher.h"
 #include "configuration.h"
 #include "env.h"
 
@@ -73,6 +70,8 @@ SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
 unsigned long sensorReadingTimer;
 unsigned long influxSyncTimer;
 
+// Other variables
+RemoteFlasher remoteFlasher(&websocketCommands);
 
 void update_started() {
     String msg = "CALLBACK:  HTTP update process started";
@@ -252,41 +251,13 @@ void setupCommands() {
         if (action == "reboot") {
             resetFunc();
         } else if (action == "update") {
-            WiFiClient client;
-            ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
-            ESPhttpUpdate.onStart(update_started);
-            ESPhttpUpdate.onEnd(update_finished);
-            ESPhttpUpdate.onProgress(update_progress);
-            ESPhttpUpdate.onError(update_error);
-
             String url;
             if (value == "latest" || value == "") {
                 url = FIRMWARE_URL;
             } else {
                 url = value;
             }
-
-            String msg = "Updating firmware from ";
-            msg += url;
-            Serial.println(msg.c_str());
-            websocketCommands.send((char*)msg.c_str());
-            t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
-
-            switch (ret) {
-                case HTTP_UPDATE_FAILED: {
-                    String msg = "HTTP_UPDATE_FAILED Error: (";
-                    msg += ESPhttpUpdate.getLastError();
-                    msg += "): ";
-                    msg += ESPhttpUpdate.getLastErrorString();
-                    Serial.println(msg.c_str());
-                    websocketCommands.send((char*)msg.c_str());
-                    break;
-                } case HTTP_UPDATE_NO_UPDATES: {
-                    Serial.println("HTTP_UPDATE_NO_UPDATES");
-                    websocketCommands.send((char*)"No update available");
-                    break;
-                }
-            }
+            remoteFlasher.updateFirmware(url);
         } else if (action == "wifi") {
             Serial.print("Updating wifi: ");
             int idx = value.indexOf(',');
