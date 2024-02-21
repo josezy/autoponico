@@ -73,7 +73,7 @@ unsigned long influxSyncTimer;
 
 // Other variables
 RemoteFlasher remoteFlasher(&websocketCommands);
-FileManager fileManager;
+FileManager* fileManager;
 
 void update_started() {
     String msg = "CALLBACK:  HTTP update process started";
@@ -215,7 +215,7 @@ void setupCommands() {
             websocketCommands.send((char*)"[Kalman] Unknown action type");
             return;
         }
-        fileManager.writeState(_action, _value);
+        fileManager->writeState(_action, _value);
     });
 
     // InfluxDB
@@ -291,7 +291,10 @@ void setupCommands() {
             }
             Serial.println();
 
-            if (WiFi.status() != WL_CONNECTED) {
+            if (WiFi.status() == WL_CONNECTED) {
+                fileManager->writeState("ssid", ssid);
+                fileManager->writeState("password", password);
+            } else {
                 Serial.println("No Wifi! Retrying in loop...");
             }
         } else if (action == "info") {
@@ -316,6 +319,26 @@ void setupComponents() {
     phSensor.begin();
     ecSensor.begin(9600);
 
+    // Wifi config
+    String ssid = fileManager->readState("ssid", WIFI_SSID);
+    String password = fileManager->readState("password", WIFI_PASSWORD);
+    WiFi.mode(WIFI_STA); // FIXME: needs to be both: STA and AP
+
+    Serial.printf("Connecting to wifi: %s (%s)\n", ssid, password);
+    WiFi.begin(ssid, password);
+
+    // Wait some time to connect to wifi
+    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
+        Serial.print("x");
+        delay(1000);
+    }
+    Serial.println();
+    // FIXME: Have the AP running to manage WiFi connection
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("No Wifi! Retrying in loop...");
+    }
+
+    // Control config
     phControl.DROP_TIME = 1000;
     phControl.ERR_MARGIN = 0.3;
     phControl.STABILIZATION_TIME = 10 * MINUTE;
@@ -327,51 +350,37 @@ void setupComponents() {
     ecUpControl.STABILIZATION_MARGIN = 100;
     ecUpControl.setpoint = 2000;
 
-    // Load from filesystem state
-    String ph_mea_error = fileManager.readState("ph_mea_error", "2");
-    String ph_est_error = fileManager.readState("ph_est_error", "2");
-    String ph_proc_noise = fileManager.readState("ph_proc_noise", "0.01");
+    // Kalman config
+    String ph_mea_error = fileManager->readState("ph_mea_error", "2");
+    String ph_est_error = fileManager->readState("ph_est_error", "2");
+    String ph_proc_noise = fileManager->readState("ph_proc_noise", "0.01");
     simpleKalmanPh = new SimpleKalmanFilter(
         ph_mea_error.toFloat(),
         ph_est_error.toFloat(),
         ph_proc_noise.toFloat()
     );
 
-    String ec_mea_error = fileManager.readState("ec_mea_error", "2");
-    String ec_est_error = fileManager.readState("ec_est_error", "2");
-    String ec_proc_noise = fileManager.readState("ec_proc_noise", "0.01");
+    String ec_mea_error = fileManager->readState("ec_mea_error", "2");
+    String ec_est_error = fileManager->readState("ec_est_error", "2");
+    String ec_proc_noise = fileManager->readState("ec_proc_noise", "0.01");
     simpleKalmanEc = new SimpleKalmanFilter(
         ec_mea_error.toFloat(),
         ec_est_error.toFloat(),
         ec_proc_noise.toFloat()
     );
 
-    // TODO: Wifi, pH/EC controllers, InfluxDB
+    // InfluxDB config
 
 }
 
 void setup() {
     Serial.begin(115200);
-
     Serial.printf("\n\nWelcome to Arduponico v%s\n", VERSION);
-    Serial.printf("Connecting to wifi: %s (%s)\n", WIFI_SSID, WIFI_PASSWORD);
-    WiFi.mode(WIFI_STA); // FIXME: needs to be both: STA and AP
-    WiFi.begin((char*)WIFI_SSID, (char*)WIFI_PASSWORD);
-    // Wait some time to connect to wifi
-    for (int i = 0; i < 30 && WiFi.status() != WL_CONNECTED; i++) {
-        Serial.print("x");
-        delay(1000);
-    }
-    Serial.println();
 
-    // Check if connected to wifi
-    // FIXME: Have the AP running to manage WiFi connection
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("No Wifi! Retrying in loop...");
-    }
+    fileManager = new FileManager();
 
-    setupCommands();
     setupComponents();
+    setupCommands();
 
     // Influx clock sync
     if (INFLUXDB_ENABLED) {

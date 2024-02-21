@@ -10,7 +10,8 @@ class FileManager {
     FileManager() {
         if (!LittleFS.begin()) {
             Serial.println("An Error has occurred while mounting LittleFS");
-            return;
+        } else {
+            Serial.println("LittleFS Mounted");
         }
     }
 
@@ -42,7 +43,6 @@ class FileManager {
     String readFile(const char *path) {
         File file = LittleFS.open(path, "r");
         if (!file) {
-            Serial.printf("Failed to open file for reading: %s\n", path);
             return "";
         }
         String fileContent;
@@ -79,6 +79,10 @@ class FileManager {
     bool writeState(const char* state, const char* value) {
         String path = "/state/" + String(state);
         return writeFile(path.c_str(), value);
+    }
+
+    bool writeState(String state, String value) {
+        return writeState((const char*)state.c_str(), (const char*)value.c_str());
     }
 
     bool streamToFile(const char *host, const char *path) {
