@@ -16,6 +16,7 @@
 #include <WebsocketCommands.h>
 
 #include "custom_libraries/RemoteFlasher.h"
+#include "custom_libraries/FileManager.h"
 #include "configuration.h"
 #include "env.h"
 
@@ -60,11 +61,11 @@ Control ecUpControl = Control(&ecUpConfiguration);
 
 // Ph sensor
 Gravity_pH phSensor = Gravity_pH(D5);
-SimpleKalmanFilter simpleKalmanPh(2, 2, 0.01);
+SimpleKalmanFilter* simpleKalmanPh;
 
 // EC Sensor
 AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
-SimpleKalmanFilter simpleKalmanEc(2, 2, 0.01);
+SimpleKalmanFilter* simpleKalmanEc;
 
 // Timers
 unsigned long sensorReadingTimer;
@@ -72,6 +73,7 @@ unsigned long influxSyncTimer;
 
 // Other variables
 RemoteFlasher remoteFlasher(&websocketCommands);
+FileManager fileManager;
 
 void update_started() {
     String msg = "CALLBACK:  HTTP update process started";
@@ -182,22 +184,38 @@ void setupCommands() {
     websocketCommands.registerCmd((char*)"kalman", [](const char* _action, const char* _value) {
         String action = String(_action);
         String value = String(_value);
+        if (action == "info") {
+            String response = String();
+            JsonDocument doc;
+            doc["ph_mea_error"] = simpleKalmanPh->getMeasurementError();
+            doc["ph_est_error"] = simpleKalmanPh->getEstimateError();
+            doc["ph_proc_noise"] = simpleKalmanPh->getProcessNoise();
+            doc["ec_mea_error"] = simpleKalmanEc->getMeasurementError();
+            doc["ec_est_error"] = simpleKalmanEc->getEstimateError();
+            doc["ec_proc_noise"] = simpleKalmanEc->getProcessNoise();
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
+            return;
+        }
+
         if (action == "ph_mea_error") {
-            simpleKalmanPh.setMeasurementError(value.toFloat());
+            simpleKalmanPh->setMeasurementError(value.toFloat());
         } else if (action == "ph_est_error") {
-            simpleKalmanPh.setEstimateError(value.toFloat());
+            simpleKalmanPh->setEstimateError(value.toFloat());
         } else if (action == "ph_proc_noise") {
-            simpleKalmanPh.setProcessNoise(value.toFloat());
+            simpleKalmanPh->setProcessNoise(value.toFloat());
         } else if (action == "ec_mea_error") {
-            simpleKalmanEc.setMeasurementError(value.toFloat());
+            simpleKalmanEc->setMeasurementError(value.toFloat());
         } else if (action == "ec_est_error") {
-            simpleKalmanEc.setEstimateError(value.toFloat());
+            simpleKalmanEc->setEstimateError(value.toFloat());
         } else if (action == "ec_proc_noise") {
-            simpleKalmanEc.setProcessNoise(value.toFloat());
+            simpleKalmanEc->setProcessNoise(value.toFloat());
         } else {
             Serial.printf("[Kalman] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[Kalman] Unknown action type");
+            return;
         }
+        fileManager.writeState(_action, _value);
     });
 
     // InfluxDB
@@ -294,6 +312,44 @@ void setupCommands() {
     });
 }
 
+void setupComponents() {
+    phSensor.begin();
+    ecSensor.begin(9600);
+
+    phControl.DROP_TIME = 1000;
+    phControl.ERR_MARGIN = 0.3;
+    phControl.STABILIZATION_TIME = 10 * MINUTE;
+    phControl.STABILIZATION_MARGIN = 0.1;
+    phControl.setpoint = 5.8;
+    ecUpControl.DROP_TIME = 10000;
+    ecUpControl.ERR_MARGIN = 300;
+    ecUpControl.STABILIZATION_TIME = 10 * MINUTE;
+    ecUpControl.STABILIZATION_MARGIN = 100;
+    ecUpControl.setpoint = 2000;
+
+    // Load from filesystem state
+    String ph_mea_error = fileManager.readState("ph_mea_error", "2");
+    String ph_est_error = fileManager.readState("ph_est_error", "2");
+    String ph_proc_noise = fileManager.readState("ph_proc_noise", "0.01");
+    simpleKalmanPh = new SimpleKalmanFilter(
+        ph_mea_error.toFloat(),
+        ph_est_error.toFloat(),
+        ph_proc_noise.toFloat()
+    );
+
+    String ec_mea_error = fileManager.readState("ec_mea_error", "2");
+    String ec_est_error = fileManager.readState("ec_est_error", "2");
+    String ec_proc_noise = fileManager.readState("ec_proc_noise", "0.01");
+    simpleKalmanEc = new SimpleKalmanFilter(
+        ec_mea_error.toFloat(),
+        ec_est_error.toFloat(),
+        ec_proc_noise.toFloat()
+    );
+
+    // TODO: Wifi, pH/EC controllers, InfluxDB
+
+}
+
 void setup() {
     Serial.begin(115200);
 
@@ -315,20 +371,7 @@ void setup() {
     }
 
     setupCommands();
-
-    phSensor.begin();
-    ecSensor.begin(9600);
-
-    phControl.DROP_TIME = 1000;
-    phControl.ERR_MARGIN = 0.3;
-    phControl.STABILIZATION_TIME = 10 * MINUTE;
-    phControl.STABILIZATION_MARGIN = 0.1;
-    phControl.setpoint = 5.8;
-    ecUpControl.DROP_TIME = 10000;
-    ecUpControl.ERR_MARGIN = 300;
-    ecUpControl.STABILIZATION_TIME = 10 * MINUTE;
-    ecUpControl.STABILIZATION_MARGIN = 100;
-    ecUpControl.setpoint = 2000;
+    setupComponents();
 
     // Influx clock sync
     if (INFLUXDB_ENABLED) {
@@ -361,11 +404,11 @@ void loop() {
         sensorReadingTimer = millis();
 
         float phReading = phSensor.read_ph();
-        float phKalman = simpleKalmanPh.updateEstimate(phReading);
+        float phKalman = simpleKalmanPh->updateEstimate(phReading);
         phControl.current = phKalman;
 
         float ecReading = ecSensor.getReading();
-        float ecKalman = simpleKalmanEc.updateEstimate(ecReading);
+        float ecKalman = simpleKalmanEc->updateEstimate(ecReading);
         ecUpControl.current = ecKalman;
 
         // Perform actual control

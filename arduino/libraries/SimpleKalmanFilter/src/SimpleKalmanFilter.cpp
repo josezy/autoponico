@@ -40,3 +40,15 @@ void SimpleKalmanFilter::setProcessNoise(float q) {
 float SimpleKalmanFilter::getKalmanGain() {
     return _kalman_gain;
 }
+
+float SimpleKalmanFilter::getMeasurementError() {
+    return _err_measure;
+}
+
+float SimpleKalmanFilter::getEstimateError() {
+    return _err_estimate;
+}
+
+float SimpleKalmanFilter::getProcessNoise() {
+    return _q;
+}
