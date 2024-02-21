@@ -149,35 +149,68 @@ void setupCommands() {
     websocketCommands.registerCmd((char*)"control", [](const char* _action, const char* _value) {
         String action = String(_action);
         String value = String(_value);
+        if (action == "info") {
+            String response = String();
+            JsonDocument doc;
+            doc["ph_setpoint"] = phControl.setpoint;
+            doc["ph_auto"] = phControl.autoMode;
+            doc["ph_drop_time"] = phControl.DROP_TIME;
+            doc["ph_err_margin"] = phControl.ERR_MARGIN;
+            doc["ph_stabilization_time"] = phControl.STABILIZATION_TIME;
+            doc["ph_stabilization_margin"] = phControl.STABILIZATION_MARGIN;
+            doc["ec_setpoint"] = ecUpControl.setpoint;
+            doc["ec_auto"] = ecUpControl.autoMode;
+            doc["ec_drop_time"] = ecUpControl.DROP_TIME;
+            doc["ec_err_margin"] = ecUpControl.ERR_MARGIN;
+            doc["ec_stabilization_time"] = ecUpControl.STABILIZATION_TIME;
+            doc["ec_stabilization_margin"] = ecUpControl.STABILIZATION_MARGIN;
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
+            return;
+        }
+
         if (action == "ph_up") {
             phControl.up(value.toInt());
+            return;
         } else if (action == "ph_down") {
             phControl.down(value.toInt());
+            return;
+        } else if (action == "ph_drop_time") {
+            phControl.DROP_TIME = value.toInt();
+        } else if (action == "ph_err_margin") {
+            phControl.ERR_MARGIN = value.toFloat();
+        } else if (action == "ph_stabilization_time") {
+            phControl.STABILIZATION_TIME = value.toInt();
+        } else if (action == "ph_stabilization_margin") {
+            phControl.STABILIZATION_MARGIN = value.toFloat();
         } else if (action == "ph_setpoint") {
             phControl.setpoint = value.toFloat();
         } else if (action == "ph_auto") {
             phControl.autoMode = value.toInt();
         } else if (action == "ec_up") {
             ecUpControl.up(value.toInt());
-        } else if (action == "ec_down") {
-            ecUpControl.down(value.toInt());
+            return;
+        // } else if (action == "ec_down") {
+        //     ecUpControl.down(value.toInt());
+        //     return;
+        } else if (action == "ec_drop_time") {
+            ecUpControl.DROP_TIME = value.toInt();
+        } else if (action == "ec_err_margin") {
+            ecUpControl.ERR_MARGIN = value.toFloat();
+        } else if (action == "ec_stabilization_time") {
+            ecUpControl.STABILIZATION_TIME = value.toInt();
+        } else if (action == "ec_stabilization_margin") {
+            ecUpControl.STABILIZATION_MARGIN = value.toFloat();
         } else if (action == "ec_setpoint") {
             ecUpControl.setpoint = value.toFloat();
         } else if (action == "ec_auto") {
             ecUpControl.autoMode = value.toInt();
-        } else if (action == "info") {
-            String response = String();
-            JsonDocument doc;
-            doc["ph_setpoint"] = phControl.setpoint;
-            doc["ph_auto"] = phControl.autoMode;
-            doc["ec_setpoint"] = ecUpControl.setpoint;
-            doc["ec_auto"] = ecUpControl.autoMode;
-            serializeJson(doc, response);
-            websocketCommands.send((char*)response.c_str());
         } else {
             Serial.printf("[Control] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[Control] Unknown action type");
+            return;
         }
+        fileManager->writeState(_action, _value);
     });
 
     // Kalman filters
@@ -338,17 +371,35 @@ void setupComponents() {
         Serial.println("No Wifi! Retrying in loop...");
     }
 
-    // Control config
-    phControl.DROP_TIME = 1000;
-    phControl.ERR_MARGIN = 0.3;
-    phControl.STABILIZATION_TIME = 10 * MINUTE;
-    phControl.STABILIZATION_MARGIN = 0.1;
-    phControl.setpoint = 5.8;
-    ecUpControl.DROP_TIME = 10000;
-    ecUpControl.ERR_MARGIN = 300;
-    ecUpControl.STABILIZATION_TIME = 10 * MINUTE;
-    ecUpControl.STABILIZATION_MARGIN = 100;
-    ecUpControl.setpoint = 2000;
+    // pH Control config
+    String ph_drop_time = fileManager->readState("ph_drop_time", "1000");
+    String ph_err_margin = fileManager->readState("ph_err_margin", "0.3");
+    String ph_stabilization_time = fileManager->readState("ph_stabilization_time", String(10 * MINUTE));
+    String ph_stabilization_margin = fileManager->readState("ph_stabilization_margin", "0.1");
+    String ph_setpoint = fileManager->readState("ph_setpoint", "5.8");
+    String ph_auto_mode = fileManager->readState("ph_auto_mode", "0");
+
+    phControl.DROP_TIME = ph_drop_time.toInt();
+    phControl.ERR_MARGIN = ph_err_margin.toFloat();
+    phControl.STABILIZATION_TIME = ph_stabilization_time.toInt();
+    phControl.STABILIZATION_MARGIN = ph_stabilization_margin.toFloat();
+    phControl.setpoint = ph_setpoint.toFloat();
+    phControl.autoMode = ph_auto_mode.toInt();
+
+    // EC Control config
+    String ec_drop_time = fileManager->readState("ec_drop_time", "10000");
+    String ec_err_margin = fileManager->readState("ec_err_margin", "300");
+    String ec_stabilization_time = fileManager->readState("ec_stabilization_time", String(10 * MINUTE));
+    String ec_stabilization_margin = fileManager->readState("ec_stabilization_margin", "100");
+    String ec_setpoint = fileManager->readState("ec_setpoint", "2000");
+    String ec_auto_mode = fileManager->readState("ec_auto_mode", "0");
+
+    ecUpControl.DROP_TIME = ec_drop_time.toInt();
+    ecUpControl.ERR_MARGIN = ec_err_margin.toFloat();
+    ecUpControl.STABILIZATION_TIME = ec_stabilization_time.toInt();
+    ecUpControl.STABILIZATION_MARGIN = ec_stabilization_margin.toFloat();
+    ecUpControl.setpoint = ec_setpoint.toFloat();
+    ecUpControl.autoMode = ec_auto_mode.toInt();
 
     // Kalman config
     String ph_mea_error = fileManager->readState("ph_mea_error", "2");
