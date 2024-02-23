@@ -15,6 +15,9 @@ class SimpleKalmanFilter {
     void setEstimateError(float est_e);
     void setProcessNoise(float q);
     float getKalmanGain();
+    float getMeasurementError();
+    float getEstimateError();
+    float getProcessNoise();
 
    private:
     float _err_measure;
