@@ -24,17 +24,10 @@ void (*resetFunc)(void) = 0;  // create a standard reset function
 
 // InfluxDB
 bool INFLUXDB_ENABLED = false;
-#ifdef _INFLUXDB_URL
-String INFLUXDB_URL = _INFLUXDB_URL;
-String INFLUXDB_ORG = _INFLUXDB_ORG;
-String INFLUXDB_BUCKET = _INFLUXDB_BUCKET;
-String INFLUXDB_TOKEN = _INFLUXDB_TOKEN;
-#else
 String INFLUXDB_URL = "";
 String INFLUXDB_ORG = "";
 String INFLUXDB_BUCKET = "";
 String INFLUXDB_TOKEN = "";
-#endif
 
 InfluxDBClient* influxClient;
 Point autoponicoPoint("cultivo");
@@ -266,17 +259,17 @@ void setupCommands() {
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
             return;
-        } else if (action == "enabled") {
-            INFLUXDB_ENABLED = value.toInt();
         } else if (action == "update") {
             JsonDocument doc;
             deserializeJson(doc, value);
             delete influxClient;
             influxClient = NULL;
+            INFLUXDB_ENABLED = doc["enabled"].as<String>() == "true";
             INFLUXDB_URL = doc["url"].as<String>();
             INFLUXDB_ORG = doc["org"].as<String>();
             INFLUXDB_BUCKET = doc["bucket"].as<String>();
             INFLUXDB_TOKEN = doc["token"].as<String>();
+            fileManager->writeState("influxdb", value);
         } else {
             Serial.printf("[InfluxDB] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[InfluxDB] Unknown action type");
@@ -421,7 +414,22 @@ void setupComponents() {
     );
 
     // InfluxDB config
+    JsonDocument doc;
+    doc["enabled"] = INFLUXDB_ENABLED;
+    doc["url"] = INFLUXDB_URL;
+    doc["org"] = INFLUXDB_ORG;
+    doc["bucket"] = INFLUXDB_BUCKET;
+    doc["token"] = INFLUXDB_TOKEN;
+    String defaultValue = String();
+    serializeJson(doc, defaultValue);
+    String influxdb = fileManager->readState("influxdb", defaultValue);
+    deserializeJson(doc, influxdb);
 
+    INFLUXDB_ENABLED = doc["enabled"].as<String>() == "true";
+    INFLUXDB_URL = doc["url"].as<String>();
+    INFLUXDB_ORG = doc["org"].as<String>();
+    INFLUXDB_BUCKET = doc["bucket"].as<String>();
+    INFLUXDB_TOKEN = doc["token"].as<String>();
 }
 
 void setup() {
