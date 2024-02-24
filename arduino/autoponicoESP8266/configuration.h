@@ -1,4 +1,4 @@
-#define VERSION "0.4.4-Feb19"
+#define VERSION "0.4.5-Feb24"
 
 #define MINUTE 1000L * 60
 #define USE_PULSE_OUT  // Comment if NOT using isolation board
