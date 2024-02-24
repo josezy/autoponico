@@ -17,8 +17,12 @@
 
 #include "custom_libraries/RemoteFlasher.h"
 #include "custom_libraries/FileManager.h"
+#include "custom_libraries/LocalServer.h"
 #include "configuration.h"
 #include "env.h"
+
+#define AP_SSID "AUTOPONICO"
+#define AP_PASSWORD "autoponico"
 
 void (*resetFunc)(void) = 0;  // create a standard reset function
 
@@ -302,6 +306,11 @@ void setupCommands() {
                 url = value;
             }
             remoteFlasher.updateFirmware(url);
+        } else if (action == "update_files") {
+            for (auto file : LOCAL_WEBSITE_PATH_FILES) {
+                Serial.printf("Updating file: %s\n", file);
+                fileManager->streamToFile(FILES_HOST, file);
+            }
         } else if (action == "wifi") {
             Serial.print("Updating wifi: ");
             int idx = value.indexOf(',');
@@ -334,7 +343,7 @@ void setupCommands() {
             doc["uptime"] = millis() / 1000;
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
-        } else  {
+        } else {
             Serial.printf("[Management] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[Management] Unknown action type");
         }
@@ -346,9 +355,12 @@ void setupComponents() {
     ecSensor.begin(9600);
 
     // Wifi config
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAP(AP_SSID, AP_PASSWORD);
+    Serial.printf("Hotspot credentials: %s (%s)\n", AP_SSID, AP_PASSWORD);
+
     String ssid = fileManager->readState("ssid", WIFI_SSID);
     String password = fileManager->readState("password", WIFI_PASSWORD);
-    WiFi.mode(WIFI_STA); // FIXME: needs to be both: STA and AP
 
     Serial.printf("Connecting to wifi: %s (%s)\n", ssid, password);
     WiFi.begin(ssid, password);
@@ -359,7 +371,6 @@ void setupComponents() {
         delay(1000);
     }
     Serial.println();
-    // FIXME: Have the AP running to manage WiFi connection
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("No Wifi! Retrying in loop...");
     }
@@ -430,6 +441,12 @@ void setupComponents() {
     INFLUXDB_ORG = doc["org"].as<String>();
     INFLUXDB_BUCKET = doc["bucket"].as<String>();
     INFLUXDB_TOKEN = doc["token"].as<String>();
+
+    // Local web server
+    // LocalServer::ecControl = &ecUpControl;
+    // LocalServer::phControl = &phControl;
+    LocalServer::fileManager = fileManager;
+    LocalServer::initLocalServer();
 }
 
 void setup() {
