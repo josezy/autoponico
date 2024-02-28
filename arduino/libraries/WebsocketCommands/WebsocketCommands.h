@@ -11,8 +11,8 @@
 typedef void (*CommandHandler)(const char*, const char*);
 
 enum WebsocketState {
-    WS_DISCONNECTED,
-    WS_CONNECTED
+    WS_STATE_DISCONNECTED,
+    WS_STATE_CONNECTED
 };
 
 using namespace websockets;
@@ -26,7 +26,7 @@ struct CommandStruct {
 class WebsocketCommands {
    private:
     String socketUrl;
-    WebsocketState websocketState = WS_DISCONNECTED;
+    WebsocketState websocketState = WS_STATE_DISCONNECTED;
     CommandStruct m_commands[MAX_CMDS];
     WebsocketsClient wsClient;
     unsigned long lastPing = 0;
