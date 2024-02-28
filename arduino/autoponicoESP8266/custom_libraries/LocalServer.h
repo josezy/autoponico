@@ -17,23 +17,10 @@ const char *LOCAL_WEBSITE_PATH_FILES[] = {
 namespace LocalServer {
 AsyncWebServer *server;
 FileManager *fileManager;
-// Control *phControl;
-// Control *ecControl;
+Control *phControl;
+Control *ecControl;
 
 static String processor(const String &var) {
-    if (var == "WIFI_SSID") {
-        return "customSSID";
-    } else if (var == "WIFI_PASSWORD") {
-        return "customPassword";
-    // } else if (var == "PH_SETPOINT") {
-    //     return String(phControl->setpoint);
-    // } else if (var == "EC_SETPOINT") {
-    //     return String(ecControl->setpoint);
-    // } else if (var == "PH_READING") {
-    //     return String(phControl->current);
-    // } else if (var == "EC_READING") {
-    //     return String(ecControl->current);
-    }
     return String();
 }
 
@@ -41,7 +28,7 @@ static void notFound(AsyncWebServerRequest *request) {
     request->send(404, "text/plain", "Not found");
 }
 
-static void saveWifiForm(AsyncWebServerRequest *request) {
+static void updateWifi(AsyncWebServerRequest *request) {
     String responseMessage = "Error: No data received";
     String ssid;
     String password;
@@ -75,12 +62,33 @@ static void cssFile(AsyncWebServerRequest *request) {
     request->send_P(200, "text/js", fileContent.c_str());
 }
 
+static void readSensorData(AsyncWebServerRequest *request) {
+    String response = "{";
+    response += "\"PH_READING\": " + String(phControl->current) + ",";
+    response += "\"EC_READING\": " + String(ecControl->current);
+    response += "}";
+    request->send(200, "application/json", response);
+}
+
+static void readConfig(AsyncWebServerRequest *request) {
+    String response = "{";
+    response += "\"PH_SETPOINT\": " + String(phControl->setpoint) + ",";
+    response += "\"PH_READING\": " + String(phControl->current) + ",";
+    response += "\"EC_SETPOINT\": " + String(ecControl->setpoint) + ",";
+    response += "\"EC_READING\": " + String(ecControl->current);
+    response += "}";
+    request->send(200, "application/json", response);
+}
+
+
 void initLocalServer() {
     server = new AsyncWebServer(LOCAL_SERVER_PORT);
     server->on("/", HTTP_GET, indexTemplate);
     server->on("/index.js", HTTP_GET, jsFile);
     server->on("/index.css", HTTP_GET, cssFile);
-    server->on("/saveWifiForm", HTTP_GET, saveWifiForm);
+    server->on("/updateWifi", HTTP_GET, updateWifi);
+    server->on("/readSensorData", HTTP_GET, readSensorData);
+    server->on("/readConfig", HTTP_GET, readConfig);
     server->onNotFound(notFound);
     server->begin();
 }

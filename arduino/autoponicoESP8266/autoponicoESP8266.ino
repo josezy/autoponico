@@ -443,8 +443,8 @@ void setupComponents() {
     INFLUXDB_TOKEN = doc["token"].as<String>();
 
     // Local web server
-    // LocalServer::ecControl = &ecUpControl;
-    // LocalServer::phControl = &phControl;
+    LocalServer::ecControl = &ecUpControl;
+    LocalServer::phControl = &phControl;
     LocalServer::fileManager = fileManager;
     LocalServer::initLocalServer();
 }
