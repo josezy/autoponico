@@ -8,10 +8,14 @@
 #include <ESPAsyncWebServer.h>
 
 
+const INDEX_TEMPLATE = "/localwebapp/index.html";
+const INDEX_CSS = "/localwebapp/index.css";
+const INDEX_JS = "/localwebapp/index.js";
+
 const char *LOCAL_WEBSITE_PATH_FILES[] = {
-    "/localwebapp/index.html",
-    "/localwebapp/index.css",
-    "/localwebapp/index.js",
+    INDEX_TEMPLATE,
+    INDEX_CSS,
+    INDEX_JS,
 };
 
 namespace LocalServer {
@@ -48,18 +52,18 @@ static void updateWifi(AsyncWebServerRequest *request) {
 }
 
 static void indexTemplate(AsyncWebServerRequest *request) {
-    String fileContent = fileManager->readFile("/localwebapp/index.html");
+    String fileContent = fileManager->readFile(INDEX_TEMPLATE);
     request->send_P(200, "text/html", fileContent.c_str(), processor);
 }
 
 static void jsFile(AsyncWebServerRequest *request) {
-    String fileContent = fileManager->readFile("/localwebapp/index.js");
+    String fileContent = fileManager->readFile(INDEX_JS);
     request->send_P(200, "text/js", fileContent.c_str());
 }
 
 static void cssFile(AsyncWebServerRequest *request) {
-    String fileContent = fileManager->readFile("/localwebapp/index.css");
-    request->send_P(200, "text/js", fileContent.c_str());
+    String fileContent = fileManager->readFile(INDEX_CSS);
+    request->send_P(200, "text/css", fileContent.c_str());
 }
 
 static void readSensorData(AsyncWebServerRequest *request) {
@@ -80,15 +84,35 @@ static void readConfig(AsyncWebServerRequest *request) {
     request->send(200, "application/json", response);
 }
 
+static voir updateSetpoints(AsyncWebServerRequest *request) {
+    String responseMessage = "Error: No data received";
+    String phSetpoint;
+    String ecSetpoint;
+    if (request->hasParam("PH_SETPOINT")) {
+        phControl->setpoint = request->getParam("PH_SETPOINT")->value();
+        responseMessage = "PH setpoint updated ";
+    }
+
+    if (request->hasParam("EC_SETPOINT")) {
+        ecControl->setpoint = request->getParam("EC_SETPOINT")->value();
+        responseMessage = responseMessage + "EC setpoint updated";
+    }
+
+    request->send(200, "text/text", responseMessage);
+}
+
 
 void initLocalServer() {
     server = new AsyncWebServer(LOCAL_SERVER_PORT);
+    // Template, CSS and JS files
     server->on("/", HTTP_GET, indexTemplate);
     server->on("/index.js", HTTP_GET, jsFile);
     server->on("/index.css", HTTP_GET, cssFile);
-    server->on("/updateWifi", HTTP_GET, updateWifi);
+    // API
     server->on("/readSensorData", HTTP_GET, readSensorData);
     server->on("/readConfig", HTTP_GET, readConfig);
+    server->on("/updateWifi", HTTP_GET, updateWifi);
+    server->on("/updateSetpoints", HTTP_GET, updateSetpoints);
     server->onNotFound(notFound);
     server->begin();
 }
