@@ -9,6 +9,11 @@ const updateVariables = (data) => {
   document.getElementById("PH_READING").textContent = data.PH_READING;
 };
 
+const onRangeChange = (labelId, prefixText, value) => {
+  const secondsLabel =  parseInt(value) === 1 ? "segundo" : "segundos";
+  document.getElementById(labelId).textContent = `${prefixText} ${value} ${secondsLabel}`;
+};
+
 window.onload = async () => {
   const config = await fetchConfig();
   document.getElementById("WIFI_SSID").value = config.WIFI_SSID;
