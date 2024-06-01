@@ -51,6 +51,20 @@ const WebsocketCommander = () => {
     }
   }, [messages.length])
 
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isConnected) {
+      interval = setInterval(() => {
+        ws?.send("ph read_ph")
+      }, 1000)
+    } else {
+      clearInterval(interval! ? interval : 0)
+    }
+    return () => {
+      clearInterval(interval)
+    }
+  }, [isConnected])
+
   const connect = () => {
     const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WSSERVER_URL}/ws${window.location.search}`)
     ws.onopen = () => {
