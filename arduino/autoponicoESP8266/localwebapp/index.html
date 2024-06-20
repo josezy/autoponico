@@ -1,0 +1,207 @@
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Granja automatizada</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <header>
+      <img src="logo.png" alt="Logo de la granja" />
+      <h1>Granja automatizada</h1>
+    </header>
+    <main>
+      <div class="main-container">
+        <section class="genral-configurations">
+          <div id="visualizacion-variables">
+            <h2>Visualización de variables</h2>
+            <p>
+              Aquí puedes ver los valores actuales de las variables de la
+              granja.
+            </p>
+            <ul>
+              <li>EC: <span id="EC_READING"></span></li>
+              <li>pH: <span id="PH_READING"></span></li>
+            </ul>
+          </div>
+          <div id="configuracion-wifi">
+            <h2>Configuración de WiFi</h2>
+            <p>
+              Aquí puedes configurar la red WiFi a la que se conectará la
+              granja.
+            </p>
+            <form action="/updateWifi" method="post">
+              <label for="WIFI_SSID">SSID:</label>
+              <input type="text" id="WIFI_SSID" name="WIFI_SSID" />
+              <label for="WIFI_PASSWORD">Contraseña:</label>
+              <input type="password" id="WIFI_PASSWORD" name="WIFI_PASSWORD" />
+              <button type="submit">Guardar</button>
+            </form>
+          </div>
+          <div id="configuracion-setpoints">
+            <h2>Configuración de setpoints</h2>
+            <p>
+              Aquí puedes configurar los valores de referencia para las
+              variables de la granja.
+            </p>
+            <form action="/updateSetpoints">
+              <label for="EC_SETPOINT">EC:</label>
+              <input type="number" id="EC_SETPOINT" name="EC_SETPOINT" />
+              <label for="PH_SETPOINT">pH:</label>
+              <input type="number" id="PH_SETPOINT" name="PH_SETPOINT" />
+              <button type="submit">Guardar</button>
+            </form>
+          </div>
+        </section>
+
+        <section id="dosage-and-calibration">
+          <div>
+            <h2>Control de dosificación</h2>
+            <p>
+              Aquí puedes controlar el tiempo de dosificfación de nutrientes en
+              la solución de riego.
+            </p>
+            <div id="dosage-sliders">
+              <div class="dosage-item-container">
+                <label id="ec-dosage-label" for="EC_DROP_TIME">
+                  EC_UP: 10 segundos
+                </label>
+                <div class="dosage-range-container">
+                  <input
+                    type="range"
+                    min="1"
+                    max="60"
+                    value="10"
+                    id="EC_DROP_TIME"
+                    name="EC_DROP_TIME"
+                    oninput="onRangeChange('ec-dosage-label', 'EC_UP:', this.value)"
+                  />
+                  <button></button>
+                </div>
+              </div>
+              <div class="dosage-item-container">
+                <label id="ph-down-dosage-label" for="PH_DOWN_DROP_TIME">
+                  PH_DOWN: 1 segundo
+                </label>
+                <div class="dosage-range-container">
+                  <input
+                    type="range"
+                    min="1"
+                    max="60"
+                    value="1"
+                    id="PH_DOWN_DROP_TIME"
+                    name="PH_DOWN_DROP_TIME"
+                    oninput="onRangeChange('ph-down-dosage-label', 'PH_DOWN:', this.value)"
+                  />
+                  <button></button>
+                </div>
+              </div>
+              <div class="dosage-item-container">
+                <label id="ph-up-dosage-label" for="PH_UP_DROP_TIME">
+                  PH_UP: 1 segundo
+                </label>
+                <div class="dosage-range-container">
+                  <input
+                    type="range"
+                    min="1"
+                    max="60"
+                    value="1"
+                    id="PH_UP_DROP_TIME"
+                    name="PH_UP_DROP_TIME"
+                    oninput="onRangeChange('ph-up-dosage-label', ' PH_UP:', this.value)"
+                  />
+                  <button></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="calibration-zone">
+            <h2>Calibración de sensores</h2>
+            <p>Aquí puedes calibrar los sensores de EC y pH de la granja.</p>
+            <div>
+              <button>Mid Cal</button>
+              <button>Low Cal</button>
+              <button>High Cal</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="controller-config">
+          <h2>Configuración del controlador</h2>
+          <p>
+            Aquí puedes configurar el controlador de la granja, como el tiempo
+            de riego y el tiempo de espera entre riegos.
+          </p>
+          <form action="/updateControllerConfig" class="controller-config-form">
+            <h2>Control de pH</h2>
+            <div class="controller-checkbox-container">
+              <label for="PH_AUTO">PH_CONTROL_AUTO:</label>
+              <input type="checkbox" id="PH_AUTO" name="PH_AUTO" />
+            </div>
+            <div>
+              <label for="PH_DROP_TIME">PH_DROP_TIME:</label>
+              <input type="number" id="PH_DROP_TIME" name="PH_DROP_TIME" />
+            </div>
+            <div>
+              <label for="PH_ERR_MARGIN">PH_ERR_MARGIN:</label>
+              <input type="number" id="PH_ERR_MARGIN" name="PH_ERR_MARGIN" />
+            </div>
+            <div>
+              <label for="PH_STABILIZATION_TIME">PH_STABILIZATION_TIME:</label>
+              <input
+                type="number"
+                id="PH_STABILIZATION_TIME"
+                name="PH_STABILIZATION_TIME"
+              />
+            </div>
+            <div>
+              <label for="PH_STABILIZATION_MARGIN"
+                >PH_STABILIZATION_MARGIN:</label
+              >
+              <input
+                type="number"
+                id="PH_STABILIZATION_MARGIN"
+                name="PH_STABILIZATION_MARGIN"
+              />
+            </div>
+
+            <h2>Control de EC</h2>
+            <div class="controller-checkbox-container">
+              <label for="EC_AUTO">EC_CONTROL_AUTO:</label>
+              <input type="checkbox" id="EC_AUTO" name="EC_AUTO" />
+            </div>
+            <div>
+              <label for="EC_DROP_TIME">EC_DROP_TIME:</label>
+              <input type="number" id="EC_DROP_TIME" name="EC_DROP_TIME" />
+            </div>
+            <div>
+              <label for="EC_ERR_MARGIN">EC_ERR_MARGIN:</label>
+              <input type="number" id="EC_ERR_MARGIN" name="EC_ERR_MARGIN" />
+            </div>
+            <div>
+              <label for="EC_STABILIZATION_TIME">EC_STABILIZATION_TIME:</label>
+              <input
+                type="number"
+                id="EC_STABILIZATION_TIME"
+                name="EC_STABILIZATION_TIME"
+              />
+            </div>
+            <div>
+              <label for="EC_STABILIZATION_MARGIN"
+                >EC_STABILIZATION_MARGIN:</label
+              >
+              <input
+                type="number"
+                id="EC_STABILIZATION_MARGIN"
+                name="EC_STABILIZATION_MARGIN"
+              />
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
+
+<script src="index.js"></script>

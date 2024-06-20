@@ -1,0 +1,223 @@
+/* Estilos generales */
+
+:root {
+  --primary-color: #297542;
+  --secondary-color: #d3d3d3;
+  --tertiary-color: #4caf50;
+}
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: normal;
+  margin-bottom: 10px;
+}
+
+p {
+  margin-bottom: 20px;
+}
+
+a {
+  text-decoration: none;
+  color: #000;
+}
+
+a:hover {
+  color: #666;
+}
+
+/* Estilos del header */
+
+header {
+  background-color: var(--primary-color);
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+header img {
+  float: left;
+  margin-right: 20px;
+}
+
+main {
+  padding: 10px;
+}
+/* Estilos de las secciones */
+
+section {
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+section h2 {
+  margin-top: 0;
+}
+
+.main-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+#visualizacion-variables ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#visualizacion-variables li {
+  margin-bottom: 10px;
+}
+
+/* Estilos de los formularios */
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+input {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 5px;
+  width: 100%;
+  max-width: 300px;
+}
+
+button {
+  background-color: var(--primary-color);
+  color: #fff;
+  cursor: pointer;
+  padding: 5px 10px;
+  width: 100px;
+  border-radius: 5px;
+  border: none;
+}
+input[type="range"] {
+  -webkit-appearance: none; /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 15px; /* Specified height */
+  border-radius: 7px; /* Rounded track */
+  background: #d3d3d3; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+  -webkit-transition: 0.2s; /* 0.2 seconds transition on hover */
+  transition: opacity 0.2s;
+}
+
+/* Mouse-over effects */
+input[type="range"]:hover {
+  opacity: 1;
+}
+
+/* Thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: var(--primary-color); /* Green background */
+  cursor: pointer; /* Cursor on hover */
+  border-radius: 50%; /* Rounded slider handle */
+}
+
+/* Thumb on hover effect */
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #3ea341;
+}
+
+.dosage-slider {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dosage-item-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  .dosage-range-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  button {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+.controller-config {
+  display: flex;
+  flex-direction: column;
+}
+
+.controller-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.controller-config-form div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.controller-config-form div label {
+  width: 300px;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.controller-config-form div input {
+  max-width: 200px;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.controller-checkbox-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Media queries */
+
+@media (max-width: 768px) {
+  section {
+    margin: 10px;
+  }
+
+  header img {
+    display: none;
+  }
+
+  .controller-checkbox-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .controller-config-form div {
+    flex-direction: column;
+  }
+}
