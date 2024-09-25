@@ -35,6 +35,10 @@ Point autoponicoPoint("cultivo");
 // Websockets
 WebsocketCommands websocketCommands;
 
+// Ultrasonic sensor
+const uint16_t TRIGGER_PIN = D0;
+const uint16_t ECHO_PIN = D3;
+
 // Control
 ControlConfig phConfiguration = {
     D1,           // M_UP_PIN
@@ -67,6 +71,25 @@ unsigned long influxSyncTimer;
 // Other variables
 RemoteFlasher remoteFlasher(&websocketCommands);
 FileManager* fileManager;
+
+float readUltrasonicDistance(int triggerPin, int echoPin) {
+  // Clear the trigger pin
+  digitalWrite(triggerPin, LOW);
+  delayMicroseconds(2);
+  
+  // Set the trigger pin high for 10 microseconds
+  digitalWrite(triggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(triggerPin, LOW);
+  
+  // Read the echo pin, returns the sound wave travel time in microseconds
+  long duration = pulseIn(echoPin, HIGH);
+  
+  // Calculate the distance
+  float distance = duration * 0.034 / 2;
+  
+  return distance;
+}
 
 void update_started() {
     String msg = "CALLBACK:  HTTP update process started";
@@ -101,6 +124,9 @@ void setupCommands() {
     websocketCommands.init(WEBSOCKET_URL);
 
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(TRIGGER_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
+
     websocketCommands.registerCmd((char*)"ping", [](const char* action, const char* value) {
         if (strcmp(action, "on") == 0) {
             digitalWrite(LED_BUILTIN, LOW);
@@ -479,6 +505,8 @@ void loop() {
         float ecKalman = simpleKalmanEc->updateEstimate(ecReading);
         ecUpControl.current = ecKalman;
 
+        float distance = readUltrasonicDistance(TRIGGER_PIN, ECHO_PIN);
+
         // Perform actual control
         int ph_control_direction = phControl.doControl();
         int ec_control_direction = ecUpControl.doControl();
@@ -493,6 +521,7 @@ void loop() {
             autoponicoPoint.addField("ec_raw", ecReading);
             autoponicoPoint.addField("ec_kalman", ecKalman);
             autoponicoPoint.addField("ec_desired", ecUpControl.setpoint);
+            autoponicoPoint.addField("distance", distance);
             if (ph_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             }
