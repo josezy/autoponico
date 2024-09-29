@@ -521,12 +521,14 @@ void loop() {
             autoponicoPoint.addField("ec_raw", ecReading);
             autoponicoPoint.addField("ec_kalman", ecKalman);
             autoponicoPoint.addField("ec_desired", ecUpControl.setpoint);
-            autoponicoPoint.addField("distance", distance);
             if (ph_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ph_control_direction", ph_control_direction);
             }
             if (ec_control_direction != GOING_NONE) {
                 autoponicoPoint.addField("ec_control_direction", ec_control_direction);
+            }
+            if (distance > 0) {
+                autoponicoPoint.addField("distance", distance);
             }
             Serial.println("Writing to InfluxDB");
             if (!influxClient->writePoint(autoponicoPoint)) {
