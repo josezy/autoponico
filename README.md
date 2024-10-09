@@ -42,7 +42,11 @@ Open the `.ino` file with Arduino IDE, compile and happy upload :fire:
     - `update`
     - `wifi`: Set SSID and password: `management wifi <SSID>,<password>`
     - `info`
-    - `influxdb`: Get influxdb info
+- `influxdb`
+    - `info` Get influxdb info
+    - `update` Pass the entire object `{"enabled": "true", "url": "", "org": "", "bucket": "", "token": ""}`
+- `kalman`
+    - `info`
 
 ## WebSocket server
 NodeJS program using typescript to handle websockets between webapp and Arduino boards
