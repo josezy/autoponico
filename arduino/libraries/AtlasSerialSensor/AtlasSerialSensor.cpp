@@ -1,7 +1,6 @@
 #include "AtlasSerialSensor.h"
 
-AtlasSerialSensor::AtlasSerialSensor(int rx, int tx) {
-    this->ezoSerial = new SoftwareSerial(rx, tx);
+AtlasSerialSensor::AtlasSerialSensor(HardwareSerial& serial) : ezoSerial(&serial) {
     this->sensorString.reserve(30);
 }
 
@@ -64,7 +63,7 @@ float AtlasSerialSensor::getReading() {
 }
 
 void AtlasSerialSensor::sendSerial(String command) {
-    this->ezoSerial->print((char*)command.c_str());
+    this->ezoSerial->print(command);
     this->ezoSerial->print('\r');
 }
 

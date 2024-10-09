@@ -1,5 +1,9 @@
+#ifndef LED_BUILTIN
+#define LED_BUILTIN 2  // Most ESP32 dev boards use GPIO 2 for the onboard LED
+#endif
+
 // Arduino included libraries
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 
 // Download from https://files.atlas-scientific.com/gravity-pH-ardunio-code.pdf
 #include <ph_iso_grav.h>
@@ -36,18 +40,18 @@ Point autoponicoPoint("cultivo");
 WebsocketCommands websocketCommands;
 
 // Ultrasonic sensor
-const uint16_t TRIGGER_PIN = D0;
-const uint16_t ECHO_PIN = D3;
+const uint16_t TRIGGER_PIN = 15;
+const uint16_t ECHO_PIN = 4;
 
 // Control
 ControlConfig phConfiguration = {
-    D1,           // M_UP_PIN
-    D2,           // M_DN_PIN
+    36,           // M_UP_PIN
+    39,           // M_DN_PIN
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
 };
 ControlConfig ecUpConfiguration = {
-    D8,           // M_UP_PIN
+    34,           // M_UP_PIN
     0,            // M_DN_PIN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
@@ -57,11 +61,11 @@ Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
 // Ph sensor
-Gravity_pH phSensor = Gravity_pH(D5);
+Gravity_pH phSensor = Gravity_pH(0);
 SimpleKalmanFilter* simpleKalmanPh;
 
 // EC Sensor
-AtlasSerialSensor ecSensor = AtlasSerialSensor(D7, D6);
+AtlasSerialSensor ecSensor = AtlasSerialSensor(Serial0);
 SimpleKalmanFilter* simpleKalmanEc;
 
 // Timers
