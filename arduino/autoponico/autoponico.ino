@@ -65,7 +65,7 @@ Gravity_pH phSensor = Gravity_pH(0);
 SimpleKalmanFilter* simpleKalmanPh;
 
 // EC Sensor
-AtlasSerialSensor ecSensor = AtlasSerialSensor(Serial0);
+AtlasSerialSensor ecSensor = AtlasSerialSensor(Serial2, 16, 17);
 SimpleKalmanFilter* simpleKalmanEc;
 
 // Timers
@@ -344,7 +344,7 @@ void setupCommands() {
 
 void setupComponents() {
     phSensor.begin();
-    ecSensor.begin(9600);
+    ecSensor.begin();
 
     // Wifi config
     String ssid = fileManager->readState("ssid", WIFI_SSID);

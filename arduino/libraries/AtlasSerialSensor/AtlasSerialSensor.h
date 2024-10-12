@@ -9,9 +9,11 @@ class AtlasSerialSensor {
     String sensorString = "";
     bool sensorStringComplete = false;
     float lastReading = 0;
+    int rx;
+    int tx;
 
     public:
-        AtlasSerialSensor(HardwareSerial& serial);
+        AtlasSerialSensor(HardwareSerial& serial, int rx, int tx);
         void begin(int baudrate = 9600);
         void sendSerial(String command);
         void readSerial();
