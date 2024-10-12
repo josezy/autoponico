@@ -61,7 +61,7 @@ Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
 // Ph sensor
-Gravity_pH phSensor = Gravity_pH(0);
+Gravity_pH_Isolated phSensor = Gravity_pH_Isolated(5);
 SimpleKalmanFilter* simpleKalmanPh;
 
 // EC Sensor

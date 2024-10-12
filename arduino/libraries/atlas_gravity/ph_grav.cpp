@@ -17,6 +17,7 @@ Gravity_pH::Gravity_pH(uint8_t pin){
 }
 
 bool Gravity_pH::begin(){
+  pinMode(this->pin, INPUT);
     #if defined(ESP8266) || defined(ESP32)
         EEPROM.begin(1024);
     #endif 
