@@ -2,7 +2,7 @@
 
 
 ## Arduino
-Software running on an ESP8266 to report measurements taken from atlas sensors<br/>
+Software running on an ESP32 to report measurements taken from atlas sensors<br/>
 it pushes collected measurements to an InfluxDB bucket
 
 ### Get started
