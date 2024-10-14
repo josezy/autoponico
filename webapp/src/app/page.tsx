@@ -2,7 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { ImSpinner9 } from "react-icons/im";
+import { TbReload } from "react-icons/tb";
+import { toast } from 'react-toastify';
 
+import ToggleSwitch from '@/components/ToggleSwitch';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 
 const Dashboard = () => {
@@ -48,6 +51,7 @@ const Dashboard = () => {
 
   const handleCommand = (command: string) => {
     send(command);
+    toast(`"${command}" sent`, { autoClose: 2000 });
   };
 
   const handleCommandConfirm = (command: string) => {
@@ -56,14 +60,10 @@ const Dashboard = () => {
     }
   };
 
-  const handleControlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    send(`control ${name} ${value}`);
-  };
-
   const handleInfluxDBSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    send(`influxdb update ${JSON.stringify(influxDBForm)}`);
+    const data = Object.assign({}, influxDBForm, { enabled: influxDBForm.enabled ? 1 : 0 });
+    send(`influxdb update ${JSON.stringify(data)}`);
   };
 
   if (!connected) {
@@ -88,15 +88,14 @@ const Dashboard = () => {
               {value as string}
             </div>
           ))}
+          {!Object.keys(deviceInfo).length && (
+            <div className="text-sm">No device info</div>
+          )}
         </div>
-      </div>
 
-      {/* Commands */}
-      <div className="bg-white shadow rounded-lg p-4 mb-4">
         <h2 className="text-xl font-semibold mb-2">Commands</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           <button onClick={() => handleCommand('ping')} className="btn">Ping</button>
-          <button onClick={() => handleCommand('ph read_ph')} className="btn">Read pH</button>
           <button onClick={() => handleCommandConfirm('management reboot')} className="btn">Reboot</button>
           <button onClick={() => handleCommandConfirm('management update')} className="btn">Update firmware ⚠️</button>
         </div>
@@ -113,7 +112,6 @@ const Dashboard = () => {
                 type="text"
                 value={wsData.ph.ph}
                 readOnly
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
             </div>
           )}
@@ -129,26 +127,58 @@ const Dashboard = () => {
 
       {/* Control */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2">Control</h2>
+        <h2 className="text-xl font-semibold mb-2 flex gap-2">
+          Control
+          <TbReload
+            size={28}
+            strokeWidth={3}
+            onClick={() => handleCommand('control info')}
+            className="text-teal-600 cursor-pointer rounded-full hover:bg-neutral-100 p-1"
+          />
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {['ph_setpoint', 'ph_auto', 'ec_setpoint', 'ec_auto'].map((control) => (
-            <div key={control}>
-              <label className="block text-sm font-medium text-gray-700">{control}</label>
-              <input
-                type="text"
-                name={control}
-                value={controlInfo[control] ?? ''}
-                onChange={handleControlChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              />
-            </div>
-          ))}
+          {['ph_setpoint', 'ph_auto', 'ec_setpoint', 'ec_auto'].map((control) => {
+            const label = control.replaceAll('_', ' ')
+            if (control.endsWith('_auto')) {
+              return (
+                <div key={control} className='mr-auto'>
+                  <ToggleSwitch
+                    name={control}
+                    label={label}
+                    checked={controlInfo[control] === 'true'}
+                    onChange={(e) => {
+                      console.log("gonorreaass", e.target)
+                      const { checked } = e.target
+                      handleCommand(`control ${control} ${checked ? '1' : '0'}`)
+                      setControlInfo({ ...controlInfo, [control]: checked ? 'true' : 'false' })
+                    }}
+                  />
+                </div>
+              )
+            }
+            return (
+              <div key={control}>
+                <label className="block text-sm font-medium text-gray-700">{label}</label>
+                <input
+                  type="text"
+                  name={control}
+                  value={controlInfo[control] ?? ''}
+                  onChange={(e) => setControlInfo({ ...controlInfo, [control]: e.target.value })}
+                  onBlur={(e) => {
+                    const { value } = e.target
+                    if (value.trim() === '') return
+                    handleCommand(`control ${control} ${e.target.value}`)
+                  }}
+                  className="mt-1"
+                />
+              </div>
+            )
+          })}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
-          <button onClick={() => handleCommand('control ph_up')} className="btn">pH Up</button>
-          <button onClick={() => handleCommand('control ph_down')} className="btn">pH Down</button>
-          <button onClick={() => handleCommand('control ec_up')} className="btn">EC Up</button>
-          {/* <button onClick={() => handleCommand('control ec_down')} className="btn">EC Down</button> */}
+          <button onClick={() => handleCommand('control ph_up 2000')} className="btn">pH Up</button>
+          <button onClick={() => handleCommand('control ph_down 2000')} className="btn">pH Down</button>
+          <button onClick={() => handleCommand('control ec_up 5000')} className="btn">EC Up</button>
         </div>
       </div>
 
@@ -156,23 +186,20 @@ const Dashboard = () => {
       <div className="bg-white shadow rounded-lg p-4 mb-4">
         <h2 className="text-xl font-semibold mb-2">InfluxDB Configuration</h2>
         <form onSubmit={handleInfluxDBSubmit}>
+          <div className='w-fit mb-4'>
+            <ToggleSwitch
+              label="Enabled"
+              checked={influxDBForm.enabled}
+              onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked })}
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Enabled</label>
-              <input
-                type="checkbox"
-                checked={influxDBForm.enabled}
-                onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked })}
-                className="mt-1 focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-              />
-            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">URL</label>
               <input
                 type="text"
                 value={influxDBForm.url}
                 onChange={(e) => setInfluxDBForm({ ...influxDBForm, url: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
             </div>
             <div>
@@ -181,7 +208,6 @@ const Dashboard = () => {
                 type="text"
                 value={influxDBForm.org}
                 onChange={(e) => setInfluxDBForm({ ...influxDBForm, org: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
             </div>
             <div>
@@ -190,7 +216,6 @@ const Dashboard = () => {
                 type="text"
                 value={influxDBForm.bucket}
                 onChange={(e) => setInfluxDBForm({ ...influxDBForm, bucket: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
             </div>
             <div>
@@ -199,7 +224,6 @@ const Dashboard = () => {
                 type="password"
                 value={influxDBForm.token}
                 onChange={(e) => setInfluxDBForm({ ...influxDBForm, token: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
             </div>
           </div>

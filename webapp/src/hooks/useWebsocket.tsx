@@ -1,4 +1,5 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 
 interface WsData {
   ph?: Record<string, any>;
@@ -62,6 +63,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
           setWsData((prevData) => ({...prevData, [command]: rest}));
         } catch (e) {
           console.log("WS:", event.data)
+          toast(`WS: ${event.data}`, { type: 'info' });
         }
       };
 
