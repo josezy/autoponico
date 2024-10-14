@@ -1,6 +1,8 @@
 #include "AtlasSerialSensor.h"
 
-AtlasSerialSensor::AtlasSerialSensor(HardwareSerial& serial) : ezoSerial(&serial) {
+AtlasSerialSensor::AtlasSerialSensor(HardwareSerial& serial, int rx, int tx) : ezoSerial(&serial) {
+    this->rx = rx;
+    this->tx = tx;
     this->sensorString.reserve(30);
 }
 
@@ -68,5 +70,5 @@ void AtlasSerialSensor::sendSerial(String command) {
 }
 
 void AtlasSerialSensor::begin(int baudrate) {
-    this->ezoSerial->begin(baudrate);
+    this->ezoSerial->begin(baudrate, SERIAL_8N1, this->rx, this->tx);
 }

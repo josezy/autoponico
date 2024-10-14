@@ -61,11 +61,11 @@ Control phControl = Control(&phConfiguration);
 Control ecUpControl = Control(&ecUpConfiguration);
 
 // Ph sensor
-Gravity_pH phSensor = Gravity_pH(0);
+Gravity_pH_Isolated phSensor = Gravity_pH_Isolated(5);
 SimpleKalmanFilter* simpleKalmanPh;
 
 // EC Sensor
-AtlasSerialSensor ecSensor = AtlasSerialSensor(Serial0);
+AtlasSerialSensor ecSensor = AtlasSerialSensor(Serial2, 16, 17);
 SimpleKalmanFilter* simpleKalmanEc;
 
 // Timers
@@ -125,7 +125,13 @@ void setupCommands() {
         } else if (action == "cal_clear") {
             phSensor.cal_clear();
         } else if (action == "read_ph") {
-            websocketCommands.send((char*)String(phSensor.read_ph()).c_str());
+            float ph = phSensor.read_ph();
+            String response = String();
+            JsonDocument doc;
+            doc["ph"] = ph;
+            doc["command"] = "ph";
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
         } else {
             Serial.printf("[Atlas Gravity] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[Atlas Gravity] Unknown action type");
@@ -137,6 +143,23 @@ void setupCommands() {
         String action = String(_action);
         String value = String(_value);
         ecSensor.sendSerial(action + " " + value);
+    });
+
+    // Distance
+    websocketCommands.registerCmd((char*)"distance", [](const char* _action, const char* _value) {
+        String action = String(_action);
+        if (action == "read") {
+            float distance = readUltrasonicDistance(TRIGGER_PIN, ECHO_PIN);
+            String response = String();
+            JsonDocument doc;
+            doc["distance"] = distance;
+            doc["command"] = "distance";
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
+        } else {
+            Serial.printf("[Ultrasonic] Unknown action type: %s\n", action);
+            websocketCommands.send((char*)"[Ultrasonic] Unknown action type");
+        }
     });
 
     // Control
@@ -158,6 +181,7 @@ void setupCommands() {
             doc["ec_err_margin"] = ecUpControl.ERR_MARGIN;
             doc["ec_stabilization_time"] = ecUpControl.STABILIZATION_TIME;
             doc["ec_stabilization_margin"] = ecUpControl.STABILIZATION_MARGIN;
+            doc["command"] = "control";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
             return;
@@ -220,6 +244,7 @@ void setupCommands() {
             doc["ec_mea_error"] = simpleKalmanEc->getMeasurementError();
             doc["ec_est_error"] = simpleKalmanEc->getEstimateError();
             doc["ec_proc_noise"] = simpleKalmanEc->getProcessNoise();
+            doc["command"] = "kalman";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
             return;
@@ -257,6 +282,7 @@ void setupCommands() {
             doc["org"] = INFLUXDB_ORG;
             doc["bucket"] = INFLUXDB_BUCKET;
             doc["token"] = INFLUXDB_TOKEN;
+            doc["command"] = "influxdb";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
             return;
@@ -333,6 +359,7 @@ void setupCommands() {
             doc["ssid"] = WiFi.SSID();
             doc["rssi"] = WiFi.RSSI();
             doc["uptime"] = millis() / 1000;
+            doc["command"] = "management";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
         } else  {
@@ -344,7 +371,7 @@ void setupCommands() {
 
 void setupComponents() {
     phSensor.begin();
-    ecSensor.begin(9600);
+    ecSensor.begin();
 
     // Wifi config
     String ssid = fileManager->readState("ssid", WIFI_SSID);
@@ -466,7 +493,12 @@ void loop() {
     websocketCommands.websocketJob();
     ecSensor.readSerial();
     if (ecSensor.sensorStringToWebsocket.length() > 0) {
-        websocketCommands.send((char*)ecSensor.sensorStringToWebsocket.c_str());
+        String response = String();
+        JsonDocument doc;
+        doc["ec"] = ecSensor.sensorStringToWebsocket;
+        doc["command"] = "ec";
+        serializeJson(doc, response);
+        websocketCommands.send((char*)response.c_str());
         ecSensor.sensorStringToWebsocket = "";
     }
 
