@@ -129,6 +129,7 @@ void setupCommands() {
             String response = String();
             JsonDocument doc;
             doc["ph"] = ph;
+            doc["command"] = "ph";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
         } else {
@@ -152,6 +153,7 @@ void setupCommands() {
             String response = String();
             JsonDocument doc;
             doc["distance"] = distance;
+            doc["command"] = "distance";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
         } else {
@@ -179,6 +181,7 @@ void setupCommands() {
             doc["ec_err_margin"] = ecUpControl.ERR_MARGIN;
             doc["ec_stabilization_time"] = ecUpControl.STABILIZATION_TIME;
             doc["ec_stabilization_margin"] = ecUpControl.STABILIZATION_MARGIN;
+            doc["command"] = "control";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
             return;
@@ -241,6 +244,7 @@ void setupCommands() {
             doc["ec_mea_error"] = simpleKalmanEc->getMeasurementError();
             doc["ec_est_error"] = simpleKalmanEc->getEstimateError();
             doc["ec_proc_noise"] = simpleKalmanEc->getProcessNoise();
+            doc["command"] = "kalman";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
             return;
@@ -278,6 +282,7 @@ void setupCommands() {
             doc["org"] = INFLUXDB_ORG;
             doc["bucket"] = INFLUXDB_BUCKET;
             doc["token"] = INFLUXDB_TOKEN;
+            doc["command"] = "influxdb";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
             return;
@@ -354,6 +359,7 @@ void setupCommands() {
             doc["ssid"] = WiFi.SSID();
             doc["rssi"] = WiFi.RSSI();
             doc["uptime"] = millis() / 1000;
+            doc["command"] = "management";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
         } else  {
@@ -490,6 +496,7 @@ void loop() {
         String response = String();
         JsonDocument doc;
         doc["ec"] = ecSensor.sensorStringToWebsocket;
+        doc["command"] = "ec";
         serializeJson(doc, response);
         websocketCommands.send((char*)response.c_str());
         ecSensor.sensorStringToWebsocket = "";
