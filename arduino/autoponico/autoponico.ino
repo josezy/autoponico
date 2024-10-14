@@ -125,7 +125,12 @@ void setupCommands() {
         } else if (action == "cal_clear") {
             phSensor.cal_clear();
         } else if (action == "read_ph") {
-            websocketCommands.send((char*)String(phSensor.read_ph()).c_str());
+            float ph = phSensor.read_ph();
+            String response = String();
+            JsonDocument doc;
+            doc["ph"] = ph;
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
         } else {
             Serial.printf("[Atlas Gravity] Unknown action type: %s\n", action);
             websocketCommands.send((char*)"[Atlas Gravity] Unknown action type");
@@ -137,6 +142,22 @@ void setupCommands() {
         String action = String(_action);
         String value = String(_value);
         ecSensor.sendSerial(action + " " + value);
+    });
+
+    // Distance
+    websocketCommands.registerCmd((char*)"distance", [](const char* _action, const char* _value) {
+        String action = String(_action);
+        if (action == "read") {
+            float distance = readUltrasonicDistance(TRIGGER_PIN, ECHO_PIN);
+            String response = String();
+            JsonDocument doc;
+            doc["distance"] = distance;
+            serializeJson(doc, response);
+            websocketCommands.send((char*)response.c_str());
+        } else {
+            Serial.printf("[Ultrasonic] Unknown action type: %s\n", action);
+            websocketCommands.send((char*)"[Ultrasonic] Unknown action type");
+        }
     });
 
     // Control
@@ -466,7 +487,11 @@ void loop() {
     websocketCommands.websocketJob();
     ecSensor.readSerial();
     if (ecSensor.sensorStringToWebsocket.length() > 0) {
-        websocketCommands.send((char*)ecSensor.sensorStringToWebsocket.c_str());
+        String response = String();
+        JsonDocument doc;
+        doc["ec"] = ecSensor.sensorStringToWebsocket;
+        serializeJson(doc, response);
+        websocketCommands.send((char*)response.c_str());
         ecSensor.sensorStringToWebsocket = "";
     }
 
