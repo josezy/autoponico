@@ -111,7 +111,7 @@ const WebsocketCommander = () => {
       </div>
       <div className="flex flex-row items-center justify-center w-full">
         <input
-          className="w-full px-4 py-2 mr-2 text-black bg-white border rounded-md"
+          className="!py-2 mr-2 !rounded-md"
           type="text"
           placeholder="Message"
           value={message}

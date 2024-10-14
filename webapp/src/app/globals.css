@@ -17,6 +17,7 @@
 }
 
 body {
+  min-height: 100vh;
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -24,4 +25,12 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+}
+
+.btn {
+  @apply bg-teal-600 hover:bg-teal-800 text-white py-2 px-4 rounded;
+}
+
+input[type="text"] {
+  @apply shadow border rounded w-full py-1 px-2 text-gray-800 leading-tight focus:outline-none;
 }
