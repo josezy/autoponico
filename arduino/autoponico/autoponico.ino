@@ -80,18 +80,15 @@ float readUltrasonicDistance(int triggerPin, int echoPin) {
   // Clear the trigger pin
   digitalWrite(triggerPin, LOW);
   delayMicroseconds(2);
-  
+
   // Set the trigger pin high for 10 microseconds
   digitalWrite(triggerPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(triggerPin, LOW);
-  
-  // Read the echo pin, returns the sound wave travel time in microseconds
+
+  // Read the echo pin, returns the sound wave travel time in microseconds, compute and return distance
   long duration = pulseIn(echoPin, HIGH);
-  
-  // Calculate the distance
   float distance = duration * 0.034 / 2;
-  
   return distance;
 }
 
@@ -128,7 +125,7 @@ void setupCommands() {
             float ph = phSensor.read_ph();
             String response = String();
             JsonDocument doc;
-            doc["ph"] = ph;
+            doc["value"] = ph;
             doc["command"] = "ph";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
@@ -143,23 +140,6 @@ void setupCommands() {
         String action = String(_action);
         String value = String(_value);
         ecSensor.sendSerial(action + " " + value);
-    });
-
-    // Distance
-    websocketCommands.registerCmd((char*)"distance", [](const char* _action, const char* _value) {
-        String action = String(_action);
-        if (action == "read") {
-            float distance = readUltrasonicDistance(TRIGGER_PIN, ECHO_PIN);
-            String response = String();
-            JsonDocument doc;
-            doc["distance"] = distance;
-            doc["command"] = "distance";
-            serializeJson(doc, response);
-            websocketCommands.send((char*)response.c_str());
-        } else {
-            Serial.printf("[Ultrasonic] Unknown action type: %s\n", action);
-            websocketCommands.send((char*)"[Ultrasonic] Unknown action type");
-        }
     });
 
     // Control
@@ -359,6 +339,7 @@ void setupCommands() {
             doc["ssid"] = WiFi.SSID();
             doc["rssi"] = WiFi.RSSI();
             doc["uptime"] = millis() / 1000;
+            doc["distance"] = readUltrasonicDistance(TRIGGER_PIN, ECHO_PIN);
             doc["command"] = "management";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
@@ -495,7 +476,7 @@ void loop() {
     if (ecSensor.sensorStringToWebsocket.length() > 0) {
         String response = String();
         JsonDocument doc;
-        doc["ec"] = ecSensor.sensorStringToWebsocket;
+        doc["value"] = ecSensor.sensorStringToWebsocket;
         doc["command"] = "ec";
         serializeJson(doc, response);
         websocketCommands.send((char*)response.c_str());
