@@ -4,6 +4,7 @@
 
 // Arduino included libraries
 #include <WiFi.h>
+#include <OneWire.h>
 
 // Download from https://files.atlas-scientific.com/gravity-pH-ardunio-code.pdf
 #include <ph_iso_grav.h>
@@ -13,6 +14,7 @@
 #include <InfluxDbCloud.h>
 #include <SimpleKalmanFilter.h>
 #include <ArduinoJson.h>
+#include <DallasTemperature.h>
 
 // Custom libraries
 #include <AtlasSerialSensor.h>
@@ -45,13 +47,13 @@ const uint16_t ECHO_PIN = 4;
 
 // Control
 ControlConfig phConfiguration = {
-    36,           // M_UP_PIN
-    39,           // M_DN_PIN
+    21,           // M_UP_PIN
+    19,           // M_DN_PIN
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
 };
 ControlConfig ecUpConfiguration = {
-    34,           // M_UP_PIN
+    18,           // M_UP_PIN
     0,            // M_DN_PIN,
     200,          // M_UP_SPEED,
     200,          // M_DN_SPEED,
@@ -67,6 +69,10 @@ SimpleKalmanFilter* simpleKalmanPh;
 // EC Sensor
 AtlasSerialSensor ecSensor = AtlasSerialSensor(Serial2, 16, 17);
 SimpleKalmanFilter* simpleKalmanEc;
+
+// Temperature sensor
+OneWire oneWire(22);
+DallasTemperature tempSensor(&oneWire);
 
 // Timers
 unsigned long sensorReadingTimer;
@@ -90,6 +96,11 @@ float readUltrasonicDistance(int triggerPin, int echoPin) {
   long duration = pulseIn(echoPin, HIGH);
   float distance = duration * 0.034 / 2;
   return distance;
+}
+
+float readTemperature() {
+    tempSensor.requestTemperatures();
+    return tempSensor.getTempCByIndex(0);
 }
 
 void setupCommands() {
@@ -340,6 +351,7 @@ void setupCommands() {
             doc["rssi"] = WiFi.RSSI();
             doc["uptime"] = millis() / 1000;
             doc["distance"] = readUltrasonicDistance(TRIGGER_PIN, ECHO_PIN);
+            doc["temperature"] = readTemperature();
             doc["command"] = "management";
             serializeJson(doc, response);
             websocketCommands.send((char*)response.c_str());
@@ -353,6 +365,7 @@ void setupCommands() {
 void setupComponents() {
     phSensor.begin();
     ecSensor.begin();
+    tempSensor.begin();
 
     // Wifi config
     String ssid = fileManager->readState("ssid", WIFI_SSID);
@@ -495,6 +508,7 @@ void loop() {
         ecUpControl.current = ecKalman;
 
         float distance = readUltrasonicDistance(TRIGGER_PIN, ECHO_PIN);
+        float temperature = readTemperature();
 
         // Perform actual control
         int ph_control_direction = phControl.doControl();
@@ -518,6 +532,9 @@ void loop() {
             }
             if (distance > 0) {
                 autoponicoPoint.addField("distance", distance);
+            }
+            if (temperature != DEVICE_DISCONNECTED_C) {
+                autoponicoPoint.addField("temperature", temperature);
             }
             Serial.println("Writing to InfluxDB");
             if (!influxClient->writePoint(autoponicoPoint)) {
