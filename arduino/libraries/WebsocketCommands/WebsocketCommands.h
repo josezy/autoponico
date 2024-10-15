@@ -2,7 +2,7 @@
 #define WebsocketCommands_h
 #define MAX_CMDS 10
 #include <ArduinoWebsockets.h>
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 
 #include <functional>
 
@@ -28,7 +28,7 @@ class WebsocketCommands {
     String socketUrl;
     WebsocketState websocketState = WS_DISCONNECTED;
     CommandStruct m_commands[MAX_CMDS];
-    WebsocketsClient wsClient;
+    WebsocketsClient wsClient = WebsocketsClient();
     unsigned long lastPing = 0;
     void onEventsCallback(WebsocketsEvent event, String data);
     void onMessageCallback(WebsocketsMessage message);
