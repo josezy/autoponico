@@ -1,19 +1,60 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { IconBaseProps } from 'react-icons';
 import { ImSpinner9 } from "react-icons/im";
 import { TbReload } from "react-icons/tb";
+import { LuSignalLow, LuSignalMedium, LuSignalHigh } from "react-icons/lu";
 import { toast } from 'react-toastify';
 
 import ToggleSwitch from '@/components/ToggleSwitch';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 
+const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
+  const [enabled, setEnabled] = React.useState(false);
+  const { send } = useWebSocket();
+  const value = Math.trunc((props.value || 0) * 100) / 100;
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (enabled) {
+        send(props.command);
+      }
+    }, props.interval || 2000);
+    return () => clearInterval(interval);
+  }, [enabled]);
+
+  return (
+    <div className='flex items-center gap-2'>
+      {enabled ? (
+        !!value && <span className="text-sm text-white rounded-full w-12 flex items-center justify-center bg-teal-600 py-0.5">{value}</span>
+      ) : (
+        <span className="text-xs tracking-tight">{props.label}</span>
+      )}
+      <ToggleSwitch
+        checked={enabled}
+        onChange={() => setEnabled(!enabled)}
+      />
+    </div>
+  )
+}
+
+const SignalStrength = (props: IconBaseProps & { rssi: number }) => {
+  const { rssi, ...rest } = props;
+  if (rssi < -70) {
+    return <LuSignalLow color='red' {...rest} />
+  } else if (rssi < -50) {
+    return <LuSignalMedium color='orange' {...rest} />
+  } else {
+    return <LuSignalHigh color='green' {...rest} />
+  }
+}
+
 const Dashboard = () => {
   const { send, connect, disconnect, wsData, connected } = useWebSocket();
 
-  const [deviceInfo, setDeviceInfo] = useState({});
-  const [controlInfo, setControlInfo] = useState<Record<string, any>>({});
-  const [influxDBForm, setInfluxDBForm] = useState({
+  const [controlInfo, setControlInfo] = React.useState<Record<string, any>>({});
+  const [influxDBForm, setInfluxDBForm] = React.useState({
     enabled: false,
     url: '',
     org: '',
@@ -21,14 +62,14 @@ const Dashboard = () => {
     token: '',
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     connect(`${process.env.NEXT_PUBLIC_WSSERVER_URL}/ws${window.location.search}`);
     return () => {
       disconnect();
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (connected) {
       send('management info');
       send('control info');
@@ -36,9 +77,7 @@ const Dashboard = () => {
     }
   }, [connected]);
 
-  useEffect(() => {
-    // Update state when WebSocket data changes
-    if (wsData.management) setDeviceInfo(wsData.management);
+  React.useEffect(() => {
     if (wsData.control) setControlInfo(wsData.control);
     if (wsData.influxdb) setInfluxDBForm({
       enabled: wsData.influxdb.enabled,
@@ -76,19 +115,25 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4 dark:text-white">IoT Device Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4 dark:text-white">Autoponico Dashboard 🍃</h1>
 
       {/* Device Info */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2">Device Info</h2>
+        <div className='flex justify-between w-full'>
+          <div className='flex items-center gap-2'>
+            <h2 className="text-xl font-semibold mb-2">Device Info</h2>
+            <SignalStrength rssi={wsData.management?.rssi} size={24} strokeWidth={3} className='mb-2' />
+          </div>
+          <LiveMeasure command="management info" label="Live info" interval={5000} />
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {Object.entries(deviceInfo).map(([key, value]) => (
+          {Object.entries(wsData.management || {}).map(([key, value]) => (
             <div key={key} className="text-sm">
               <span className="font-medium">{key}: </span>
               {value as string}
             </div>
           ))}
-          {!Object.keys(deviceInfo).length && (
+          {!Object.keys(wsData.management || {}).length && (
             <div className="text-sm">No device info</div>
           )}
         </div>
@@ -103,18 +148,9 @@ const Dashboard = () => {
 
       {/* pH Calibration */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2">pH Calibration</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {wsData.ph && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">pH</label>
-              <input
-                type="text"
-                value={wsData.ph.ph}
-                readOnly
-              />
-            </div>
-          )}
+        <div className='flex justify-between w-full'>
+          <h2 className="text-xl font-semibold mb-2">pH Calibration</h2>
+          <LiveMeasure command="ph read_ph" label="Live pH" value={wsData.ph?.value}  />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -122,6 +158,20 @@ const Dashboard = () => {
           <button onClick={() => handleCommand('ph cal_mid')} className="btn">Cal Mid</button>
           <button onClick={() => handleCommand('ph cal_high')} className="btn">Cal High</button>
           <button onClick={() => handleCommand('ph cal_clear')} className="btn">Cal Clear</button>
+        </div>
+      </div>
+
+      {/* EC Calibration */}
+      <div className="bg-white shadow rounded-lg p-4 mb-4">
+        <div className='flex justify-between w-full'>
+          <h2 className="text-xl font-semibold mb-2">EC Calibration</h2>
+          <LiveMeasure command="ec R" label="Live EC" value={wsData.ec?.value}  />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <button onClick={() => handleCommand('ec Cal,dry')} className="btn">Cal dry</button>
+          <button onClick={() => console.error("Not implemented")} className="btn" disabled>Single point cal</button>
+          <button onClick={() => handleCommand('ec Cal,?')} className="btn">Cal Clear</button>
         </div>
       </div>
 
