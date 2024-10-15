@@ -43,6 +43,7 @@ class RemoteFlasher {
             msg += total;
             msg += " bytes...";
             Serial.println(msg.c_str());
+            // TODO: prevent spamming this, but still send some updates
             websocketCommands->send((char *)msg.c_str());
         });
 
