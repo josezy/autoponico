@@ -22,7 +22,7 @@ const LiveMeasure = (props: { command: string, value?: number, label: string, in
       }
     }, props.interval || 2000);
     return () => clearInterval(interval);
-  }, [enabled]);
+  }, [enabled, send, props.command, props.interval]);
 
   return (
     <div className='flex items-center gap-2'>
