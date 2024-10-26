@@ -42,8 +42,8 @@ Point autoponicoPoint("cultivo");
 WebsocketCommands websocketCommands;
 
 // Ultrasonic sensor
-const uint16_t TRIGGER_PIN = 15;
-const uint16_t ECHO_PIN = 4;
+const uint16_t TRIGGER_PIN = 4;
+const uint16_t ECHO_PIN = 15;
 
 // Control
 ControlConfig phConfiguration = {
