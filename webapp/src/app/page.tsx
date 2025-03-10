@@ -240,7 +240,7 @@ const Dashboard = () => {
             <ToggleSwitch
               label="Enabled"
               checked={influxDBForm.enabled}
-              onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked })}
+              onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked ? "true" : "false" })}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
