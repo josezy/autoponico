@@ -101,7 +101,7 @@ const Dashboard = () => {
 
   const handleInfluxDBSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const data = Object.assign({}, influxDBForm, { enabled: influxDBForm.enabled ? 1 : 0 });
+    const data = Object.assign({}, influxDBForm, { enabled: influxDBForm.enabled ? "true" : "false" });
     send(`influxdb update ${JSON.stringify(data)}`);
   };
 
@@ -240,7 +240,7 @@ const Dashboard = () => {
             <ToggleSwitch
               label="Enabled"
               checked={influxDBForm.enabled}
-              onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked ? "true" : "false" })}
+              onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked })}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
