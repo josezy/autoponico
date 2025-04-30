@@ -8,6 +8,7 @@ import { LuSignalLow, LuSignalMedium, LuSignalHigh } from "react-icons/lu";
 import { toast } from 'react-toastify';
 
 import ToggleSwitch from '@/components/ToggleSwitch';
+import SmartPlugControl from '@/components/SmartPlugControl';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 
 const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
@@ -105,13 +106,14 @@ const Dashboard = () => {
     send(`influxdb update ${JSON.stringify(data)}`);
   };
 
-  if (!connected) {
-    return (
-      <div className="flex items-center justify-center w-full h-screen">
-        <ImSpinner9 className="animate-spin text-4xl dark:text-white" />
-      </div>
-    )
-  }
+
+  // if (!connected) {
+  //   return (
+  //     <div className="flex items-center justify-center w-full h-screen">
+  //       <ImSpinner9 className="animate-spin text-4xl dark:text-white" />
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="container mx-auto p-4">
@@ -280,6 +282,10 @@ const Dashboard = () => {
           <button type="submit" className="mt-4 btn">Update InfluxDB Config</button>
         </form>
       </div>
+
+      {/* Smart Plug Control */}
+      <SmartPlugControl />
+
     </div>
   );
 }
