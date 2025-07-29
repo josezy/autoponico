@@ -10,14 +10,14 @@ const logWithTimestamp = (...messages: (string | any)[]): void => {
 }
 
 const IS_PROD = process.env.NODE_ENV === 'production';
-const port = IS_PROD ? 80 : 8085;
+const port = IS_PROD ? 3000 : 8085;
 logWithTimestamp(`Working on ${IS_PROD ? "PROD" : "DEV"}, port: ${port}`);
 
 const app = express();
 app.use(express.static('public'))
 
 let secureServer: https.Server | null = null;
-if (IS_PROD) {
+if (process.env.ENABLE_SSL === 'true') {
     secureServer = https.createServer({
         cert: fs.readFileSync('/etc/letsencrypt/live/autoponico-ws.tucanorobotics.co/fullchain.pem'),
         key: fs.readFileSync('/etc/letsencrypt/live/autoponico-ws.tucanorobotics.co/privkey.pem'),
