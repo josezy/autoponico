@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  host: 'mail.privateemail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.CUSTOM_EMAIL_USER,
+    pass: process.env.CUSTOM_EMAIL_PASSWORD
+  }
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,9 +53,9 @@ export async function POST(request: NextRequest) {
       <p><em>This is an automated notification from your Autoponico system.</em></p>
     `;
 
-    // Send email using Resend
-    const emailResult = await resend.emails.send({
-      from: 'Autoponico System <no-reply@example.com>',
+    // Send email using Nodemailer
+    const emailResult = await transporter.sendMail({
+      from: 'Autoponico System <hola@tucanorobotics.co>',
       to: ['jose.zdy@gmail.com', 'santiago.salgado.duque@gmail.com'],
       subject: subject,
       html: emailBody,
@@ -58,7 +66,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Notification processed and email sent',
-      emailId: emailResult.data?.id
+      emailId: emailResult.messageId
     });
 
   } catch (error) {
