@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deviceId, sendDeviceCommand } from "@/lib/tuya-api"; // Adjust path as needed
+import { sendDeviceCommand, getDeviceId, DeviceKey, DEVICES } from "@/lib/tuya-api";
 
 // --- API Route Handler ---
 
 export async function POST(request: NextRequest) {
-  if (!deviceId) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "TUYA_DEVICE_ID is not configured on the server.",
-      },
-      { status: 500 }
-    );
-  }
-
-  let commandValue: boolean;
-
   try {
     const body = await request.json();
-    const action = body.action; // Expecting 'on' or 'off'
+    const { device: deviceKey, action } = body;
+
+    if (!deviceKey || !(deviceKey in DEVICES)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid or missing device key. Valid devices: " + Object.keys(DEVICES).join(', '),
+        },
+        { status: 400 }
+      );
+    }
+
+    let commandValue: boolean;
 
     if (action === "on") {
       commandValue = true;
@@ -31,16 +31,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Assuming the smart plug's switch is controlled by the code 'switch_1'
-    const commands = [{ code: "switch_1", value: commandValue }];
+    const deviceId = getDeviceId(deviceKey as DeviceKey);
 
+    // Regular switch command
+    const commands = [{ code: "switch_1", value: commandValue }];
     const result = await sendDeviceCommand(deviceId, commands);
 
     if (result.success) {
-      console.log(result)
       return NextResponse.json({
         success: true,
-        message: `Device ${deviceId} turned ${action}`,
+        message: `Device ${deviceKey} (${deviceId}) turned ${action}`,
+        deviceKey,
+        deviceId
       });
     } else {
       console.error("Tuya API command error:", result);

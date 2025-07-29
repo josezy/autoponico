@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deviceId, getDeviceStatus } from "@/lib/tuya-api"; // Adjust path as needed
+import { getDeviceStatus, getDeviceId, DeviceKey, DEVICES } from "@/lib/tuya-api";
 
 // --- API Route Handler ---
 
 export async function GET(request: NextRequest) {
-  if (!deviceId) {
+  const { searchParams } = new URL(request.url);
+  const deviceKey = searchParams.get('device') as DeviceKey;
+
+  if (!deviceKey || !(deviceKey in DEVICES)) {
     return NextResponse.json(
       {
         success: false,
-        message: "TUYA_DEVICE_ID is not configured on the server.",
+        message: "Invalid or missing device key. Valid devices: " + Object.keys(DEVICES).join(', '),
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 
   try {
+    const deviceId = getDeviceId(deviceKey);
     const result = await getDeviceStatus(deviceId);
 
     if (result.success && result.result) {
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            message: `Status code 'switch_1' not found for device ${deviceId}.`,
+            message: `Status code 'switch_1' not found for device ${deviceKey} (${deviceId}).`,
             details: result.result,
           },
           { status: 404 }

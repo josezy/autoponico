@@ -199,7 +199,6 @@ const Dashboard = () => {
                     label={label}
                     checked={controlInfo[control] === 'true'}
                     onChange={(e) => {
-                      console.log("gonorreaass", e.target)
                       const { checked } = e.target
                       handleCommand(`control ${control} ${checked ? '1' : '0'}`)
                       setControlInfo({ ...controlInfo, [control]: checked ? 'true' : 'false' })
