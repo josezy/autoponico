@@ -71,8 +71,20 @@ const SmartPlugControl = () => {
       }
     } catch (error: any) {
       console.error('Error fetching device statuses:', error);
-      if (error.name !== "AbortError") {
-        // Set all devices as disconnected on error
+      if (error.name === "AbortError") {
+        // Reset loading flags on timeout
+        setDeviceStates(prev => {
+          const newStates = { ...prev };
+          Object.keys(newStates).forEach(key => {
+            newStates[key as DeviceKey] = {
+              ...newStates[key as DeviceKey],
+              loading: false
+            };
+          });
+          return newStates;
+        });
+      } else {
+        // Set all devices as disconnected on other errors
         setDeviceStates(prev => {
           const newStates = { ...prev };
           Object.keys(newStates).forEach(key => {
