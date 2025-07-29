@@ -28,6 +28,16 @@ export async function POST(request: NextRequest) {
       ...otherFields
     } = body;
 
+    // Only send email for critical alerts
+    if (_level?.toLowerCase() !== 'crit') {
+      console.log(`Alert level '${_level}' is not critical. Skipping email notification.`);
+      return NextResponse.json({
+        success: true,
+        message: 'Notification processed but email not sent (not critical)',
+        level: _level
+      });
+    }
+
     // Determine email subject based on alert level
     const subject = `Autoponico Alert: ${_check_name || 'System Notification'} - ${_level || 'INFO'}`;
     
