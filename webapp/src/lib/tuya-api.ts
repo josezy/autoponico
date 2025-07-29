@@ -14,6 +14,14 @@ export const DEVICES = {
 
 export type DeviceKey = keyof typeof DEVICES;
 
+// Token cache
+interface TokenCache {
+  token: string;
+  expiresAt: number;
+}
+
+let tokenCache: TokenCache | null = null;
+
 // --- Tuya API Helper Functions ---
 
 export function generateSignature(
@@ -35,6 +43,11 @@ ${url}`;
 }
 
 export async function getAccessToken(): Promise<string | null> {
+  // Check if we have a valid cached token
+  if (tokenCache && Date.now() < tokenCache.expiresAt) {
+    return tokenCache.token;
+  }
+
   const method = 'GET';
   const url = '/v1.0/token?grant_type=1';
   const timestamp = Date.now().toString();
@@ -53,8 +66,16 @@ export async function getAccessToken(): Promise<string | null> {
     const data = await response.json();
 
     if (data.success) {
-      // TODO: Cache the token
-      return data.result.access_token;
+      const token = data.result.access_token;
+      const expiresIn = data.result.expire_time || 7200; // Default to 2 hours if not provided
+      
+      // Cache the token with expiry time (subtract 60 seconds for safety margin)
+      tokenCache = {
+        token,
+        expiresAt: Date.now() + (expiresIn - 60) * 1000
+      };
+      
+      return token;
     } else {
       console.error('Error getting Tuya access token:', data);
       return null;
