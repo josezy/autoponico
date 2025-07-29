@@ -1,0 +1,31 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "srv0": {
+          "listen": [":443", ":80"],
+          "routes": [
+            {
+              "match": [{"host": ["influxdb.tucanorobotics.co"]}],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [{"dial": "localhost:8086"}]
+                }
+              ]
+            },
+            {
+              "match": [{"host": ["autoponico-ws.tucanorobotics.co"]}],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [{"dial": "localhost:3000"}]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
