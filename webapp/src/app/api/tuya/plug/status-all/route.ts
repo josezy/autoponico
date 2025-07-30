@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDeviceStatus, getAllDevices } from "@/lib/tuya-api";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // --- API Route Handler ---
 
 export async function GET(request: NextRequest) {
@@ -51,15 +55,22 @@ export async function GET(request: NextRequest) {
 
     const results = await Promise.all(statusPromises);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       devices: results,
       timestamp: new Date().toISOString()
     });
 
+    // Disable caching
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
+
   } catch (error: any) {
     console.error("API Error getting all device statuses:", error);
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: false,
         message: error.message || "Internal Server Error",
@@ -67,5 +78,12 @@ export async function GET(request: NextRequest) {
       },
       { status: 500 }
     );
+
+    // Disable caching for errors too
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
   }
 }
