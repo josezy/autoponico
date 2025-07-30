@@ -2,13 +2,13 @@
 
 import React from 'react';
 import { IconBaseProps } from 'react-icons';
-import { ImSpinner9 } from "react-icons/im";
 import { TbReload } from "react-icons/tb";
 import { LuSignalLow, LuSignalMedium, LuSignalHigh } from "react-icons/lu";
 import { toast } from 'react-toastify';
 
 import ToggleSwitch from '@/components/ToggleSwitch';
 import SmartPlugControl from '@/components/SmartPlugControl';
+import WaterLevelChart from '@/components/WaterLevelChart';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 
 const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
@@ -119,6 +119,10 @@ const Dashboard = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4 dark:text-white">Autoponico Dashboard 🍃</h1>
 
+      <SmartPlugControl />
+
+      <WaterLevelChart />
+
       {/* Device Info */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">
         <div className='flex justify-between w-full'>
@@ -148,11 +152,60 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* InfluxDB */}
+      <div className="bg-white shadow rounded-lg p-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2">InfluxDB Configuration (ESP only)</h2>
+        <form onSubmit={handleInfluxDBSubmit}>
+          <div className='w-fit mb-4'>
+            <ToggleSwitch
+              label="Enabled"
+              checked={influxDBForm.enabled}
+              onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked })}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">URL</label>
+              <input
+                type="text"
+                value={influxDBForm.url}
+                onChange={(e) => setInfluxDBForm({ ...influxDBForm, url: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Organization</label>
+              <input
+                type="text"
+                value={influxDBForm.org}
+                onChange={(e) => setInfluxDBForm({ ...influxDBForm, org: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Bucket</label>
+              <input
+                type="text"
+                value={influxDBForm.bucket}
+                onChange={(e) => setInfluxDBForm({ ...influxDBForm, bucket: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Token</label>
+              <input
+                type="password"
+                value={influxDBForm.token}
+                onChange={(e) => setInfluxDBForm({ ...influxDBForm, token: e.target.value })}
+              />
+            </div>
+          </div>
+          <button type="submit" className="mt-4 btn">Update InfluxDB Config</button>
+        </form>
+      </div>
+
       {/* pH Calibration */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">
         <div className='flex justify-between w-full'>
           <h2 className="text-xl font-semibold mb-2">pH Calibration</h2>
-          <LiveMeasure command="ph read_ph" label="Live pH" value={wsData.ph?.value}  />
+          <LiveMeasure command="ph read_ph" label="Live pH" value={wsData.ph?.value} />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -167,7 +220,7 @@ const Dashboard = () => {
       <div className="bg-white shadow rounded-lg p-4 mb-4">
         <div className='flex justify-between w-full'>
           <h2 className="text-xl font-semibold mb-2">EC Calibration</h2>
-          <LiveMeasure command="ec R" label="Live EC" value={wsData.ec?.value}  />
+          <LiveMeasure command="ec R" label="Live EC" value={wsData.ec?.value} />
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -233,57 +286,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* InfluxDB */}
-      <div className="bg-white shadow rounded-lg p-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2">InfluxDB Configuration</h2>
-        <form onSubmit={handleInfluxDBSubmit}>
-          <div className='w-fit mb-4'>
-            <ToggleSwitch
-              label="Enabled"
-              checked={influxDBForm.enabled}
-              onChange={(e) => setInfluxDBForm({ ...influxDBForm, enabled: e.target.checked })}
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">URL</label>
-              <input
-                type="text"
-                value={influxDBForm.url}
-                onChange={(e) => setInfluxDBForm({ ...influxDBForm, url: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Organization</label>
-              <input
-                type="text"
-                value={influxDBForm.org}
-                onChange={(e) => setInfluxDBForm({ ...influxDBForm, org: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Bucket</label>
-              <input
-                type="text"
-                value={influxDBForm.bucket}
-                onChange={(e) => setInfluxDBForm({ ...influxDBForm, bucket: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Token</label>
-              <input
-                type="password"
-                value={influxDBForm.token}
-                onChange={(e) => setInfluxDBForm({ ...influxDBForm, token: e.target.value })}
-              />
-            </div>
-          </div>
-          <button type="submit" className="mt-4 btn">Update InfluxDB Config</button>
-        </form>
-      </div>
-
-      {/* Smart Plug Control */}
-      <SmartPlugControl />
 
     </div>
   );
