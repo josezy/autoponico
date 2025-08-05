@@ -1,11 +1,11 @@
 # Cannabis Growing Plan Based on AGROTUCANO Experience
 
 ## Week 0-1: Germination & Early Seedling
-- **Medium**: 
-  - Use paper towel or cotton for germination
-  - Prepare small pots with 60% nursery soil, 25% rice husks, 15% coconut substrate
-- **Light**: 18 hours on/6 hours off
-- **Water**: Keep seedling medium moist but not soggy
+- **Seeds**: Soak in water 12-24h, then place between damp paper towels at 22-25°C
+- **Germination**: Keep moist, expect tap root in 1-5 days
+- **Transplant**: When tap root is 1-2cm, plant in small pots with 60% nursery soil, 25% rice husks, 15% coconut substrate
+- **Environment**: 70-80% humidity, no light until sprouted, then 18/6 cycle
+- **Seedling Care**: Light watering, keep lights 60-90cm away, maintain 22-25°C
 
 ## Week 1-3: Early Vegetative
 - **Container**: Transfer to 20L grow bags
