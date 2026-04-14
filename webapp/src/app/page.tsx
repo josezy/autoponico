@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 
 import ToggleSwitch from '@/components/ToggleSwitch';
 import SmartPlugControl from '@/components/SmartPlugControl';
+import TasmotaPlugControl from '@/components/TasmotaPlugControl';
 import WaterLevelChart from '@/components/WaterLevelChart';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 
@@ -120,6 +121,8 @@ const Dashboard = () => {
       <h1 className="text-2xl font-bold mb-4 dark:text-white">Autoponico Dashboard 🍃</h1>
 
       <SmartPlugControl />
+
+      <TasmotaPlugControl />
 
       <WaterLevelChart />
 

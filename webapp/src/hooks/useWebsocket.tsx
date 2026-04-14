@@ -1,6 +1,16 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
+export interface WsDeviceState {
+  deviceKey: string;
+  name: string;
+  topic: string;
+  power: 'ON' | 'OFF' | 'UNKNOWN';
+  connected: boolean;
+  lastSeen: string | null;
+  source: 'mqtt' | 'server';
+}
+
 interface WsData {
   ph?: Record<string, any>;
   ec?: Record<string, any>;
@@ -8,6 +18,7 @@ interface WsData {
   control?: Record<string, any>;
   influxdb?: Record<string, any>;
   management?: Record<string, any>;
+  devices: Record<string, WsDeviceState>;
 }
 
 interface WebSocketContextType {
@@ -26,12 +37,14 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [wsData, setWsData] = useState<WsData>({});
+  const [wsData, setWsData] = useState<WsData>({ devices: {} });
   const [connected, setConnected] = useState(false);
 
   const connect = useCallback((url: string) => {
     if (!socket || socket.readyState === WebSocket.CLOSED) {
-      const newSocket = new WebSocket(url);
+      const targetUrl = new URL(url, window.location.origin);
+      targetUrl.searchParams.set('role', 'dashboard');
+      const newSocket = new WebSocket(targetUrl.toString());
       setSocket(newSocket);
     }
   }, [socket]);
@@ -53,14 +66,58 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
   }, [socket]);
 
+  const hydrateDeviceSnapshot = useCallback((devices: WsDeviceState[]) => {
+    setWsData((prevData) => ({
+      ...prevData,
+      devices: devices.reduce<Record<string, WsDeviceState>>((accumulator, device) => {
+        accumulator[device.deviceKey] = device;
+        return accumulator;
+      }, { ...prevData.devices }),
+    }));
+  }, []);
+
+  const updateDeviceState = useCallback((device: WsDeviceState) => {
+    setWsData((prevData) => ({
+      ...prevData,
+      devices: {
+        ...prevData.devices,
+        [device.deviceKey]: device,
+      },
+    }));
+  }, []);
+
   useEffect(() => {
     if (socket) {
 
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          const { command, ...rest } = data;
-          setWsData((prevData) => ({...prevData, [command]: rest}));
+          if (data.command) {
+            const { command, ...rest } = data;
+            setWsData((prevData) => ({...prevData, [command]: rest}));
+            return;
+          }
+
+          if (data.type === 'device-snapshot' && Array.isArray(data.devices)) {
+            hydrateDeviceSnapshot(data.devices);
+            return;
+          }
+
+          if (data.type === 'device-state' && data.deviceKey) {
+            updateDeviceState(data as WsDeviceState);
+            return;
+          }
+
+          if (data.type === 'device-error') {
+            toast(data.message || 'Device error', { type: 'error' });
+            return;
+          }
+
+          if (data.type === 'device-command-queued' || data.type === 'server-ready') {
+            return;
+          }
+
+          console.log('WS JSON:', data);
         } catch (e) {
           console.log("WS:", event.data)
           toast(`WS: ${event.data}`, { type: 'info' });

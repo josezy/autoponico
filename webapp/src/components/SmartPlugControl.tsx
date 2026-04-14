@@ -204,7 +204,7 @@ const SmartPlugControl = () => {
   return (
     <div className="bg-white shadow rounded-lg p-6 mb-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Smart Plug Control</h2>
+        <h2 className="text-2xl font-semibold">Smart Plug Control (Tuya)</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
