@@ -1,0 +1,44 @@
+# go2rtc configuration for V380 cameras
+# Copy this to /etc/go2rtc/go2rtc.yaml on your Raspberry Pi
+# Update camera IPs, usernames, and passwords
+
+streams:
+  # Camera 1
+  camera1:
+    - rtsp://admin:admin@192.168.1.128:554/live/ch00_1
+    # Optionally add multiple quality streams
+    # - rtsp://admin:123456@192.168.1.101:554/live/ch00_0  # lower quality
+
+  # Camera 2
+  camera2:
+    - rtsp://admin:admin@192.168.1.129:554/live/ch00_1
+
+  # Camera 3
+  camera3:
+    - rtsp://admin:admin@192.168.1.130:554/live/ch00_1
+
+  # Add more cameras as needed
+  # camera4:
+  #   - rtsp://admin:admin@192.168.1.104:554/live/ch00_1
+  # camera5:
+  #   - rtsp://admin:admin@192.168.1.105:554/live/ch00_1
+
+# API and WebRTC configuration
+api:
+  listen: ":8555"
+
+webrtc:
+  listen: ":8555"
+  # This will be accessible via Tailscale
+  candidates:
+    - stun:8555
+
+# RTSPtransport
+rtsp:
+  # Use TCP for more reliable connection
+  default_query: "mp4"
+
+# Logging
+log:
+  level: info  # Options: trace, debug, info, warn, error
+  format: text

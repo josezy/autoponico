@@ -22,6 +22,20 @@
                   "upstreams": [{"dial": "localhost:3000"}]
                 }
               ]
+            },
+            {
+              "match": [{"host": ["cameras.tucanorobotics.co"]}],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [{"dial": "100.66.228.7:8555"}],
+                  "transport": {
+                    "protocol": "http",
+                    "read_timeout": 0,
+                    "write_timeout": 0
+                  }
+                }
+              ]
             }
           ]
         }
