@@ -63,7 +63,7 @@ const handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) =
 server.on('upgrade', handleUpgrade);
 secureServer?.on('upgrade', handleUpgrade);
 
-// ── Legacy WS channel forwarding ────────────────────────────────────
+// ── WS channel forwarding (ESP32 + Web UI) ──────────────────────────
 const channelSockets = new Map<string, Set<WebSocket>>();
 
 const addSocketToChannel = (channel: string, socket: WebSocket): void => {
