@@ -11,6 +11,7 @@ import SmartPlugControl from '@/components/SmartPlugControl';
 import TasmotaPlugControl from '@/components/TasmotaPlugControl';
 import WaterLevelChart from '@/components/WaterLevelChart';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
+import { MqttProvider } from '@/hooks/useMqtt';
 
 const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
   const [enabled, setEnabled] = React.useState(false);
@@ -69,7 +70,7 @@ const Dashboard = () => {
     return () => {
       disconnect();
     };
-  }, []);
+  }, [connect, disconnect]);
 
   React.useEffect(() => {
     if (connected) {
@@ -77,7 +78,7 @@ const Dashboard = () => {
       send('control info');
       send('influxdb info');
     }
-  }, [connected]);
+  }, [connected, send]);
 
   React.useEffect(() => {
     if (wsData.control) setControlInfo(wsData.control);
@@ -297,7 +298,9 @@ const Dashboard = () => {
 export default function DashboardPage() {
   return (
     <WebSocketProvider>
-      <Dashboard />
+      <MqttProvider>
+        <Dashboard />
+      </MqttProvider>
     </WebSocketProvider>
   );
 }

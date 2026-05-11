@@ -1,15 +1,5 @@
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-
-export interface WsDeviceState {
-  deviceKey: string;
-  name: string;
-  topic: string;
-  power: 'ON' | 'OFF' | 'UNKNOWN';
-  connected: boolean;
-  lastSeen: string | null;
-  source: 'mqtt' | 'server';
-}
 
 interface WsData {
   ph?: Record<string, any>;
@@ -18,7 +8,6 @@ interface WsData {
   control?: Record<string, any>;
   influxdb?: Record<string, any>;
   management?: Record<string, any>;
-  devices: Record<string, WsDeviceState>;
 }
 
 interface WebSocketContextType {
@@ -36,84 +25,21 @@ interface WebSocketProviderProps {
 }
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [wsData, setWsData] = useState<WsData>({ devices: {} });
+  const socketRef = useRef<WebSocket | null>(null);
+  const [wsData, setWsData] = useState<WsData>({});
   const [connected, setConnected] = useState(false);
 
   const connect = useCallback((url: string) => {
-    if (!socket || socket.readyState === WebSocket.CLOSED) {
-      const targetUrl = new URL(url, window.location.origin);
-      targetUrl.searchParams.set('role', 'dashboard');
-      const newSocket = new WebSocket(targetUrl.toString());
-      setSocket(newSocket);
-    }
-  }, [socket]);
+    if (!socketRef.current || socketRef.current.readyState === WebSocket.CLOSED) {
+      const newSocket = new WebSocket(url);
+      socketRef.current = newSocket;
 
-  const disconnect = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setConnected(false);
-    }
-  }, [socket]);
-
-  const send = useCallback((data: string) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(data);
-    } else {
-      console.error('WebSocket is not connected');
-      setConnected(false);
-    }
-  }, [socket]);
-
-  const hydrateDeviceSnapshot = useCallback((devices: WsDeviceState[]) => {
-    setWsData((prevData) => ({
-      ...prevData,
-      devices: devices.reduce<Record<string, WsDeviceState>>((accumulator, device) => {
-        accumulator[device.deviceKey] = device;
-        return accumulator;
-      }, { ...prevData.devices }),
-    }));
-  }, []);
-
-  const updateDeviceState = useCallback((device: WsDeviceState) => {
-    setWsData((prevData) => ({
-      ...prevData,
-      devices: {
-        ...prevData.devices,
-        [device.deviceKey]: device,
-      },
-    }));
-  }, []);
-
-  useEffect(() => {
-    if (socket) {
-
-      socket.onmessage = (event) => {
+      newSocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.command) {
             const { command, ...rest } = data;
             setWsData((prevData) => ({...prevData, [command]: rest}));
-            return;
-          }
-
-          if (data.type === 'device-snapshot' && Array.isArray(data.devices)) {
-            hydrateDeviceSnapshot(data.devices);
-            return;
-          }
-
-          if (data.type === 'device-state' && data.deviceKey) {
-            updateDeviceState(data as WsDeviceState);
-            return;
-          }
-
-          if (data.type === 'device-error') {
-            toast(data.message || 'Device error', { type: 'error' });
-            return;
-          }
-
-          if (data.type === 'device-command-queued' || data.type === 'server-ready') {
             return;
           }
 
@@ -124,22 +50,32 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         }
       };
 
-      socket.onopen = () => {
+      newSocket.onopen = () => {
         console.log('WebSocket connected');
         setConnected(true);
       };
 
-      socket.onclose = () => {
+      newSocket.onclose = () => {
         console.log('WebSocket disconnected');
         setConnected(false);
       };
-
-      return () => {
-        socket.close();
-        setConnected(false);
-      };
     }
-  }, [socket]);
+  }, []);
+
+  const disconnect = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+      setConnected(false);
+    }
+  }, []);
+
+  const send = useCallback((data: string) => {
+    const ws = socketRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+    }
+  }, []);
 
   const contextValue: WebSocketContextType = {
     send,

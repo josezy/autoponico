@@ -6,7 +6,7 @@ import { TbPower } from "react-icons/tb";
 import { toast } from "react-toastify";
 import ToggleSwitch from './ToggleSwitch';
 
-type DeviceKey = 'fresas' | 'valvula-tanque' | 'luz-cannabis' | 'main-pump';
+type DeviceKey = 'fresas' | 'luz-cannabis' | 'main-pump';
 
 interface DeviceState {
   key: DeviceKey;
@@ -18,7 +18,6 @@ interface DeviceState {
 
 const devices: Array<{ key: DeviceKey; name: string }> = [
   { key: 'fresas', name: 'Fresas' },
-  { key: 'valvula-tanque', name: 'Válvula Tanque' },
   { key: 'luz-cannabis', name: 'Luz Cannabis' },
   { key: 'main-pump', name: 'Main Pump' }
 ];
