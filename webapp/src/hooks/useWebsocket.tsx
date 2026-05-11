@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
 interface WsData {
@@ -25,64 +25,57 @@ interface WebSocketProviderProps {
 }
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const [wsData, setWsData] = useState<WsData>({});
   const [connected, setConnected] = useState(false);
 
   const connect = useCallback((url: string) => {
-    if (!socket || socket.readyState === WebSocket.CLOSED) {
+    if (!socketRef.current || socketRef.current.readyState === WebSocket.CLOSED) {
       const newSocket = new WebSocket(url);
-      setSocket(newSocket);
-    }
-  }, [socket]);
+      socketRef.current = newSocket;
 
-  const disconnect = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-      setConnected(false);
-    }
-  }, [socket]);
-
-  const send = useCallback((data: string) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(data);
-    } else {
-      console.error('WebSocket is not connected');
-      setConnected(false);
-    }
-  }, [socket]);
-
-  useEffect(() => {
-    if (socket) {
-
-      socket.onmessage = (event) => {
+      newSocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          const { command, ...rest } = data;
-          setWsData((prevData) => ({...prevData, [command]: rest}));
+          if (data.command) {
+            const { command, ...rest } = data;
+            setWsData((prevData) => ({...prevData, [command]: rest}));
+            return;
+          }
+
+          console.log('WS JSON:', data);
         } catch (e) {
           console.log("WS:", event.data)
           toast(`WS: ${event.data}`, { type: 'info' });
         }
       };
 
-      socket.onopen = () => {
+      newSocket.onopen = () => {
         console.log('WebSocket connected');
         setConnected(true);
       };
 
-      socket.onclose = () => {
+      newSocket.onclose = () => {
         console.log('WebSocket disconnected');
         setConnected(false);
       };
-
-      return () => {
-        socket.close();
-        setConnected(false);
-      };
     }
-  }, [socket]);
+  }, []);
+
+  const disconnect = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+      setConnected(false);
+    }
+  }, []);
+
+  const send = useCallback((data: string) => {
+    const ws = socketRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+    }
+  }, []);
 
   const contextValue: WebSocketContextType = {
     send,

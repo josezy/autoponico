@@ -61,5 +61,28 @@ For production, run with `env (cat prod.env | xargs) ts-node main.ts`
 > sudo certbot certonly --standalone -d autoponico-ws.tucanorobotics.co
 > 
 
+## Tasmota Device Configuration
+The webapp dashboard controls Tasmota devices via MQTT. Each device must be configured to connect to the ws-server MQTT broker.
+
+### Setup device
+Go to https://tasmota.github.io/install/ and flash Tasmota if needed
+
+### MQTT Settings (`http://<device-ip>/mq`)
+- **Host**: IP of the machine running ws-server
+- **Port**: `1883`
+- **Topic**: Must match one of the defined device topics: `fresas`, `valvula-tanque`, `luz-cannabis`, `main-pump`
+- **Full Topic**: `%prefix%/%topic%/`
+
+### Module Template (Sonoff Basic R4)
+Apply via Console (`http://<device-ip>/cs`):
+```
+Template {"NAME":"Sonoff Basic R4","GPIO":[0,0,0,0,224,0,544,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0],"FLAG":0,"BASE":1}
+Module 0
+```
+
+GPIO mapping: GPIO4 = Relay1, GPIO6 = LED1, GPIO9 = Button1.
+
+For other devices, find your template at [templates.blakadder.com](https://templates.blakadder.com).
+
 ## Web App
 NextJS bootstraped app, check `webapp/README.md` for more info

@@ -6,7 +6,7 @@ import { TbPower } from "react-icons/tb";
 import { toast } from "react-toastify";
 import ToggleSwitch from './ToggleSwitch';
 
-type DeviceKey = 'fresas' | 'valvula-tanque' | 'luz-cannabis' | 'main-pump';
+type DeviceKey = 'fresas' | 'luz-cannabis' | 'main-pump';
 
 interface DeviceState {
   key: DeviceKey;
@@ -18,7 +18,6 @@ interface DeviceState {
 
 const devices: Array<{ key: DeviceKey; name: string }> = [
   { key: 'fresas', name: 'Fresas' },
-  { key: 'valvula-tanque', name: 'Válvula Tanque' },
   { key: 'luz-cannabis', name: 'Luz Cannabis' },
   { key: 'main-pump', name: 'Main Pump' }
 ];
@@ -204,7 +203,7 @@ const SmartPlugControl = () => {
   return (
     <div className="bg-white shadow rounded-lg p-6 mb-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Smart Plug Control</h2>
+        <h2 className="text-2xl font-semibold">Smart Plug Control (Tuya)</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
