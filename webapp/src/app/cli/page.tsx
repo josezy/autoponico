@@ -32,6 +32,13 @@ const WebsocketCommander = () => {
 
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
+  const send = React.useCallback(() => {
+    ws?.send(message)
+    const line = assembleLine(message, true)
+    setMessages((messages) => [...messages, line])
+    setMessage("")
+  }, [ws, message])
+
   React.useEffect(() => {
     // press enter to send message
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -43,7 +50,7 @@ const WebsocketCommander = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyPress)
     }
-  }, [message])
+  }, [send])
 
   React.useEffect(() => {
     if (messages.length) {
@@ -82,13 +89,6 @@ const WebsocketCommander = () => {
 
   const disconnect = () => {
     ws?.close()
-  }
-
-  const send = () => {
-    ws?.send(message)
-    const line = assembleLine(message, true)
-    setMessages((messages) => [...messages, line])
-    setMessage("")
   }
 
   return (

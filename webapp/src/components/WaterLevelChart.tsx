@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ImSpinner9 } from 'react-icons/im';
 import { TbReload } from 'react-icons/tb';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -19,7 +19,7 @@ const WaterLevelChart: React.FC = () => {
   const [timeRange, setTimeRange] = useState('-24h');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -47,11 +47,11 @@ const WaterLevelChart: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange]);
 
   useEffect(() => {
     fetchData();
-  }, [timeRange]);
+  }, [fetchData]);
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -160,7 +160,7 @@ const WaterLevelChart: React.FC = () => {
               />
               <Tooltip
                 labelFormatter={(value) => `Time: ${formatTooltipTime(value as string)}`}
-                formatter={(value: number) => [`${value.toFixed(1)}%`, 'Water Level']}
+                formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Water Level']}
                 contentStyle={{
                   backgroundColor: '#fff',
                   border: '1px solid #ccc',
