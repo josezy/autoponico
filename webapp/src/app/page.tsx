@@ -116,15 +116,6 @@ const Dashboard = () => {
     send(`influxdb update ${JSON.stringify(data)}`);
   };
 
-
-  // if (!connected) {
-  //   return (
-  //     <div className="flex items-center justify-center w-full h-screen">
-  //       <ImSpinner9 className="animate-spin text-4xl dark:text-white" />
-  //     </div>
-  //   )
-  // }
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4 dark:text-white">Autoponico Dashboard 🍃</h1>
@@ -134,48 +125,35 @@ const Dashboard = () => {
         <h2 className="text-xl font-semibold mb-2 dark:text-gray-900">Cameras</h2>
         {selectedCamera ? (
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium dark:text-gray-900">
-                {CAMERAS.find(c => c.id === selectedCamera)?.name}
-              </h3>
-              <button
-                onClick={() => setSelectedCamera(null)}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
-              >
-                Back to Grid
-              </button>
-            </div>
             <CameraPlayer
               cameraId={selectedCamera}
               cameraName={CAMERAS.find(c => c.id === selectedCamera)?.name}
               autoPlay={true}
+              onExpand={() => setSelectedCamera(null)}
+              expandIcon="minimize"
               className="max-w-4xl mx-auto"
             />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {CAMERAS.map((camera) => (
-              <div
+              <CameraPlayer
                 key={camera.id}
-                onClick={() => setSelectedCamera(camera.id)}
-                className="cursor-pointer transform transition-transform hover:scale-105"
-              >
-                <CameraPlayer
-                  cameraId={camera.id}
-                  cameraName={camera.name}
-                  autoPlay={false}
-                />
-              </div>
+                cameraId={camera.id}
+                cameraName={camera.name}
+                autoPlay={true}
+                onExpand={() => setSelectedCamera(camera.id)}
+              />
             ))}
           </div>
         )}
       </div>
 
-      <SmartPlugControl />
+      <WaterLevelChart />
 
       <TasmotaPlugControl />
 
-      <WaterLevelChart />
+      <SmartPlugControl />
 
       {/* Device Info */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">

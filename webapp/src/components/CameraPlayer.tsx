@@ -1,20 +1,24 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react';
-import { TbReload, TbPlayerPlay, TbPlayerStop } from 'react-icons/tb';
+import { TbReload, TbPlayerPlay, TbPlayerStop, TbMaximize, TbMinimize } from 'react-icons/tb';
 
 interface CameraPlayerProps {
   cameraId: string;
   cameraName?: string;
   autoPlay?: boolean;
   className?: string;
+  onExpand?: () => void;
+  expandIcon?: 'maximize' | 'minimize';
 }
 
 export default function CameraPlayer({
   cameraId,
   cameraName,
   autoPlay = false,
-  className = ""
+  className = "",
+  onExpand,
+  expandIcon = 'maximize'
 }: CameraPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -162,6 +166,15 @@ export default function CameraPlayer({
           >
             <TbReload size={20} />
           </button>
+          {onExpand && (
+            <button
+              onClick={onExpand}
+              className="p-2 rounded hover:bg-gray-700 text-white"
+              title={expandIcon === 'maximize' ? 'Full screen' : 'Minimize'}
+            >
+              {expandIcon === 'maximize' ? <TbMaximize size={20} /> : <TbMinimize size={20} />}
+            </button>
+          )}
         </div>
       </div>
 
@@ -188,15 +201,7 @@ export default function CameraPlayer({
         {/* Error overlay */}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
-            <div className="text-center px-4">
-              <p className="text-red-400 mb-2">⚠️ {error}</p>
-              <button
-                onClick={startStream}
-                className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
-              >
-                Retry
-              </button>
-            </div>
+            <p className="text-red-400 text-center px-4">⚠️ {error}</p>
           </div>
         )}
 
