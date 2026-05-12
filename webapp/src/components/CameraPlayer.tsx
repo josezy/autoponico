@@ -83,7 +83,7 @@ export default function CameraPlayer({
       const response = await fetch(`${CAMERA_BASE_URL}/api/webrtc?src=${cameraId}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/sdp'
         },
         body: offer.sdp
       });

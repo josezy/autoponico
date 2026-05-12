@@ -27,6 +27,16 @@
               "match": [{"host": ["cameras.tucanorobotics.co"]}],
               "handle": [
                 {
+                  "handler": "headers",
+                  "response": {
+                    "set": {
+                      "Access-Control-Allow-Origin": ["*"],
+                      "Access-Control-Allow-Methods": ["GET, POST, OPTIONS"],
+                      "Access-Control-Allow-Headers": ["Content-Type"]
+                    }
+                  }
+                },
+                {
                   "handler": "reverse_proxy",
                   "upstreams": [{"dial": "100.66.228.7:8555"}],
                   "transport": {
