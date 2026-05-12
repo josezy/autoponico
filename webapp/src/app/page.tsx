@@ -10,8 +10,15 @@ import ToggleSwitch from '@/components/ToggleSwitch';
 import SmartPlugControl from '@/components/SmartPlugControl';
 import TasmotaPlugControl from '@/components/TasmotaPlugControl';
 import WaterLevelChart from '@/components/WaterLevelChart';
+import CameraPlayer from '@/components/CameraPlayer';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 import { MqttProvider } from '@/hooks/useMqtt';
+
+const CAMERAS = [
+  { id: 'camera1', name: 'Cannabis' },
+  { id: 'camera2', name: 'Arándanos' },
+  { id: 'camera3', name: 'Tanque' },
+];
 
 const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
   const [enabled, setEnabled] = React.useState(false);
@@ -56,6 +63,7 @@ const SignalStrength = (props: IconBaseProps & { rssi: number }) => {
 const Dashboard = () => {
   const { send, connect, disconnect, wsData, connected } = useWebSocket();
 
+  const [selectedCamera, setSelectedCamera] = React.useState<string | null>(null);
   const [controlInfo, setControlInfo] = React.useState<Record<string, any>>({});
   const [influxDBForm, setInfluxDBForm] = React.useState({
     enabled: false,
@@ -120,6 +128,48 @@ const Dashboard = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4 dark:text-white">Autoponico Dashboard 🍃</h1>
+
+      {/* Cameras */}
+      <div className="bg-white shadow rounded-lg p-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2 dark:text-gray-900">Cameras</h2>
+        {selectedCamera ? (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium dark:text-gray-900">
+                {CAMERAS.find(c => c.id === selectedCamera)?.name}
+              </h3>
+              <button
+                onClick={() => setSelectedCamera(null)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+              >
+                Back to Grid
+              </button>
+            </div>
+            <CameraPlayer
+              cameraId={selectedCamera}
+              cameraName={CAMERAS.find(c => c.id === selectedCamera)?.name}
+              autoPlay={true}
+              className="max-w-4xl mx-auto"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CAMERAS.map((camera) => (
+              <div
+                key={camera.id}
+                onClick={() => setSelectedCamera(camera.id)}
+                className="cursor-pointer transform transition-transform hover:scale-105"
+              >
+                <CameraPlayer
+                  cameraId={camera.id}
+                  cameraName={camera.name}
+                  autoPlay={false}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <SmartPlugControl />
 
