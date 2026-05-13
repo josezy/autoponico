@@ -10,8 +10,15 @@ import ToggleSwitch from '@/components/ToggleSwitch';
 import SmartPlugControl from '@/components/SmartPlugControl';
 import TasmotaPlugControl from '@/components/TasmotaPlugControl';
 import WaterLevelChart from '@/components/WaterLevelChart';
+import CameraPlayer from '@/components/CameraPlayer';
 import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 import { MqttProvider } from '@/hooks/useMqtt';
+
+const CAMERAS = [
+  { id: 'camera1', name: 'Cannabis', ptz: true },
+  { id: 'camera2', name: 'Arándanos' },
+  { id: 'camera3', name: 'Tanque' },
+];
 
 const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
   const [enabled, setEnabled] = React.useState(false);
@@ -56,6 +63,7 @@ const SignalStrength = (props: IconBaseProps & { rssi: number }) => {
 const Dashboard = () => {
   const { send, connect, disconnect, wsData, connected } = useWebSocket();
 
+  const [selectedCamera, setSelectedCamera] = React.useState<string | null>(null);
   const [controlInfo, setControlInfo] = React.useState<Record<string, any>>({});
   const [influxDBForm, setInfluxDBForm] = React.useState({
     enabled: false,
@@ -108,24 +116,46 @@ const Dashboard = () => {
     send(`influxdb update ${JSON.stringify(data)}`);
   };
 
-
-  // if (!connected) {
-  //   return (
-  //     <div className="flex items-center justify-center w-full h-screen">
-  //       <ImSpinner9 className="animate-spin text-4xl dark:text-white" />
-  //     </div>
-  //   )
-  // }
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4 dark:text-white">Autoponico Dashboard 🍃</h1>
 
-      <SmartPlugControl />
+      {/* Cameras */}
+      <div className="bg-white shadow rounded-lg p-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2 dark:text-gray-900">Cameras</h2>
+        {selectedCamera ? (
+          <div>
+            <CameraPlayer
+              cameraId={selectedCamera}
+              cameraName={CAMERAS.find(c => c.id === selectedCamera)?.name}
+              ptz={CAMERAS.find(c => c.id === selectedCamera)?.ptz}
+              autoPlay={true}
+              onExpand={() => setSelectedCamera(null)}
+              expandIcon="minimize"
+              className="max-w-4xl mx-auto"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CAMERAS.map((camera) => (
+              <CameraPlayer
+                key={camera.id}
+                cameraId={camera.id}
+                cameraName={camera.name}
+                ptz={'ptz' in camera ? camera.ptz : undefined}
+                autoPlay={true}
+                onExpand={() => setSelectedCamera(camera.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <WaterLevelChart />
 
       <TasmotaPlugControl />
 
-      <WaterLevelChart />
+      <SmartPlugControl />
 
       {/* Device Info */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">

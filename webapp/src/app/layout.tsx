@@ -21,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
+        <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          {children}
+        </main>
         <ToastContainer />
       </body>
     </html>

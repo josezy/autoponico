@@ -1,0 +1,29 @@
+# go2rtc configuration for V380 cameras
+# Copy this to /etc/go2rtc/go2rtc.yaml on your Raspberry Pi
+# Update camera IPs, usernames, and passwords
+#
+# Note: ptz-proxy.py reads camera1's IP from this file for ONVIF PTZ control
+
+streams:
+  # Camera 1 (PTZ-capable — IP is also used by ptz-proxy.py for ONVIF)
+  camera1:
+    - rtsp://admin:admin@192.168.1.128:554/live/ch00_1
+
+  # Camera 2
+  camera2:
+    - rtsp://admin:admin@192.168.1.129:554/live/ch00_1
+
+  # Camera 3
+  camera3:
+    - rtsp://admin:admin@192.168.1.130:554/live/ch00_1
+
+api:
+  listen: ":8555"
+
+webrtc:
+  listen: ":8555"
+  candidates:
+    - stun:8555
+
+log:
+  level: info
