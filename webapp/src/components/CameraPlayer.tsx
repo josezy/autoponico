@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react';
-import { TbReload, TbPlayerPlay, TbPlayerStop, TbMaximize, TbMinimize } from 'react-icons/tb';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { TbReload, TbPlayerPlay, TbPlayerStop, TbMaximize, TbMinimize, TbCamera,
+         TbArrowUp, TbArrowDown, TbArrowLeft, TbArrowRight, TbZoomIn, TbZoomOut } from 'react-icons/tb';
 
 interface CameraPlayerProps {
   cameraId: string;
@@ -10,6 +11,7 @@ interface CameraPlayerProps {
   className?: string;
   onExpand?: () => void;
   expandIcon?: 'maximize' | 'minimize';
+  ptz?: boolean;
 }
 
 export default function CameraPlayer({
@@ -18,13 +20,18 @@ export default function CameraPlayer({
   autoPlay = false,
   className = "",
   onExpand,
-  expandIcon = 'maximize'
+  expandIcon = 'maximize',
+  ptz = false,
 }: CameraPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
 
   const CAMERA_BASE_URL = process.env.NEXT_PUBLIC_CAMERA_URL || 'https://cameras.tucanorobotics.co';
 
@@ -38,6 +45,8 @@ export default function CameraPlayer({
     }
     setIsPlaying(false);
     setError(null);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   };
 
   const startStream = async () => {
@@ -113,6 +122,91 @@ export default function CameraPlayer({
     }
   };
 
+  const CAMERA_PTZ_URL = `${CAMERA_BASE_URL}/ptz`;
+
+  const sendPTZ = useCallback((cmd: string) => {
+    fetch(`${CAMERA_PTZ_URL}?cmd=${cmd}&speed=0.5`, { method: 'POST' }).catch(console.error);
+  }, [CAMERA_PTZ_URL]);
+
+  const stopPTZ = useCallback(() => {
+    sendPTZ('stop');
+  }, [sendPTZ]);
+
+  // Digital zoom
+  const reclampPan = useCallback((newZoom: number) => {
+    const el = videoContainerRef.current;
+    if (!el || newZoom <= 1) { setPan({ x: 0, y: 0 }); return; }
+    const maxX = ((newZoom - 1) / 2) * el.clientWidth;
+    const maxY = ((newZoom - 1) / 2) * el.clientHeight;
+    setPan(p => ({
+      x: Math.max(-maxX, Math.min(maxX, p.x)),
+      y: Math.max(-maxY, Math.min(maxY, p.y)),
+    }));
+  }, []);
+
+  const digitalZoomIn = useCallback(() => {
+    setZoom(z => {
+      const next = Math.min(z + 0.5, 4);
+      reclampPan(next);
+      return next;
+    });
+  }, [reclampPan]);
+
+  const digitalZoomOut = useCallback(() => {
+    setZoom(z => {
+      const next = Math.max(z - 0.5, 1);
+      reclampPan(next);
+      return next;
+    });
+  }, [reclampPan]);
+
+  // Drag-to-pan when zoomed
+  const clampPan = useCallback((x: number, y: number, z: number) => {
+    const el = videoContainerRef.current;
+    if (!el || z <= 1) return { x: 0, y: 0 };
+    const maxX = ((z - 1) / 2) * el.clientWidth;
+    const maxY = ((z - 1) / 2) * el.clientHeight;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+  }, []);
+
+  const onDragStart = useCallback((e: React.PointerEvent) => {
+    if (zoom <= 1) return;
+    dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
+    videoContainerRef.current?.setPointerCapture(e.pointerId);
+  }, [zoom]);
+
+  const onDragMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current.active) return;
+    const dx = e.clientX - dragRef.current.lastX;
+    const dy = e.clientY - dragRef.current.lastY;
+    dragRef.current.lastX = e.clientX;
+    dragRef.current.lastY = e.clientY;
+    setPan(p => clampPan(p.x + dx, p.y + dy, zoom));
+  }, [zoom, clampPan]);
+
+  const onDragEnd = useCallback((e: React.PointerEvent) => {
+    if (dragRef.current.active) {
+      dragRef.current.active = false;
+      videoContainerRef.current?.releasePointerCapture(e.pointerId);
+    }
+  }, []);
+
+  const takeSnapshot = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')!.drawImage(video, 0, 0);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/jpeg', 0.95);
+    a.download = `${cameraName || cameraId}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`;
+    a.click();
+  }, [cameraId, cameraName]);
+
   // Auto-play on mount if enabled
   useEffect(() => {
     if (autoPlay) {
@@ -155,6 +249,15 @@ export default function CameraPlayer({
               <TbPlayerStop size={20} />
             </button>
           )}
+          {isPlaying && (
+            <button
+              onClick={takeSnapshot}
+              className="p-2 rounded hover:bg-gray-700 text-white"
+              title="Save snapshot"
+            >
+              <TbCamera size={20} />
+            </button>
+          )}
           <button
             onClick={() => {
               stopStream();
@@ -179,13 +282,30 @@ export default function CameraPlayer({
       </div>
 
       {/* Video Container */}
-      <div className="relative bg-black" style={{ aspectRatio: '16/9' }}>
+      <div
+        ref={videoContainerRef}
+        className="relative bg-black overflow-hidden"
+        style={{
+          aspectRatio: '16/9',
+          touchAction: zoom > 1 ? 'none' : 'auto',
+          cursor: zoom > 1 ? 'grab' : undefined,
+        }}
+        onPointerDown={onDragStart}
+        onPointerMove={onDragMove}
+        onPointerUp={onDragEnd}
+        onPointerCancel={onDragEnd}
+      >
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
+          draggable={false}
           className="w-full h-full object-contain"
+          style={{
+            transform: zoom > 1 ? `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` : undefined,
+            willChange: zoom > 1 ? 'transform' : undefined,
+          }}
         />
 
         {/* Loading overlay */}
@@ -216,7 +336,64 @@ export default function CameraPlayer({
             </button>
           </div>
         )}
+
+        {/* PTZ Controls */}
+        {ptz && isPlaying && (
+          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-200">
+            {/* Directional pad - centered */}
+            <div className="absolute bottom-4 left-4 grid grid-cols-3 gap-0.5">
+              <div />
+              <PTZButton cmd="up" onStart={sendPTZ} onStop={stopPTZ}><TbArrowUp size={20} /></PTZButton>
+              <div />
+              <PTZButton cmd="left" onStart={sendPTZ} onStop={stopPTZ}><TbArrowLeft size={20} /></PTZButton>
+              <div />
+              <PTZButton cmd="right" onStart={sendPTZ} onStop={stopPTZ}><TbArrowRight size={20} /></PTZButton>
+              <div />
+              <PTZButton cmd="down" onStart={sendPTZ} onStop={stopPTZ}><TbArrowDown size={20} /></PTZButton>
+              <div />
+            </div>
+            {/* Digital zoom controls */}
+            <div className="absolute bottom-4 right-4 flex flex-col gap-0.5 items-center">
+              {zoom > 1 && (
+                <span className="text-white text-xs bg-black/50 rounded px-1.5 py-0.5 mb-0.5">{zoom}x</span>
+              )}
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={digitalZoomIn}
+                className="w-10 h-10 flex items-center justify-center rounded bg-black/50 text-white hover:bg-black/70 active:bg-teal-600 transition-colors select-none"
+              >
+                <TbZoomIn size={20} />
+              </button>
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={digitalZoomOut}
+                disabled={zoom <= 1}
+                className="w-10 h-10 flex items-center justify-center rounded bg-black/50 text-white hover:bg-black/70 active:bg-teal-600 transition-colors select-none disabled:opacity-30"
+              >
+                <TbZoomOut size={20} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function PTZButton({ cmd, onStart, onStop, children }: {
+  cmd: string;
+  onStart: (cmd: string) => void;
+  onStop: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onPointerDown={(e) => { e.stopPropagation(); onStart(cmd); }}
+      onPointerUp={(e) => { e.stopPropagation(); onStop(); }}
+      onPointerLeave={onStop}
+      className="w-10 h-10 flex items-center justify-center rounded bg-black/50 text-white hover:bg-black/70 active:bg-teal-600 transition-colors select-none touch-none"
+    >
+      {children}
+    </button>
   );
 }

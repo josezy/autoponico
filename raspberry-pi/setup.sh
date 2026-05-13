@@ -12,16 +12,16 @@ echo "================================"
 echo ""
 
 # Update system
-echo "[1/5] Updating system packages..."
+echo "[1/6] Updating system packages..."
 sudo apt-get update
 sudo apt-get upgrade -y
 
 # Install dependencies
-echo "[2/5] Installing dependencies..."
+echo "[2/6] Installing dependencies..."
 sudo apt-get install -y curl wget
 
 # Install Tailscale
-echo "[3/5] Installing Tailscale..."
+echo "[3/6] Installing Tailscale..."
 if ! command -v tailscale &> /dev/null; then
     curl -fsSL https://tailscale.com/install.sh | sh
     echo "Tailscale installed successfully"
@@ -37,7 +37,7 @@ echo ""
 read -p "Press enter to continue once connected to Tailscale..."
 
 # Install go2rtc
-echo "[4/5] Installing go2rtc..."
+echo "[4/6] Installing go2rtc..."
 GO2RTC_VERSION="1.9.13"
 ARCH="arm64"
 
@@ -57,7 +57,7 @@ sudo mkdir -p /etc/go2rtc
 sudo chown $USER:$USER /etc/go2rtc
 
 # Create go2rtc configuration
-echo "[5/5] Creating go2rtc configuration..."
+echo "[5/6] Creating go2rtc configuration..."
 cat > /etc/go2rtc/go2rtc.yaml << 'EOF'
 # go2rtc configuration for V380 cameras
 streams:
@@ -84,6 +84,27 @@ echo ""
 echo "IMPORTANT: Update /etc/go2rtc/go2rtc.yaml with your actual camera IPs and credentials"
 echo ""
 
+# Install PTZ proxy
+echo "[6/6] Installing PTZ proxy..."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+sudo cp "$SCRIPT_DIR/ptz-proxy.py" /etc/go2rtc/ptz-proxy.py
+
+# Create systemd service for PTZ proxy
+sudo tee /etc/systemd/system/ptz-proxy.service > /dev/null << EOF
+[Unit]
+Description=ONVIF PTZ Proxy for V380 Camera
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /etc/go2rtc/ptz-proxy.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 # Create systemd service for go2rtc
 echo "Creating systemd service..."
 sudo tee /etc/systemd/system/go2rtc.service > /dev/null << EOF
@@ -103,9 +124,10 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# Enable and start service
+# Enable and start services
 sudo systemctl daemon-reload
 sudo systemctl enable go2rtc.service
+sudo systemctl enable ptz-proxy.service
 
 echo ""
 echo "================================"
@@ -114,9 +136,11 @@ echo "================================"
 echo ""
 echo "Next steps:"
 echo "1. Edit /etc/go2rtc/go2rtc.yaml with your camera IPs and credentials"
-echo "2. Start go2rtc: sudo systemctl start go2rtc"
-echo "3. Check status: sudo systemctl status go2rtc"
+echo "2. Start services: sudo systemctl start go2rtc ptz-proxy"
+echo "3. Check status: sudo systemctl status go2rtc ptz-proxy"
 echo "4. View logs: sudo journalctl -u go2rtc -f"
+echo ""
+echo "Note: PTZ proxy reads camera IP from go2rtc.yaml (camera1 stream)"
 echo ""
 echo "Your Tailscale IP:"
 tailscale ip -4

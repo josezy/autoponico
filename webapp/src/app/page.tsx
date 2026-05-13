@@ -15,7 +15,7 @@ import { useWebSocket, WebSocketProvider } from '@/hooks/useWebsocket';
 import { MqttProvider } from '@/hooks/useMqtt';
 
 const CAMERAS = [
-  { id: 'camera1', name: 'Cannabis' },
+  { id: 'camera1', name: 'Cannabis', ptz: true },
   { id: 'camera2', name: 'Arándanos' },
   { id: 'camera3', name: 'Tanque' },
 ];
@@ -128,6 +128,7 @@ const Dashboard = () => {
             <CameraPlayer
               cameraId={selectedCamera}
               cameraName={CAMERAS.find(c => c.id === selectedCamera)?.name}
+              ptz={CAMERAS.find(c => c.id === selectedCamera)?.ptz}
               autoPlay={true}
               onExpand={() => setSelectedCamera(null)}
               expandIcon="minimize"
@@ -141,6 +142,7 @@ const Dashboard = () => {
                 key={camera.id}
                 cameraId={camera.id}
                 cameraName={camera.name}
+                ptz={'ptz' in camera ? camera.ptz : undefined}
                 autoPlay={true}
                 onExpand={() => setSelectedCamera(camera.id)}
               />
