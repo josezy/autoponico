@@ -16,8 +16,8 @@ import { MqttProvider } from '@/hooks/useMqtt';
 
 const CAMERAS = [
   { id: 'camera1', name: 'Cannabis', ptz: true },
-  { id: 'camera2', name: 'Arándanos' },
-  { id: 'camera3', name: 'Tanque' },
+  { id: 'camera2', name: 'Arándanos', ptz: true },
+  { id: 'camera3', name: 'Tanque', ptz: true },
 ];
 
 const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
