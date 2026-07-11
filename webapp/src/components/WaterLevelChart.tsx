@@ -6,14 +6,57 @@ import { TbReload } from 'react-icons/tb';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import TimeRangeSelector from './TimeRangeSelector';
 
-interface DataPoint {
-  time: string;
-  value: number;
-  _time: Date;
+interface ChartPoint {
+  timestamp: number;
+  value: number | null;
+}
+
+function parseTimeRangeMs(timeRange: string): number {
+  const match = /^-?(\d+)([mhd])$/.exec(timeRange);
+  if (!match) return 24 * 60 * 60 * 1000;
+
+  const amount = Number(match[1]);
+  const unit = match[2];
+  if (unit === 'm') return amount * 60 * 1000;
+  if (unit === 'h') return amount * 60 * 60 * 1000;
+  return amount * 24 * 60 * 60 * 1000;
+}
+
+/** Break the line when consecutive samples are farther apart than this. */
+function gapThresholdMs(timeRange: string): number {
+  const rangeMs = parseTimeRangeMs(timeRange);
+  // ~1/96 of the window (15m for 24h), clamped to [1m, 1h]
+  return Math.min(Math.max(rangeMs / 96, 60 * 1000), 60 * 60 * 1000);
+}
+
+function toChartPoints(
+  raw: { time: string; value: number }[],
+  thresholdMs: number
+): ChartPoint[] {
+  const points = raw
+    .map((point) => ({
+      timestamp: new Date(point.time).getTime(),
+      value: point.value,
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  if (points.length === 0) return [];
+
+  const withGaps: ChartPoint[] = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    if (curr.timestamp - prev.timestamp > thresholdMs) {
+      // Null breaks the Recharts line across the missing interval
+      withGaps.push({ timestamp: prev.timestamp + 1, value: null });
+    }
+    withGaps.push(curr);
+  }
+  return withGaps;
 }
 
 const WaterLevelChart: React.FC = () => {
-  const [data, setData] = useState<DataPoint[]>([]);
+  const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('-24h');
@@ -32,14 +75,7 @@ const WaterLevelChart: React.FC = () => {
       }
 
       const result = await response.json();
-
-      // Convert time strings back to Date objects for _time property
-      const waterLevelData = result.data.map((point: any) => ({
-        ...point,
-        _time: new Date(point.time)
-      }));
-
-      setData(waterLevelData);
+      setData(toChartPoints(result.data ?? [], gapThresholdMs(timeRange)));
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to fetch water level data:', err);
@@ -53,45 +89,37 @@ const WaterLevelChart: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
+  const rangeMs = parseTimeRangeMs(timeRange);
+  const domainEnd = lastUpdated?.getTime() ?? Date.now();
+  const domainStart = domainEnd - rangeMs;
 
-    if (diffHours < 1) {
+  const formatTick = (timestamp: number) => {
+    const date = new Date(timestamp);
+    if (rangeMs <= 24 * 60 * 60 * 1000) {
       return date.toLocaleTimeString('en-US', {
         hour12: false,
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } else if (diffHours < 24) {
-      return date.toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
       });
     }
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
   };
 
-  const formatTooltipTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-US', {
+  const formatTooltipTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
+      hour12: false,
     });
   };
 
@@ -145,8 +173,11 @@ const WaterLevelChart: React.FC = () => {
             <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
               <XAxis
-                dataKey="time"
-                tickFormatter={formatTime}
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={[domainStart, domainEnd]}
+                tickFormatter={formatTick}
                 stroke="#666"
                 fontSize={12}
                 tick={{ fill: '#666' }}
@@ -159,13 +190,17 @@ const WaterLevelChart: React.FC = () => {
                 label={{ value: 'Water Level (%)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip
-                labelFormatter={(value) => `Time: ${formatTooltipTime(value as string)}`}
-                formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Water Level']}
+                labelFormatter={(value) => `Time: ${formatTooltipTime(Number(value))}`}
+                formatter={(value) =>
+                  value == null
+                    ? ['—', 'Water Level']
+                    : [`${Number(value).toFixed(1)}%`, 'Water Level']
+                }
                 contentStyle={{
                   backgroundColor: '#fff',
                   border: '1px solid #ccc',
                   borderRadius: '4px',
-                  fontSize: '12px'
+                  fontSize: '12px',
                 }}
               />
               <Line
@@ -173,6 +208,7 @@ const WaterLevelChart: React.FC = () => {
                 dataKey="value"
                 stroke="#0d9488"
                 strokeWidth={2}
+                connectNulls={false}
                 dot={{ fill: '#0d9488', strokeWidth: 0, r: 2 }}
                 activeDot={{ r: 4, stroke: '#0d9488', strokeWidth: 2, fill: '#fff' }}
               />
