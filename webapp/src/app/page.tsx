@@ -17,7 +17,7 @@ import { MqttProvider } from '@/hooks/useMqtt';
 const CAMERAS = [
   { id: 'camera1', name: 'Cannabis', ptz: true },
   { id: 'camera2', name: 'Arándanos', ptz: true },
-  { id: 'camera3', name: 'Tanque', ptz: true },
+  // { id: 'camera3', name: 'Tanque', ptz: true },
 ];
 
 const LiveMeasure = (props: { command: string, value?: number, label: string, interval?: number }) => {
@@ -142,7 +142,7 @@ const Dashboard = () => {
                 key={camera.id}
                 cameraId={camera.id}
                 cameraName={camera.name}
-                ptz={'ptz' in camera ? camera.ptz : undefined}
+                ptz={camera.ptz}
                 autoPlay={true}
                 onExpand={() => setSelectedCamera(camera.id)}
               />

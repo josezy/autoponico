@@ -2,18 +2,19 @@
 # Copy this to /etc/go2rtc/go2rtc.yaml on your Raspberry Pi
 # Update camera IPs, usernames, and passwords
 #
-# Note: ptz-proxy.py reads camera1's IP from this file for ONVIF PTZ control
+# Note: ptz-proxy.py reads each stream's IP from this file for ONVIF PTZ
+# (request ?src=camera1|camera2|...)
 
 streams:
-  # Camera 1 (PTZ-capable — IP is also used by ptz-proxy.py for ONVIF)
+  # Camera 1 (Cannabis)
   camera1:
     - rtsp://admin:admin@192.168.1.128:554/live/ch00_1
 
-  # Camera 2
+  # Camera 2 (Arándanos)
   camera2:
     - rtsp://admin:admin@192.168.1.129:554/live/ch00_1
 
-  # Camera 3
+  # Camera 3 (Tanque)
   camera3:
     - rtsp://admin:admin@192.168.1.130:554/live/ch00_1
 

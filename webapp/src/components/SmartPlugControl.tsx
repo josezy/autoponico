@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ImSpinner9 } from "react-icons/im";
 import { TbPower } from "react-icons/tb";
 import { toast } from "react-toastify";
@@ -37,16 +37,23 @@ const SmartPlugControl = () => {
     return initialStates;
   });
 
-  // Function to fetch all device statuses using batch endpoint
-  const fetchAllStatuses = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const abortRef = useRef<AbortController | null>(null);
+  const inFlightRef = useRef(false);
 
+  const fetchAllStatuses = async () => {
+    if (inFlightRef.current) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    inFlightRef.current = true;
+
+    try {
       const response = await fetch('/api/tuya/plug/status-all', {
         signal: controller.signal,
       });
-      clearTimeout(timeoutId);
+
+      if (controller.signal.aborted) return;
 
       const data = await response.json();
       if (data.success && data.devices) {
@@ -66,48 +73,41 @@ const SmartPlugControl = () => {
         });
       } else {
         console.error('Failed to fetch device statuses:', data.message);
-        // Don't show toast for polling failures to avoid spam
       }
-    } catch (error: any) {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if ((error as Error).name === 'AbortError') return;
+
       console.error('Error fetching device statuses:', error);
-      if (error.name === "AbortError") {
-        // Reset loading flags on timeout
-        setDeviceStates(prev => {
-          const newStates = { ...prev };
-          Object.keys(newStates).forEach(key => {
-            newStates[key as DeviceKey] = {
-              ...newStates[key as DeviceKey],
-              loading: false
-            };
-          });
-          return newStates;
+      setDeviceStates(prev => {
+        const newStates = { ...prev };
+        Object.keys(newStates).forEach(key => {
+          newStates[key as DeviceKey] = {
+            ...newStates[key as DeviceKey],
+            connected: false,
+            loading: false
+          };
         });
-      } else {
-        // Set all devices as disconnected on other errors
-        setDeviceStates(prev => {
-          const newStates = { ...prev };
-          Object.keys(newStates).forEach(key => {
-            newStates[key as DeviceKey] = {
-              ...newStates[key as DeviceKey],
-              connected: false,
-              loading: false
-            };
-          });
-          return newStates;
-        });
+        return newStates;
+      });
+    } finally {
+      if (abortRef.current === controller) {
+        inFlightRef.current = false;
+        abortRef.current = null;
       }
     }
   };
 
-  // Set up interval for automatic status fetching
   useEffect(() => {
-    fetchAllStatuses(); // Initial fetch
+    fetchAllStatuses();
 
-    const interval = setInterval(() => {
-      fetchAllStatuses();
-    }, 1000); // Fetch every 1 second
+    const interval = setInterval(fetchAllStatuses, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      abortRef.current?.abort();
+      inFlightRef.current = false;
+    };
   }, []);
 
   // Function to handle device commands

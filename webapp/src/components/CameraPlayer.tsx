@@ -14,6 +14,23 @@ interface CameraPlayerProps {
   ptz?: boolean;
 }
 
+const CAMERA_ORIGIN = process.env.NEXT_PUBLIC_CAMERA_URL || 'https://cameras.tucanorobotics.co';
+const LOAD_TIMEOUT_MS = 15000;
+
+function getProxyBaseUrl() {
+  if (typeof window === 'undefined') return CAMERA_ORIGIN;
+  return `${window.location.origin}/api/camera-proxy`;
+}
+
+function buildStreamUrl(cameraId: string) {
+  const params = new URLSearchParams({
+    src: cameraId,
+    mode: 'mse,hls,mjpeg',
+    background: 'true',
+  });
+  return `${CAMERA_ORIGIN}/stream.html?${params.toString()}`;
+}
+
 export default function CameraPlayer({
   cameraId,
   cameraName,
@@ -23,118 +40,71 @@ export default function CameraPlayer({
   expandIcon = 'maximize',
   ptz = false,
 }: CameraPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+  const loadTimeoutRef = useRef<number | null>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
-  const CAMERA_BASE_URL = process.env.NEXT_PUBLIC_CAMERA_URL || 'https://cameras.tucanorobotics.co';
+  const clearLoadTimeout = useCallback(() => {
+    if (loadTimeoutRef.current !== null) {
+      window.clearTimeout(loadTimeoutRef.current);
+      loadTimeoutRef.current = null;
+    }
+  }, []);
 
-  const stopStream = () => {
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+  const stopStream = useCallback((resetUi = true) => {
+    clearLoadTimeout();
+    setStreamUrl(null);
     setIsPlaying(false);
-    setError(null);
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
-
-  const startStream = async () => {
-    try {
-      setIsLoading(true);
+    setIsLoading(false);
+    if (resetUi) {
       setError(null);
-
-      // Close existing connection if any
-      stopStream();
-
-      // Create new peer connection
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-
-      pcRef.current = pc;
-
-      // Add transceivers for video and audio
-      pc.addTransceiver('video', { direction: 'recvonly' });
-      pc.addTransceiver('audio', { direction: 'recvonly' });
-
-      // Handle incoming tracks
-      pc.ontrack = (event) => {
-        console.log('Received track:', event.track.kind);
-        if (videoRef.current && event.streams[0]) {
-          videoRef.current.srcObject = event.streams[0];
-          setIsPlaying(true);
-          setIsLoading(false);
-        }
-      };
-
-      // Handle connection state changes
-      pc.onconnectionstatechange = () => {
-        console.log('Connection state:', pc.connectionState);
-        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-          setError('Connection failed. Please try again.');
-          setIsLoading(false);
-          stopStream();
-        }
-      };
-
-      // Create offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // Send offer to go2rtc
-      const response = await fetch(`${CAMERA_BASE_URL}/api/webrtc?src=${cameraId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/sdp'
-        },
-        body: offer.sdp
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const answerSdp = await response.text();
-
-      // Set remote description
-      await pc.setRemoteDescription({
-        type: 'answer',
-        sdp: answerSdp
-      });
-
-      console.log('WebRTC connection established for', cameraId);
-    } catch (err) {
-      console.error('Failed to start stream:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to camera');
-      setIsLoading(false);
-      stopStream();
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
     }
-  };
+  }, [clearLoadTimeout]);
 
-  const CAMERA_PTZ_URL = `${CAMERA_BASE_URL}/ptz`;
+  const startStream = useCallback(() => {
+    clearLoadTimeout();
+    setError(null);
+    setIsLoading(true);
+    setIsPlaying(false);
+    setStreamUrl(buildStreamUrl(cameraId));
+
+    loadTimeoutRef.current = window.setTimeout(() => {
+      setIsLoading(false);
+      setError('Failed to load camera stream.');
+      setStreamUrl(null);
+    }, LOAD_TIMEOUT_MS);
+  }, [cameraId, clearLoadTimeout]);
+
+  const handleStreamLoad = useCallback(() => {
+    clearLoadTimeout();
+    setIsLoading(false);
+    setIsPlaying(true);
+    setError(null);
+  }, [clearLoadTimeout]);
+
+  const proxyBaseUrl = getProxyBaseUrl();
 
   const sendPTZ = useCallback((cmd: string) => {
-    fetch(`${CAMERA_PTZ_URL}?cmd=${cmd}&speed=0.5`, { method: 'POST' }).catch(console.error);
-  }, [CAMERA_PTZ_URL]);
+    const params = new URLSearchParams({
+      src: cameraId,
+      cmd,
+      speed: '0.5',
+    });
+    fetch(`${proxyBaseUrl}/ptz?${params.toString()}`, { method: 'POST' }).catch(console.error);
+  }, [proxyBaseUrl, cameraId]);
 
-  const stopPTZ = useCallback(() => {
-    sendPTZ('stop');
-  }, [sendPTZ]);
+  const stopPTZ = useCallback(() => sendPTZ('stop'), [sendPTZ]);
 
-  // Digital zoom
   const reclampPan = useCallback((newZoom: number) => {
-    const el = videoContainerRef.current;
+    const el = containerRef.current;
     if (!el || newZoom <= 1) { setPan({ x: 0, y: 0 }); return; }
     const maxX = ((newZoom - 1) / 2) * el.clientWidth;
     const maxY = ((newZoom - 1) / 2) * el.clientHeight;
@@ -160,9 +130,8 @@ export default function CameraPlayer({
     });
   }, [reclampPan]);
 
-  // Drag-to-pan when zoomed
   const clampPan = useCallback((x: number, y: number, z: number) => {
-    const el = videoContainerRef.current;
+    const el = containerRef.current;
     if (!el || z <= 1) return { x: 0, y: 0 };
     const maxX = ((z - 1) / 2) * el.clientWidth;
     const maxY = ((z - 1) / 2) * el.clientHeight;
@@ -175,7 +144,7 @@ export default function CameraPlayer({
   const onDragStart = useCallback((e: React.PointerEvent) => {
     if (zoom <= 1) return;
     dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
-    videoContainerRef.current?.setPointerCapture(e.pointerId);
+    containerRef.current?.setPointerCapture(e.pointerId);
   }, [zoom]);
 
   const onDragMove = useCallback((e: React.PointerEvent) => {
@@ -188,40 +157,25 @@ export default function CameraPlayer({
   }, [zoom, clampPan]);
 
   const onDragEnd = useCallback((e: React.PointerEvent) => {
-    if (dragRef.current.active) {
-      dragRef.current.active = false;
-      videoContainerRef.current?.releasePointerCapture(e.pointerId);
-    }
+    if (!dragRef.current.active) return;
+    dragRef.current.active = false;
+    containerRef.current?.releasePointerCapture(e.pointerId);
   }, []);
 
   const takeSnapshot = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')!.drawImage(video, 0, 0);
     const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/jpeg', 0.95);
+    a.href = `${proxyBaseUrl}/api/frame.jpeg?src=${cameraId}&t=${Date.now()}`;
     a.download = `${cameraName || cameraId}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`;
     a.click();
-  }, [cameraId, cameraName]);
+  }, [proxyBaseUrl, cameraId, cameraName]);
 
-  // Auto-play on mount if enabled
   useEffect(() => {
-    if (autoPlay) {
-      startStream();
-    }
-
-    // Cleanup on unmount
-    return () => {
-      stopStream();
-    };
-  }, [cameraId, autoPlay]);
+    if (autoPlay) startStream();
+    return () => stopStream(false);
+  }, [cameraId, autoPlay, startStream, stopStream]);
 
   return (
     <div className={`bg-gray-900 rounded-lg overflow-hidden ${className}`}>
-      {/* Header */}
       <div className="bg-gray-800 px-4 py-2 flex items-center justify-between">
         <h3 className="text-white font-medium">
           {cameraName || `Camera ${cameraId}`}
@@ -234,35 +188,20 @@ export default function CameraPlayer({
               className="p-2 rounded hover:bg-gray-700 text-white disabled:opacity-50"
               title="Play"
             >
-              {isLoading ? (
-                <TbReload className="animate-spin" size={20} />
-              ) : (
-                <TbPlayerPlay size={20} />
-              )}
+              {isLoading ? <TbReload className="animate-spin" size={20} /> : <TbPlayerPlay size={20} />}
             </button>
           ) : (
-            <button
-              onClick={stopStream}
-              className="p-2 rounded hover:bg-gray-700 text-white"
-              title="Stop"
-            >
+            <button onClick={() => stopStream()} className="p-2 rounded hover:bg-gray-700 text-white" title="Stop">
               <TbPlayerStop size={20} />
             </button>
           )}
           {isPlaying && (
-            <button
-              onClick={takeSnapshot}
-              className="p-2 rounded hover:bg-gray-700 text-white"
-              title="Save snapshot"
-            >
+            <button onClick={takeSnapshot} className="p-2 rounded hover:bg-gray-700 text-white" title="Save snapshot">
               <TbCamera size={20} />
             </button>
           )}
           <button
-            onClick={() => {
-              stopStream();
-              setTimeout(startStream, 100);
-            }}
+            onClick={() => { stopStream(); setTimeout(startStream, 100); }}
             disabled={isLoading}
             className="p-2 rounded hover:bg-gray-700 text-white disabled:opacity-50"
             title="Reload"
@@ -281,9 +220,8 @@ export default function CameraPlayer({
         </div>
       </div>
 
-      {/* Video Container */}
       <div
-        ref={videoContainerRef}
+        ref={containerRef}
         className="relative bg-black overflow-hidden"
         style={{
           aspectRatio: '16/9',
@@ -295,22 +233,25 @@ export default function CameraPlayer({
         onPointerUp={onDragEnd}
         onPointerCancel={onDragEnd}
       >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          draggable={false}
-          className="w-full h-full object-contain"
-          style={{
-            transform: zoom > 1 ? `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` : undefined,
-            willChange: zoom > 1 ? 'transform' : undefined,
-          }}
-        />
+        {streamUrl && (
+          <iframe
+            src={streamUrl}
+            title={cameraName || cameraId}
+            allow="autoplay; fullscreen"
+            // Block hover/click into go2rtc so its native controls never show or pause the stream.
+            // Parent handles pan/zoom; PTZ buttons sit above with pointer-events-auto.
+            className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+            style={{
+              transform: zoom > 1 ? `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` : undefined,
+              transformOrigin: 'center center',
+              willChange: zoom > 1 ? 'transform' : undefined,
+            }}
+            onLoad={handleStreamLoad}
+          />
+        )}
 
-        {/* Loading overlay */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
             <div className="text-white flex flex-col items-center gap-2">
               <TbReload className="animate-spin" size={32} />
               <span>Connecting...</span>
@@ -318,16 +259,14 @@ export default function CameraPlayer({
           </div>
         )}
 
-        {/* Error overlay */}
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/75">
             <p className="text-red-400 text-center px-4">⚠️ {error}</p>
           </div>
         )}
 
-        {/* Play prompt */}
         {!isPlaying && !isLoading && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
             <button
               onClick={startStream}
               className="p-4 rounded-full bg-teal-600 text-white hover:bg-teal-700 transition-colors"
@@ -337,11 +276,9 @@ export default function CameraPlayer({
           </div>
         )}
 
-        {/* PTZ Controls */}
         {ptz && isPlaying && (
-          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-200">
-            {/* Directional pad - centered */}
-            <div className="absolute bottom-4 left-4 grid grid-cols-3 gap-0.5">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute bottom-4 left-4 grid grid-cols-3 gap-0.5 z-10 pointer-events-auto">
               <div />
               <PTZButton cmd="up" onStart={sendPTZ} onStop={stopPTZ}><TbArrowUp size={20} /></PTZButton>
               <div />
@@ -352,8 +289,7 @@ export default function CameraPlayer({
               <PTZButton cmd="down" onStart={sendPTZ} onStop={stopPTZ}><TbArrowDown size={20} /></PTZButton>
               <div />
             </div>
-            {/* Digital zoom controls */}
-            <div className="absolute bottom-4 right-4 flex flex-col gap-0.5 items-center">
+            <div className="absolute bottom-4 right-4 flex flex-col gap-0.5 items-center z-10 pointer-events-auto">
               {zoom > 1 && (
                 <span className="text-white text-xs bg-black/50 rounded px-1.5 py-0.5 mb-0.5">{zoom}x</span>
               )}

@@ -140,7 +140,7 @@ echo "2. Start services: sudo systemctl start go2rtc ptz-proxy"
 echo "3. Check status: sudo systemctl status go2rtc ptz-proxy"
 echo "4. View logs: sudo journalctl -u go2rtc -f"
 echo ""
-echo "Note: PTZ proxy reads camera IP from go2rtc.yaml (camera1 stream)"
+echo "Note: PTZ proxy reads each camera IP from go2rtc.yaml via ?src=cameraN"
 echo ""
 echo "Your Tailscale IP:"
 tailscale ip -4

@@ -24,18 +24,18 @@
               ]
             },
             {
-              "match": [{"host": ["cameras.tucanorobotics.co"]}],
+              "match": [{"host": ["cameras.tucanorobotics.co"], "path": ["/ptz"]}],
+              "terminal": true,
               "handle": [
                 {
-                  "handler": "headers",
-                  "response": {
-                    "set": {
-                      "Access-Control-Allow-Origin": ["*"],
-                      "Access-Control-Allow-Methods": ["GET, POST, OPTIONS"],
-                      "Access-Control-Allow-Headers": ["Content-Type"]
-                    }
-                  }
-                },
+                  "handler": "reverse_proxy",
+                  "upstreams": [{"dial": "100.66.228.7:8556"}]
+                }
+              ]
+            },
+            {
+              "match": [{"host": ["cameras.tucanorobotics.co"]}],
+              "handle": [
                 {
                   "handler": "reverse_proxy",
                   "upstreams": [{"dial": "100.66.228.7:8555"}],

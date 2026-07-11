@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Lightweight ONVIF PTZ proxy for V380 cameras."""
+"""Lightweight ONVIF PTZ proxy for V380 cameras.
+
+Resolves each camera's IP from go2rtc.yaml using the `src` query param
+(e.g. camera1, camera2) so multiple PTZ cameras can be controlled.
+"""
 
 import json
 import re
@@ -7,18 +11,20 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from urllib.request import Request, urlopen
 
+
 GO2RTC_CONFIG = "/etc/go2rtc/go2rtc.yaml"
 ONVIF_PORT = 8899
 PROFILE_TOKEN = "stream0_0"
 PORT = 8556
+DEFAULT_SRC = "camera1"
+SRC_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
-def get_camera_ip(config_path=GO2RTC_CONFIG, stream="camera1"):
+def get_camera_ip(config_path=GO2RTC_CONFIG, stream=DEFAULT_SRC):
     """Extract camera IP from go2rtc config (first RTSP URL for the given stream)."""
     with open(config_path) as f:
         content = f.read()
-    # Find RTSP URL under the stream name
-    pattern = rf'{stream}:\s*\n\s*-\s*(rtsp://\S+)'
+    pattern = rf"{stream}:\s*\n\s*-\s*(rtsp://\S+)"
     match = re.search(pattern, content)
     if not match:
         raise RuntimeError(f"Could not find RTSP URL for '{stream}' in {config_path}")
@@ -26,8 +32,9 @@ def get_camera_ip(config_path=GO2RTC_CONFIG, stream="camera1"):
     return parsed.hostname
 
 
-CAMERA_IP = get_camera_ip()
-ONVIF_URL = f"http://{CAMERA_IP}:{ONVIF_PORT}/onvif/PTZ"
+def onvif_url(stream: str) -> str:
+    return f"http://{get_camera_ip(stream=stream)}:{ONVIF_PORT}/onvif/PTZ"
+
 
 CONTINUOUS_MOVE_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"
@@ -64,24 +71,28 @@ COMMANDS = {
 }
 
 
-def send_onvif(body: str) -> str:
-    req = Request(ONVIF_URL, data=body.encode(), headers={"Content-Type": "application/soap+xml"})
+def send_onvif(body: str, stream: str) -> str:
+    req = Request(
+        onvif_url(stream),
+        data=body.encode(),
+        headers={"Content-Type": "application/soap+xml"},
+    )
     with urlopen(req, timeout=5) as resp:
         return resp.read().decode()
 
 
-def handle_ptz(cmd: str, speed: float = 0.5) -> dict:
+def handle_ptz(cmd: str, stream: str, speed: float = 0.5) -> dict:
     if cmd == "stop":
-        send_onvif(STOP_TEMPLATE.format(profile=PROFILE_TOKEN))
-        return {"ok": True, "cmd": "stop"}
+        send_onvif(STOP_TEMPLATE.format(profile=PROFILE_TOKEN), stream)
+        return {"ok": True, "cmd": "stop", "src": stream}
 
     if cmd not in COMMANDS:
         return {"error": f"Unknown command: {cmd}", "valid": list(COMMANDS.keys()) + ["stop"]}
 
     velocity = {k: v.format(speed=speed) for k, v in COMMANDS[cmd].items()}
     body = CONTINUOUS_MOVE_TEMPLATE.format(profile=PROFILE_TOKEN, **velocity)
-    send_onvif(body)
-    return {"ok": True, "cmd": cmd, "speed": speed}
+    send_onvif(body, stream)
+    return {"ok": True, "cmd": cmd, "src": stream, "speed": speed}
 
 
 class PTZHandler(BaseHTTPRequestHandler):
@@ -104,14 +115,19 @@ class PTZHandler(BaseHTTPRequestHandler):
 
         params = parse_qs(parsed.query)
         cmd = params.get("cmd", [None])[0]
+        src = params.get("src", [DEFAULT_SRC])[0]
         speed = float(params.get("speed", ["0.5"])[0])
 
         if not cmd:
             self._respond(400, {"error": "Missing 'cmd' parameter"})
             return
 
+        if not src or not SRC_PATTERN.match(src):
+            self._respond(400, {"error": "Invalid 'src' parameter"})
+            return
+
         try:
-            result = handle_ptz(cmd, speed)
+            result = handle_ptz(cmd, src, speed)
             status = 200 if "ok" in result else 400
             self._respond(status, result)
         except Exception as e:
@@ -129,8 +145,8 @@ class PTZHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"Camera IP: {CAMERA_IP} (from {GO2RTC_CONFIG})")
-    print(f"ONVIF URL: {ONVIF_URL}")
+    print(f"Reading camera IPs from {GO2RTC_CONFIG} (per-request src)")
+    print(f"Default src: {DEFAULT_SRC}")
     server = HTTPServer(("0.0.0.0", PORT), PTZHandler)
     print(f"PTZ proxy listening on port {PORT}")
     server.serve_forever()
