@@ -123,32 +123,28 @@ const Dashboard = () => {
       {/* Cameras */}
       <div className="bg-white shadow rounded-lg p-4 mb-4">
         <h2 className="text-xl font-semibold mb-2 dark:text-gray-900">Cameras</h2>
-        {selectedCamera ? (
-          <div>
-            <CameraPlayer
-              cameraId={selectedCamera}
-              cameraName={CAMERAS.find(c => c.id === selectedCamera)?.name}
-              ptz={CAMERAS.find(c => c.id === selectedCamera)?.ptz}
-              autoPlay={true}
-              onExpand={() => setSelectedCamera(null)}
-              expandIcon="minimize"
-              className="max-w-4xl mx-auto"
-            />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CAMERAS.map((camera) => (
-              <CameraPlayer
+        {/* Keep all players mounted so expand/collapse only restyles — streams stay connected. */}
+        <div className={selectedCamera ? '' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}>
+          {CAMERAS.map((camera) => {
+            const isExpanded = selectedCamera === camera.id;
+            const isHidden = selectedCamera !== null && !isExpanded;
+            return (
+              <div
                 key={camera.id}
-                cameraId={camera.id}
-                cameraName={camera.name}
-                ptz={camera.ptz}
-                autoPlay={true}
-                onExpand={() => setSelectedCamera(camera.id)}
-              />
-            ))}
-          </div>
-        )}
+                className={isHidden ? 'hidden' : isExpanded ? 'max-w-4xl mx-auto' : undefined}
+              >
+                <CameraPlayer
+                  cameraId={camera.id}
+                  cameraName={camera.name}
+                  ptz={camera.ptz}
+                  autoPlay={true}
+                  onExpand={() => setSelectedCamera(isExpanded ? null : camera.id)}
+                  expandIcon={isExpanded ? 'minimize' : 'maximize'}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <WaterLevelChart />
