@@ -74,13 +74,20 @@ Go to https://tasmota.github.io/install/ and flash Tasmota if needed
 - **Full Topic**: `%prefix%/%topic%/`
 
 ### Module Template (Sonoff Basic R4)
+Device reference: [templates.blakadder.com/sonoff_BASICR4.html](https://templates.blakadder.com/sonoff_BASICR4.html)
+
 Apply via Console (`http://<device-ip>/cs`):
 ```
 Template {"NAME":"Sonoff Basic R4","GPIO":[0,0,0,0,224,0,544,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0],"FLAG":0,"BASE":1}
 Module 0
 ```
 
-GPIO mapping: GPIO4 = Relay1, GPIO6 = LED1, GPIO9 = Button1.
+GPIO mapping: GPIO4 = Relay1, GPIO6 = LedLink, GPIO9 = Button1. Single relay only (no energy metering).
+
+Timer features used by the dashboard (via MQTT):
+- **TimedPower** — one-shot countdown (ON for N, then OFF)
+- **PulseTime** — sticky auto-off after every ON
+- **Timer1–16** — clock schedules (device NTP/time must be correct)
 
 For other devices, find your template at [templates.blakadder.com](https://templates.blakadder.com).
 
