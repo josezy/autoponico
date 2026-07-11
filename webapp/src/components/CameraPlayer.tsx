@@ -49,6 +49,7 @@ export default function CameraPlayer({
   const [isLoading, setIsLoading] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isSnapshotting, setIsSnapshotting] = useState(false);
 
   const clearLoadTimeout = useCallback(() => {
     if (loadTimeoutRef.current !== null) {
@@ -162,11 +163,27 @@ export default function CameraPlayer({
     containerRef.current?.releasePointerCapture(e.pointerId);
   }, []);
 
-  const takeSnapshot = useCallback(() => {
-    const a = document.createElement('a');
-    a.href = `${proxyBaseUrl}/api/frame.jpeg?src=${cameraId}&t=${Date.now()}`;
-    a.download = `${cameraName || cameraId}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`;
-    a.click();
+  const takeSnapshot = useCallback(async () => {
+    setIsSnapshotting(true);
+    try {
+      const res = await fetch(
+        `${proxyBaseUrl}/api/frame.jpeg?src=${encodeURIComponent(cameraId)}&t=${Date.now()}`
+      );
+      if (!res.ok) throw new Error(`Snapshot failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cameraName || cameraId}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to save snapshot:', err);
+    } finally {
+      setIsSnapshotting(false);
+    }
   }, [proxyBaseUrl, cameraId, cameraName]);
 
   useEffect(() => {
@@ -196,8 +213,13 @@ export default function CameraPlayer({
             </button>
           )}
           {isPlaying && (
-            <button onClick={takeSnapshot} className="p-2 rounded hover:bg-gray-700 text-white" title="Save snapshot">
-              <TbCamera size={20} />
+            <button
+              onClick={takeSnapshot}
+              disabled={isSnapshotting}
+              className="p-2 rounded hover:bg-gray-700 text-white disabled:opacity-50"
+              title="Save snapshot"
+            >
+              {isSnapshotting ? <TbReload className="animate-spin" size={20} /> : <TbCamera size={20} />}
             </button>
           )}
           <button
