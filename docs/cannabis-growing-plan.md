@@ -10,14 +10,13 @@
 ## Week 1-3: Early Vegetative
 - **Container**: Transfer to 20L grow bags
 - **Soil Mix**: 60% nursery soil, 25% rice husks, 15% coconut substrate
-- **Water**: 5 minutes twice daily (morning/evening) via drip irrigation
+- **Water**: 5 minutes once daily via drip irrigation
 - **Nutrients**: Light chicken manure mixed into soil
 - **Maintenance**: Ensure light reaches all plants evenly
 
 ## Week 3-5: Mid Vegetative
 - **Nutrients**: Add 50-100g urea per plant (dig shallow trench around plant, distribute evenly, cover lightly)
 - **Pruning**: Perform "poda apical" (topping) when plants have 5-6 nodes
-- **Water**: Increase to 10 minutes twice daily
 - **Pest Control**: Start preventative spraying with candonga (0.5cc/L)
 
 ## Week 5-7: Late Vegetative
