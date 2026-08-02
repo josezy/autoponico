@@ -68,9 +68,13 @@ function DeviceControl({
         <button
           type="button"
           onClick={() => onOpenTimers(device.key)}
-          disabled={!mqttConnected}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-white hover:text-blue-700 disabled:opacity-40"
-          title="Timers"
+          disabled={!mqttConnected || !device.connected}
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-white hover:text-blue-700 disabled:pointer-events-none disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+          title={
+            !mqttConnected || !device.connected
+              ? "Timers unavailable while device is offline"
+              : "Timers"
+          }
           aria-label={`${device.name} timers`}
         >
           {remainingSec > 0 && (
