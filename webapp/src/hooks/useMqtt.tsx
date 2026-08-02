@@ -4,7 +4,8 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import mqtt, { MqttClient } from 'mqtt';
 
 import {
-  parseTimerPayload,
+  extractTimersFromPayload,
+  mergeScheduleTimers,
   secondsToPulseTime,
   timerToPayload,
   TasmotaScheduleTimer,
@@ -44,7 +45,8 @@ const SUBSCRIPTIONS = [
   'tele/+/STATE',
   'stat/+/POWER',
   'stat/+/RESULT',
-  'stat/+/STATUS7',
+  // SetOption4 ON replies on command-named topics instead of RESULT
+  'stat/+/TIMERS',
 ];
 
 type DevicePatch = Partial<
@@ -99,11 +101,6 @@ const normalizePower = (raw: unknown): DevicePower => {
   return 'UNKNOWN';
 };
 
-const isConfiguredTimer = (timer: TasmotaScheduleTimer) => {
-  const hasDays = timer.days.replace(/[0-]/g, '').length > 0;
-  return timer.enable || hasDays;
-};
-
 const MqttContext = createContext<MqttContextType | null>(null);
 
 export const MqttProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -131,7 +128,8 @@ export const MqttProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshTimerState = useCallback((deviceKey: DeviceKey) => {
     publishDeviceCmnd(deviceKey, 'TimedPower', '');
     publishDeviceCmnd(deviceKey, 'PulseTime', '');
-    publishDeviceCmnd(deviceKey, 'STATUS', '7');
+    // Empty Timers payload queries master switch + Timer1–16 (not STATUS 7 — that is clock/NTP).
+    publishDeviceCmnd(deviceKey, 'Timers', '');
   }, [publishDeviceCmnd]);
 
   const parseTimedPowerResult = useCallback((deviceKey: DeviceKey, value: unknown) => {
@@ -162,25 +160,26 @@ export const MqttProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [updateDevice]);
 
-  const parseStatusTim = useCallback((deviceKey: DeviceKey, statusTim: Record<string, unknown>) => {
-    const timersFlag = statusTim.Timers;
-    const timersEnabled =
-      timersFlag === 'ON' || timersFlag === 1 || timersFlag === '1' || timersFlag === true;
+  const applyTimersPayload = useCallback((deviceKey: DeviceKey, parsed: Record<string, unknown>) => {
+    const { timersEnabled, timers, hasTimerEntries } = extractTimersFromPayload(parsed);
+    if (timersEnabled === undefined && !hasTimerEntries) return;
 
-    const timers: TasmotaScheduleTimer[] = [];
-    for (let i = 1; i <= 16; i++) {
-      const key = `Timer${i}`;
-      if (!(key in statusTim)) continue;
-      const timer = parseTimerPayload(i, statusTim[key]);
-      if (!timer) continue;
-      const hasDays = timer.days.replace(/[0-]/g, '').length > 0;
-      if (timer.enable || hasDays) {
-        timers.push(timer);
-      }
-    }
-
-    updateDevice(deviceKey, { timersEnabled: !!timersEnabled, timers });
-  }, [updateDevice]);
+    setDevices((prev) => {
+      const current = prev[deviceKey];
+      const nextTimers = hasTimerEntries
+        ? mergeScheduleTimers(current.timers, timers)
+        : current.timers;
+      return {
+        ...prev,
+        [deviceKey]: {
+          ...current,
+          ...(timersEnabled !== undefined && { timersEnabled }),
+          timers: nextTimers,
+          lastSeen: new Date(),
+        },
+      };
+    });
+  }, []);
 
   const parseResultPayload = useCallback((deviceKey: DeviceKey, parsed: Record<string, unknown>) => {
     const power = normalizePower(parsed.POWER ?? parsed.POWER1 ?? parsed.Power ?? parsed.power);
@@ -196,37 +195,8 @@ export const MqttProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       parsePulseTimeResult(deviceKey, parsed);
     }
 
-    if ('Timers' in parsed && (parsed.Timers === 'ON' || parsed.Timers === 'OFF' || parsed.Timers === 0 || parsed.Timers === 1 || parsed.Timers === 2)) {
-      updateDevice(deviceKey, {
-        timersEnabled: parsed.Timers === 'ON' || parsed.Timers === 1,
-      });
-    }
-
-    for (let i = 1; i <= 16; i++) {
-      const key = `Timer${i}`;
-      if (!(key in parsed)) continue;
-      const timer = parseTimerPayload(i, parsed[key]);
-      if (!timer) continue;
-      setDevices((prev) => {
-        const existing = prev[deviceKey].timers.filter((t) => t.index !== i);
-        const nextTimers = isConfiguredTimer(timer)
-          ? [...existing, timer].sort((a, b) => a.index - b.index)
-          : existing;
-        return {
-          ...prev,
-          [deviceKey]: {
-            ...prev[deviceKey],
-            timers: nextTimers,
-            lastSeen: new Date(),
-          },
-        };
-      });
-    }
-
-    if (parsed.StatusTIM && typeof parsed.StatusTIM === 'object') {
-      parseStatusTim(deviceKey, parsed.StatusTIM as Record<string, unknown>);
-    }
-  }, [parsePulseTimeResult, parseStatusTim, parseTimedPowerResult, updateDevice]);
+    applyTimersPayload(deviceKey, parsed);
+  }, [applyTimersPayload, parsePulseTimeResult, parseTimedPowerResult, updateDevice]);
 
   useEffect(() => {
     const brokerUrl = process.env.NEXT_PUBLIC_MQTT_WS_URL || 'wss://autoponico-ws.tucanorobotics.co/mqtt';
@@ -242,13 +212,13 @@ export const MqttProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     client.on('connect', () => {
       setMqttConnected(true);
-      client.subscribe(SUBSCRIPTIONS);
-
-      TASMOTA_DEVICES.forEach((d) => {
-        client.publish(`cmnd/${d.topic}/POWER`, '');
-        client.publish(`cmnd/${d.topic}/TimedPower`, '');
-        client.publish(`cmnd/${d.topic}/PulseTime`, '');
-        client.publish(`cmnd/${d.topic}/STATUS`, '7');
+      client.subscribe(SUBSCRIPTIONS, () => {
+        TASMOTA_DEVICES.forEach((d) => {
+          client.publish(`cmnd/${d.topic}/POWER`, '');
+          client.publish(`cmnd/${d.topic}/TimedPower`, '');
+          client.publish(`cmnd/${d.topic}/PulseTime`, '');
+          client.publish(`cmnd/${d.topic}/Timers`, '');
+        });
       });
     });
 
@@ -289,13 +259,9 @@ export const MqttProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      if (prefix === 'stat' && (leaf === 'RESULT' || leaf === 'STATUS7')) {
+      if (prefix === 'stat' && (leaf === 'RESULT' || leaf === 'TIMERS')) {
         try {
           const parsed = JSON.parse(payloadText) as Record<string, unknown>;
-          if (leaf === 'STATUS7' && parsed.StatusTIM && typeof parsed.StatusTIM === 'object') {
-            parseStatusTim(device.key, parsed.StatusTIM as Record<string, unknown>);
-            return;
-          }
           parseResultPayload(device.key, parsed);
         } catch { /* ignore malformed JSON */ }
       }
@@ -306,7 +272,7 @@ export const MqttProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       client.end();
       clientRef.current = null;
     };
-  }, [parseResultPayload, parseStatusTim, updateDevice]);
+  }, [parseResultPayload, updateDevice]);
 
   const sendCommand = useCallback((deviceKey: DeviceKey, action: 'ON' | 'OFF' | 'TOGGLE') => {
     publishDeviceCmnd(deviceKey, 'POWER', action);

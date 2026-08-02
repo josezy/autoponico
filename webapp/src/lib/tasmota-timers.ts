@@ -57,10 +57,12 @@ export function parseTimerPayload(index: number, raw: unknown): TasmotaScheduleT
   const days = daysRaw.length === 7 ? daysRaw : EMPTY_DAYS;
   const actionRaw = Number(t.Action);
   const action = (actionRaw === 0 || actionRaw === 1 || actionRaw === 2 ? actionRaw : 0) as TimerAction;
+  // Modern firmware uses Enable; older builds used Arm.
+  const enableRaw = t.Enable ?? t.Arm;
 
   return {
     index,
-    enable: Number(t.Enable) === 1,
+    enable: Number(enableRaw) === 1,
     mode: Number(t.Mode) || 0,
     time,
     window: Number(t.Window) || 0,
@@ -69,6 +71,77 @@ export function parseTimerPayload(index: number, raw: unknown): TasmotaScheduleT
     output: Number(t.Output) || 1,
     action,
   };
+}
+
+/** True when a timer slot has a meaningful schedule (armed and/or days set). */
+export function isConfiguredTimer(timer: TasmotaScheduleTimer): boolean {
+  const hasDays = timer.days.replace(/[0-]/g, '').length > 0;
+  return timer.enable || hasDays;
+}
+
+/**
+ * Parse a Timers MQTT reply.
+ * Empty `Timers` query returns several messages:
+ *   {"Timers":"ON"|"OFF"}
+ *   {"Timers1":{"Timer1":{...},..."Timer4":{...}}}
+ *   ... Timers2 / Timers3 / Timers4 ...
+ * Single TimerN set/query replies as {"TimerN":{...}} on RESULT.
+ */
+export function extractTimersFromPayload(parsed: Record<string, unknown>): {
+  timersEnabled?: boolean;
+  timers: TasmotaScheduleTimer[];
+  hasTimerEntries: boolean;
+} {
+  let timersEnabled: boolean | undefined;
+  const timers: TasmotaScheduleTimer[] = [];
+  let hasTimerEntries = false;
+
+  if ('Timers' in parsed) {
+    const flag = parsed.Timers;
+    if (flag === 'ON' || flag === 'OFF' || flag === 0 || flag === 1 || flag === 2) {
+      timersEnabled = flag === 'ON' || flag === 1;
+    }
+  }
+
+  for (let group = 1; group <= 4; group++) {
+    const groupKey = `Timers${group}`;
+    const groupVal = parsed[groupKey];
+    if (!groupVal || typeof groupVal !== 'object') continue;
+    const groupObj = groupVal as Record<string, unknown>;
+    for (let i = 1; i <= 16; i++) {
+      const key = `Timer${i}`;
+      if (!(key in groupObj)) continue;
+      hasTimerEntries = true;
+      const timer = parseTimerPayload(i, groupObj[key]);
+      if (timer) timers.push(timer);
+    }
+  }
+
+  for (let i = 1; i <= 16; i++) {
+    const key = `Timer${i}`;
+    if (!(key in parsed)) continue;
+    hasTimerEntries = true;
+    const timer = parseTimerPayload(i, parsed[key]);
+    if (timer) timers.push(timer);
+  }
+
+  return { timersEnabled, timers, hasTimerEntries };
+}
+
+/** Merge incoming TimerN slots into the current list (unconfigured slots are removed). */
+export function mergeScheduleTimers(
+  existing: TasmotaScheduleTimer[],
+  incoming: TasmotaScheduleTimer[],
+): TasmotaScheduleTimer[] {
+  const byIndex = new Map(existing.map((t) => [t.index, t]));
+  for (const timer of incoming) {
+    if (isConfiguredTimer(timer)) {
+      byIndex.set(timer.index, timer);
+    } else {
+      byIndex.delete(timer.index);
+    }
+  }
+  return [...byIndex.values()].sort((a, b) => a.index - b.index);
 }
 
 export function timerToPayload(timer: Omit<TasmotaScheduleTimer, 'index'>): string {
