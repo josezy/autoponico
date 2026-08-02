@@ -10,7 +10,7 @@ import {
   TasmotaScheduleTimer,
 } from '@/lib/tasmota-timers';
 
-export type DeviceKey = 'valvula-tanque';
+export type DeviceKey = 'valvula-tanque' | 'main-pump';
 type DevicePower = 'ON' | 'OFF' | 'UNKNOWN';
 
 export interface TasmotaDevice {
@@ -36,6 +36,7 @@ export interface TasmotaDeviceState {
 
 export const TASMOTA_DEVICES: TasmotaDevice[] = [
   { key: 'valvula-tanque', name: 'Valvula Tanque', topic: 'valvula-tanque' },
+  { key: 'main-pump', name: 'Main Pump', topic: 'main-pump' },
 ];
 
 const SUBSCRIPTIONS = [

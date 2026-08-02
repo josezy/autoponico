@@ -9,7 +9,6 @@ export const DEVICES = {
   fresas: 'eb1d005863986e4722kijt',
   'valvula-tanque': 'eb07e202668d3484fex0q1',
   'luz-cannabis': 'ebc53a29ba4ed0d35btbig',
-  'main-pump': 'ebd37d04f46a32e55chx6g'
 } as const;
 
 export type DeviceKey = keyof typeof DEVICES;
