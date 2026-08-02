@@ -41,25 +41,51 @@ Cross RX/TX. Confirm the adapter is **3.3V**, not 5V.
 
 1. Open [https://tasmota.github.io/install/](https://tasmota.github.io/install/) in Chrome/Edge.
 2. Set **Flash Speed** to **115200 Baud** — higher baud rates failed on this hardware; 115200 is the known-good setting.
-3. Select firmware **`tasmota32c3`** (ESP32-C3), not plain `tasmota` / ESP8266.
+3. Select the default / plain **Tasmota** release for the device (ESP32-C3 Sonoff Basic R4). Do **not** use ESP8266-only builds or Tasmotizer.
 4. Click **Install** → pick the correct serial port.
-5. Allow erase + flash (~few minutes), then reboot / power-cycle.
+5. Allow erase + flash (~few minutes), then reboot / power-cycle (normal boot, do not hold the button).
 
-## First Wi-Fi config
+Verified working with stock web-installer Tasmota (e.g. 15.5.x `tasmota32` / ESP32-C3).
+
+## First Wi-Fi / MQTT config (serial script)
+
+Preferred after flash: keep USB-TTL connected (normal boot, AP `tasmota-XXXX` is OK) and run:
+
+```bash
+python3.12 -m venv scripts/.venv
+scripts/.venv/bin/pip install -r scripts/requirements-tasmota.txt
+cp scripts/tasmota.env.example scripts/tasmota.env   # fill Wi-Fi password + topic
+
+# Probe USB-TTL ports that speak Tasmota (JSON)
+scripts/.venv/bin/python scripts/configure-tasmota.py --list-compatible
+
+# Validate secrets file
+scripts/.venv/bin/python scripts/configure-tasmota.py --check-env scripts/tasmota.env
+
+# Configure + verify (auto-picks the only compatible port, or pass --port)
+scripts/.venv/bin/python scripts/configure-tasmota.py --env scripts/tasmota.env
+```
+
+Agent skill: `.cursor/skills/configure-tasmota-device` (`/configure-tasmota-device`).
+
+The script sets Wi-Fi, MQTT (`FullTopic %prefix%/%topic%/`), timezone (`-5`), NTP, Basic R4 template (waits for template restart), then verifies Wi-Fi IP / MQTT / topic / timezone. List all serial candidates with `--list-ports`.
+
+### Manual captive-portal alternative
 
 1. Connect a phone/laptop to the Tasmota AP (`tasmota-XXXX`).
 2. Open `http://192.168.4.1` and enter LAN Wi-Fi credentials.
-3. Device joins DHCP; use its LAN IP for the rest of setup.
+3. Device joins DHCP; use its LAN IP for MQTT / template via the web UI.
 
 ## Module template
 
 Go to Configuration → Configure Other → paste the template → check Activate → Save.
 
 ```
-{"NAME":"Sonoff Basic R4","GPIO":[0,0,0,0,224,0,544,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0],"FLAG":0,"BASE":1}
+{"NAME":"Sonoff Basic R4","GPIO":[0,0,0,0,224,0,288,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0],"FLAG":0,"BASE":1}
 ```
 
-GPIO: Relay1 = GPIO4, LedLink = GPIO6, Button1 = GPIO9.
+GPIO: Relay1 = GPIO4, **Led1** = GPIO6 (follows POWER; use `288`), Button1 = GPIO9.  
+Note: blakadder’s `544` (LedLink) only indicates Wi‑Fi and stays off when connected. If the LED is inverted vs relay, use `289` (Led1i) instead of `288`.
 
 ## MQTT (Autoponico)
 
@@ -74,11 +100,11 @@ GPIO: Relay1 = GPIO4, LedLink = GPIO6, Button1 = GPIO9.
 
 Current Tasmota topics: `valvula-tanque`, `main-pump`.
 
-Dashboard timer features (MQTT): TimedPower, PulseTime, Timer1–16 (device NTP/time must be correct for schedules).
+Dashboard timer features (MQTT): TimedPower, PulseTime, Timer1–16 (schedules are loaded with an empty `Timers` command — not `STATUS 7`, which is clock/NTP only). Device NTP/time must be correct for schedules.
 
 ## Troubleshooting
 
 - **Flash fails / times out**: use **115200** baud; re-enter flash mode (hold button before applying USB power); check 3.3V and crossed RX/TX.
 - **No serial port**: install USB-TTL drivers; try another cable/port.
-- **Wrong firmware**: must be `tasmota32c3`.
+- **Wrong firmware**: use stock web-installer **Tasmota** for ESP32-C3 — not ESP8266 builds / Tasmotizer.
 - **Relay/button wrong**: re-apply template.
