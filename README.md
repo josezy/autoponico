@@ -64,13 +64,12 @@ For production, run with `env (cat prod.env | xargs) ts-node main.ts`
 ## Tasmota Device Configuration
 The webapp dashboard controls Tasmota devices via MQTT. Each device must be configured to connect to the ws-server MQTT broker.
 
-### Setup device
-Go to https://tasmota.github.io/install/ and flash Tasmota if needed
+**Full flash + MQTT guide:** [agent/tasmota.md](agent/tasmota.md) (Sonoff Basic R4 / ESP32-C3; web installer at **115200** baud).
 
 ### MQTT Settings (`http://<device-ip>/mq`)
-- **Host**: IP of the machine running ws-server
+- **Host**: IP of the machine running ws-server (`rata`)
 - **Port**: `1883`
-- **Topic**: Must match one of the defined device topics: `fresas`, `valvula-tanque`, `luz-cannabis`, `main-pump`
+- **Topic**: Must match a key in `TASMOTA_DEVICES` (`webapp/src/hooks/useMqtt.tsx`) — currently `valvula-tanque`, `main-pump`
 - **Full Topic**: `%prefix%/%topic%/`
 
 ### Module Template (Sonoff Basic R4)

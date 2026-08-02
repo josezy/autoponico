@@ -5,3 +5,4 @@ Material that is too long for root `AGENTS.md`, written so future agents (and hu
 | Doc | Contents |
 |-----|----------|
 | [infrastructure.md](infrastructure.md) | Hosts, services, clone paths, deploy checklists |
+| [tasmota.md](tasmota.md) | Flash Sonoff Basic R4 with Tasmota, template, MQTT |

@@ -17,6 +17,10 @@ Cross-tool entrypoint for coding agents working in this repo.
 
 Read **[agent/infrastructure.md](agent/infrastructure.md)** for hosts, services, clone paths, and how to update them via git (not one-off file copies).
 
+## Tasmota / Sonoff
+
+Flash and MQTT setup for Sonoff Basic R4: **[agent/tasmota.md](agent/tasmota.md)** (use **115200** baud on the web installer).
+
 ## Defaults
 
 - Prefer editing files in git, then `git pull` on hosts and restart/reload the affected service.
