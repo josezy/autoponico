@@ -141,7 +141,7 @@ export function mergeScheduleTimers(
       byIndex.delete(timer.index);
     }
   }
-  return [...byIndex.values()].sort((a, b) => a.index - b.index);
+  return Array.from(byIndex.values()).sort((a, b) => a.index - b.index);
 }
 
 export function timerToPayload(timer: Omit<TasmotaScheduleTimer, 'index'>): string {

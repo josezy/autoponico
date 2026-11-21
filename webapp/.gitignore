@@ -35,4 +35,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local itinerary photos (object storage is used outside this folder)
+/data
+
 certificates
