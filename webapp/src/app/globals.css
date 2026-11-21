@@ -32,6 +32,14 @@ body {
 }
 
 input[type="text"],
-input[type="password"] {
-  @apply shadow border rounded w-full py-1 px-2 text-gray-800 leading-tight focus:outline-none;
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  @apply shadow border rounded w-full py-2 px-2 text-base text-gray-800 leading-tight focus:outline-none bg-white;
+}
+
+textarea {
+  @apply min-h-[5.5rem];
 }
